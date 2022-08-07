@@ -50,8 +50,6 @@ df_us_2020 <- fread("../bg-us/int_data/df_us_2020_standardised.csv", nThread = 8
 df_us_2021 <- fread("../bg-us/int_data/df_us_2021_standardised.csv", nThread = 8)
 df_us_2022 <- fread("../bg-us/int_data/df_us_2022_standardised.csv", nThread = 8)
 
-
-
 #df_all <- rbindlist(list(df_nz,df_aus,df_can,df_uk,df_us_2019,df_us_2020,df_us_2021,df_us_2022), use.names = TRUE, fill = TRUE)
 df_all_list <- list(df_nz,df_aus,df_can,df_uk,df_us_2019,df_us_2020,df_us_2021,df_us_2022)
 ls()
@@ -62,6 +60,9 @@ nrow(df_all_list[[1]])
 df_all_list[[1]] <- df_all_list[[1]] %>%
   .[job_domain != "nz.mercadojobs.com"]
 nrow(df_all_list[[1]])
+#### END ####
+
+#### ACROSS COUNTRIES ####
 
 # Aggregate by occupation
 wfh_occ_ag_list <- lapply(df_all_list, function(x) {
@@ -1159,83 +1160,71 @@ wfh_occ_ag_list <- lapply(df_all_list, function(x) {
   x <- x[!is.na(wfh_wham)]
   x <- x[!is.na(bgt_occ)]
   x <- x[bgt_occ != ""]
-  x <- x[, month := factor(month, levels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"))]
   x <- x[, wfh := wfh_wham]
-  x <- x[, bgt_occ6 := str_sub(bgt_occ, 1, 7)]
+  x <- x[, bgt_occ2 := str_sub(bgt_occ, 1, 2)]
   x <- x[, job_ymd := ymd(job_date)]
-  x <- x[, year_quarter := as.yearqtr(job_ymd)]
-  x <- x[, year_month := as.yearmon(job_ymd)]
   x <- x[, year := year(job_ymd)]
   x <- setDT(x)
   
   wfh_occ_ag <- x %>%
-    select(country, year_month, year, wfh, tot_emp_ad, job_id_weight, bgt_occ6) %>%
+    select(country, year, wfh, tot_emp_ad, job_id_weight, bgt_occ2) %>%
     setDT(.) %>%
     .[, .(wfh_share = sum(job_id_weight*wfh, na.rm = T)/sum(job_id_weight, na.rm = T),
           tot_vac = sum(job_id_weight, na.rm = T),
           tot_emp = sum(tot_emp_ad, na.rm = T)),
-      by = .(country, year_month, year, bgt_occ6)] %>%
+      by = .(country, year, bgt_occ2)] %>%
     setDT(.)
   
   return(wfh_occ_ag)
 })
 
 wfh_occ_ag <- rbindlist(wfh_occ_ag_list, fill = TRUE)
-rm(wfh_occ_ag_list)
 
-
-df_all <- fread(file = "./int_data/df_all_standardised.csv", nThread = 8)
-df_all$month <- factor(df_all$month, levels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"))
-df_all$wfh <- as.numeric(df_all$wfh_prob>0.5)
-df_all$bgt_occ6 <- str_sub(df_all$bgt_occ, 1, 7)
-df_all$bgt_occ2 <- as.numeric(str_sub(df_all$bgt_occ, 1, 2))
-df_all$job_ymd <- ymd(df_all$job_date)
-df_all$year_quarter <- as.yearqtr(df_all$job_ymd)
-df_all$year_month <- as.yearmon(df_all$job_ymd)
+wfh_occ_ag <- wfh_occ_ag %>%
+  .[year %in% c(2019, 2021)] %>%
+  .[, .(wfh_share = sum(tot_vac*wfh_share, na.rm = T)/sum(tot_vac, na.rm = T)),
+    by = .(year, bgt_occ2)]
 
 soc2010_names <- fread(file = "./aux_data/us_soc_2010_names.csv")
 soc2010_names$soc10_2d <- as.numeric(soc2010_names$soc10_2d)
-
-nrow(df_all)
-df_all <- df_all %>%
+wfh_occ_ag$bgt_occ2 <- as.numeric(wfh_occ_ag$bgt_occ2)
+nrow(wfh_occ_ag)
+wfh_occ_ag <- wfh_occ_ag %>%
   left_join(., soc2010_names, by = c("bgt_occ2" = "soc10_2d")) %>%
   setDT(.)
-nrow(df_all)
+nrow(wfh_occ_ag)
 rm(soc2010_names)
-df_all$name <- gsub("and", "&", df_all$name, fixed = T)
-df_all$name <- gsub(" Occupations", "", df_all$name)
-df_all$name <- gsub(", Sports, & Media| & Technical|, & Repair|Cleaning &|& Serving Related", "", df_all$name)
-df_all <- df_all %>% filter(!is.na(df_all$name))
-df_all <- setDT(df_all)
-df_all$ussoc_2d_wn <- paste0(df_all$name)
-
+wfh_occ_ag$name <- gsub("and", "&", wfh_occ_ag$name, fixed = T)
+wfh_occ_ag$name <- gsub(" Occupations", "", wfh_occ_ag$name)
+wfh_occ_ag$name <- gsub(", Sports, & Media| & Technical|, & Repair|Cleaning &|& Serving Related", "", wfh_occ_ag$name)
+wfh_occ_ag <- wfh_occ_ag %>% filter(!is.na(wfh_occ_ag$name))
+wfh_occ_ag <- setDT(wfh_occ_ag)
+wfh_occ_ag$ussoc_2d_wn <- paste0(wfh_occ_ag$name)
+wfh_occ_ag
 #### BAR PLOT 2021 vs 2019
-df_all_occ <- df_all %>%
-  filter(year == 2019 | year == 2021) %>%
-  setDT(.) %>%
-  .[, .(wfh_share = sum(wfh*tot_emp_ad, na.rm = T)/sum(tot_emp_ad, na.rm = T)), by = .(ussoc_2d_wn, bgt_occ2, year)] %>%
-  .[order(ussoc_2d_wn, bgt_occ2, year)] %>%
+wfh_occ_ag <- wfh_occ_ag %>%
   group_by(ussoc_2d_wn) %>%
   mutate(prop_growth = ifelse(!is.na(lag(wfh_share)), paste0(round((wfh_share)/lag(wfh_share),1),"X"), NA)) %>%
   ungroup() %>%
   setDT(.)
 
-df_all_occ$wfh_share_index <- 100*df_all_occ$wfh_share_index
+wfh_occ_ag$wfh_share_index <- 100*wfh_occ_ag$wfh_share_index
 
 cbbPalette <- c("#E69F00", "#009E73", "#CC79A7", "#0072B2", "#D55E00")
 cbbPalette_oc <- c("#000000", "#56B4E9")
 cbbPalette_ind <- c("#000000", "#F0E442")
 
-p = df_all_occ %>%
+wfh_occ_ag
+
+p = wfh_occ_ag %>%
   #filter(ussoc_2d_wn < 27) %>%
-  filter(year == 2019 | year == 2021) %>%
   mutate(ussoc_2d_wn = fct_reorder(ussoc_2d_wn, wfh_share, .desc = FALSE)) %>%
   ggplot(., aes(x = ussoc_2d_wn, y = wfh_share, fill = as.factor(year))) +
   geom_bar(stat = "identity", width=1, position = position_dodge(width=0.8))  +
   geom_text(aes(label = prop_growth, family = "serif"), size = 5, vjust = 0, colour = "black", hjust = -0.5) +
   ylab("Share (%)") +
   labs(title = "WFH Share Distribution by Occupation / Year", subtitle = "Employment Weighted, Global") +
-  scale_y_continuous(breaks = seq(0,4,0.05), limits = c(0,0.3)) +
+  scale_y_continuous(breaks = seq(0,4,0.05), limits = c(0,0.32)) +
   #             labels=format(df_all_occ$date_fake,
   #                           format="%Y")) +
   #             minor_breaks = as.Date(c("2019-01-01","2019-07-01","2020-01-01","2020-07-01","2021-01-01","2021-07-01", "2022-01-01")),
@@ -1269,68 +1258,109 @@ p_egg <- set_panel_size(p = p,
                         height = unit(22*0.65, "cm"))
 ggsave(p_egg, filename = "./plots/occ_dist_alt.pdf", width = 9, height = 22*0.65+3)
 
-#### TABLE COMPARING D&N TO WHAM
-check <- df_all %>%
-  filter(year > 2021) %>%
-  setDT(.) %>%
-  .[, .(n = .N,
-        wfh_share = sum(wfh*tot_emp_ad, na.rm = T)/sum(tot_emp_ad, na.rm = T),
-        teleworkable_share = sum(teleworkable*tot_emp_ad, na.rm = T)/sum(tot_emp_ad, na.rm = T)),
-    by = .(bgt_occ, bgt_occ_name)] %>%
-  mutate(teleworkable_share = as.numeric(teleworkable_share>0.5)) %>%
-  filter(n > 500) %>%
-  select(-n) %>%
-  select(-bgt_occ) %>%
-  mutate(teleworkable_share = ifelse(teleworkable_share==1, "yes", "no")) %>%
-  rename("ONET Occupation" = bgt_occ_name,
-         "WFH Share" = wfh_share,
-         "Teleworkable" = teleworkable_share)
+#### END ####
 
-stargazer(head(check %>% filter(Teleworkable == "no") %>% arrange(desc(`WFH Share`)), 20), type = "latex", title = "Top WHAM Occupations not `Teleworkable'", summary = F, rownames = F, digits = 2, font.size = "footnotesize")
-stargazer(head(check %>% filter(Teleworkable == "yes") %>% arrange(`WFH Share`), 20), type = "latex", title = "Bottom WHAM Occupations which are `Teleworkable'", summary = F, rownames = F, digits = 2, font.size = "footnotesize")
-
-#### SCATTER PLOTS
+#### OCCUPATION SCATTER PLOTS ####
 # Prepare Data
-df <- df_all %>% select(c("country", "onet", "teleworkable","wfh", "job_id_weight", "tot_emp_ad", "year")) %>%
-  filter(country == "US" & year %in% c(2019, 2021)) %>%
-  setDT(.) %>%
-  .[ , .(n_post = sum(job_id_weight, na.rm = T),
-         n_emp = sum(tot_emp_ad, na.rm = T),
-         d_n_teleworkable = sum(teleworkable*tot_emp_ad, na.rm = T)/sum(tot_emp_ad*as.numeric(!is.na(teleworkable)), na.rm = T),
-         wfh_share = sum(wfh*tot_emp_ad, na.rm = T)/(sum(tot_emp_ad, na.rm = T))), 
-     by = .(onet, year)] %>%
-  group_by(onet) %>%
-  pivot_wider(names_from = year, values_from = c(n_post, n_emp, d_n_teleworkable, wfh_share)) %>%
-  ungroup %>% mutate("D&N (2020) Teleworkable" = ifelse(d_n_teleworkable_2019>0.5, "Yes", "No"))
+remove(list = setdiff(ls(), "df_all_list"))
+
+wfh_occ_ag_list <- lapply(df_all_list, function(x) {
+  x <- x[!is.na(wfh_wham)]
+  x <- x[!is.na(bgt_occ)]
+  x <- x[bgt_occ != ""]
+  x <- x[, wfh := wfh_wham]
+  x <- x[, bgt_occ6 := str_sub(bgt_occ, 1, 7)]
+  x <- x[, job_ymd := ymd(job_date)]
+  x <- x[, year := year(job_ymd)]
+  x <- setDT(x)
+  
+  wfh_occ_ag <- x %>%
+    select(country, year, wfh, tot_emp_ad, job_id_weight, bgt_occ6) %>%
+    setDT(.) %>%
+    .[year %in% c(2019, 2021)] %>%
+    .[, .(wfh_share = sum(job_id_weight*wfh, na.rm = T)/sum(job_id_weight, na.rm = T),
+          tot_vac = sum(job_id_weight, na.rm = T),
+          tot_emp = sum(tot_emp_ad, na.rm = T)),
+      by = .(country, year, bgt_occ6)] %>%
+    setDT(.)
+  
+  return(wfh_occ_ag)
+})
+
+remove(list = setdiff(ls(), c("wfh_occ_ag_list", "df_all_list")))
+
+wfh_occ_ag <- rbindlist(wfh_occ_ag_list, fill = TRUE)
+
+wfh_occ_ag
+
+wfh_occ_ag <- wfh_occ_ag %>%
+  .[year %in% c(2019, 2021)] %>%
+  .[, .(wfh_share = sum(tot_vac*wfh_share, na.rm = T)/sum(tot_vac, na.rm = T),
+        tot_vac = sum(tot_vac)),
+    by = .(year, bgt_occ6)]
 
 occupations_workathome <- read_csv("./aux_data/occupations_workathome.csv") %>% rename(onet = onetsoccode)
 
-df <- df %>%
-  left_join(occupations_workathome) %>%
-  filter(!is.na(title))
-
-df$title <- gsub("and", "&", df$title, fixed = T)
-df$title <- gsub("(.*?),.*", "\\1", df$title)
-
-df <- df %>%
+occupations_workathome <- occupations_workathome %>%
   setDT(.) %>%
-  .[, keep := as.numeric(max(n_post_2019, na.rm = T) == n_post_2019), by = title] %>%
-  .[keep == 1] %>%
-  select(-keep)
+  .[, bgt_occ6 := str_sub(onet, 1, 7)] %>%
+  .[, .(teleworkable = as.numeric(mean(teleworkable)>0.5)),
+    by = .(bgt_occ6)]
 
-df$wfh_share_diff <- df$wfh_share_2021 - df$wfh_share_2019
+wfh_occ_ag
+occupations_workathome
+
+wfh_occ_ag <- wfh_occ_ag %>%
+  left_join(occupations_workathome)
+
+wfh_occ_ag <- wfh_occ_ag %>% .[!is.na(teleworkable) & !is.na(bgt_occ6)]
+
+names <- fread(file = "./aux_data/bgt_soc6_names.csv")
+
+names
+
+names$name <- gsub("and", "&", names$name, fixed = T)
+names$name <- gsub("(.*?),.*", "\\1", names$name)
+
+names
+
+class(wfh_occ_ag$bgt_occ6)
+class(names$bgt_occ6)
+
+wfh_occ_ag <- wfh_occ_ag %>%
+  left_join(names)
+
+wfh_occ_ag <- wfh_occ_ag %>% .[!is.na(name) & !is.na(bgt_occ6)]
+
+nrow(wfh_occ_ag)
+
+wfh_occ_ag <- wfh_occ_ag %>%
+  unique(., by = c("bgt_occ6", "year"))
+
+nrow(wfh_occ_ag)
+
+wfh_occ_ag <- wfh_occ_ag %>%
+  group_by(name, bgt_occ6, teleworkable) %>%
+  pivot_wider(., names_from = year, values_from = c("wfh_share", "tot_vac")) %>%
+  rename(n_post_2019 = tot_vac_2019,
+         n_post_2021 = tot_vac_2021)
+
+df <- wfh_occ_ag
+
+remove(wfh_occ_ag)
 
 library(ggrepel)
 set.seed(999)
 
-max(df$wfh_share_2019[df$n_post_2019 > 250])
+df <- df %>%
+  setDT(.) %>%
+  .[!is.na(wfh_share_2019) & !is.na(wfh_share_2021)]
 
-View(df[df$wfh_share_2019 > 0.23 & df$wfh_share_2019 < 0.30 & df$n_post_2019 > 250,])
+max(df$wfh_share_2019[df$n_post_2019 > 250], na.rm = T)
+min(df$wfh_share_2019[df$n_post_2019 > 250], na.rm = T)
 
-df$title_keep <- ifelse(df$title %in% c("Parking Lot Attendants", "Bakers", "Baristas", "Bartenders", "Cashiers", "Insurance Sales Agents", "Telemarketers",
-                                        "Registered Nurses", "Software Developers", "Sales Representatives", "Retail Salesperson", "Secretaries & Administrative Assistants", "Advertising Sales Agents")
-                        ,
-                        df$title, "")
+df$`D&N (2020) Teleworkable` <- ifelse(df$teleworkable == 1, "Yes", "No")
+
 # Scatter plot (Log-log)
 quantile(df$n_post_2019+df$n_post_2021, probs = 0.9, na.rm = T)
 cbbPalette_d_and_n <- c("#FF9100", "#0800FF")
@@ -1368,11 +1398,12 @@ p = df %>%
         panel.background = element_rect(fill = "white"),
         legend.key.width = unit(1,"cm")) +
   guides(size = "none") +
-  scale_shape_manual(values=c(1, 2)) +
-  geom_text_repel(aes(label = title_keep),
-                  fontface = "bold", size = 4, max.overlaps = 500, force_pull = 1, force = 3, box.padding = 0.5,
-                  bg.color = "white",
-                  bg.r = 0.15, seed = 4321)
+  scale_shape_manual(values=c(1, 2))
+#+
+#  geom_text_repel(aes(label = title_keep),
+#                  fontface = "bold", size = 4, max.overlaps = 500, force_pull = 1, force = 3, box.padding = 0.5,
+#                  bg.color = "white",
+#                  bg.r = 0.15, seed = 4321)
 p
 p_egg <- set_panel_size(p = p,
                         width = unit(5, "in"),
@@ -1414,11 +1445,12 @@ p = df %>%
         legend.key.width = unit(1,"cm")) +
   coord_cartesian(ylim = c(0,50), xlim = c(0,30)) +
   guides(size = "none") +
-  scale_shape_manual(values=c(1, 2)) +
-  geom_text_repel(aes(label = title_keep),
-                  fontface = "bold", size = 4, max.overlaps = 500, nudge_y = 1, force_pull = 4, force = 3, box.padding = 0.25,
-                  bg.color = "white",
-                  bg.r = 0.15, seed = 4321)
+  scale_shape_manual(values=c(1, 2))
+#+
+#  geom_text_repel(aes(label = title_keep),
+#                  fontface = "bold", size = 4, max.overlaps = 500, nudge_y = 1, force_pull = 4, force = 3, box.padding = 0.25,
+#                  bg.color = "white",
+#                  bg.r = 0.15, seed = 4321)
 p
 p_egg <- set_panel_size(p = p,
                         width = unit(5, "in"),

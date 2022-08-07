@@ -88,7 +88,7 @@ paths
 
 #### READ XML NAD MAKE SEQUENCES ####
 paths
-source("/mnt/disks/pdisk/code/safe_mclapply.R")
+source("/mnt/disks/pdisk/bgt_code_repo/safe_mclapply.R")
 
 safe_mclapply(1:length(paths), function(i) {
   
@@ -305,7 +305,7 @@ rm(list = setdiff(ls(),c("paths", "df_dict", "all_dict", "wfh_dict_glob", "neg_d
 #### /END ####
 
 #### MAKE DFM ####
-source("/mnt/disks/pdisk/code/safe_mclapply.R")
+source("/mnt/disks/pdisk/bgt_code_repo/safe_mclapply.R")
 safe_mclapply(1:length(paths), function(i) {
   
   warning(paste0("BEGIN FILE: ",i))
@@ -356,7 +356,7 @@ remove(list = ls())
 paths <- list.files("./int_data/wham_pred", pattern = "*.txt", full.names = T)
 paths <- paths[grepl("2019|2020|2021|2022", paths)]
 paths
-source("/mnt/disks/pdisk/code/safe_mclapply.R")
+source("/mnt/disks/pdisk/bgt_code_repo/safe_mclapply.R")
 
 df_wham <- safe_mclapply(1:length(paths), function(i) {
   df <- fread(paths[i])  %>%
@@ -364,9 +364,35 @@ df_wham <- safe_mclapply(1:length(paths), function(i) {
     .[, .(wfh_prob = max(wfh_prob)), by = job_id]
   warning(paste0("\nDONE: ",i/length(paths)))
   return(df)
-}, mc.cores = 8)
+}, mc.cores = 16)
 
 df_wham <- rbindlist(df_wham)
+
+df_wham$job_id <- as.numeric(df_wham$job_id)
+df_wham$wfh_prob <- as.numeric(df_wham$wfh_prob)
+
+df_wham_preperiod <- fread(file = "/mnt/disks/pdisk/bg_combined/int_data/subsample_wham/df_ss_wham.csv")
+#table(df_wham_preperiod$year)
+table(df_wham_preperiod$country)
+df_wham_preperiod <- setDT(df_wham_preperiod) %>%
+  .[country %in% c("Australia","NZ") & year < 2019] %>%
+  select(job_id, wfh_prob)
+
+df_wham_preperiod$job_id <- as.numeric(df_wham_preperiod$job_id)
+df_wham_preperiod$wfh_prob <- as.numeric(df_wham_preperiod$wfh_prob)
+
+head(df_wham)
+head(df_wham_preperiod)
+
+uniqueN(df_wham$job_id)/length(df_wham$job_id)
+uniqueN(df_wham_preperiod$job_id)/length(df_wham_preperiod$job_id)
+
+df_wham <- bind_rows(df_wham, df_wham_preperiod)
+
+remove(list = setdiff(ls(), "df_wham"))
+
+df_wham <- df_wham %>%
+  unique(., by = "job_id")
 
 df_wham <- df_wham %>%
   .[, wfh := as.numeric(wfh_prob>0.5)] %>%
@@ -380,58 +406,45 @@ df_wham <- df_wham %>%
          wfh_wham = wfh)
 #### /END ####
 
-# #### AGGREGATE DICTIONARY TO JOB AD LEVEL ####
-# paths <- list.files("./int_data/wfh_v8", pattern = "*.rds", full.names = T)
-# paths <- paths[grepl("2019|2020|2021|2022", paths)]
-# 
-# source("/mnt/disks/pdisk/code/safe_mclapply.R")
-# 
-# df_oecd <- safe_mclapply(1:length(paths), function(i) {
-#   df <- readRDS(paths[i]) %>%
-#     convert(., to = "data.frame") %>%
-#     rename(seq_id = doc_id) %>%
-#     mutate(wfh = rowSums(.[c(2, 17)], na.rm = TRUE)) %>%
-#     mutate(neg = rowSums(.[c(19, 29)], na.rm = TRUE)) %>%
-#     select(seq_id, wfh, neg) %>%
-#     mutate(wfh_nn = wfh*(1-neg))
-#   
-#   df <- df %>%
-#     setDT(.) %>%
-#     .[, job_id := str_sub(seq_id,1, -6)] %>%
-#     .[, .(wfh = as.numeric(max(wfh)>0), wfh_nn = as.numeric(max(wfh_nn)>0)), by = job_id]
-#   warning(paste0("\nDONE: ",i/length(paths)))
-#   return(df)
-# }, mc.cores = 8)
-# 
-# df_oecd <- rbindlist(df_oecd)
-# df_oecd$job_id <- as.numeric(df_oecd$job_id)
-# df_oecd <- df_oecd %>%
-#   rename(wfh_oecd = wfh,
-#          wfh_oecd_nn = wfh_nn)
-# #### /END ####
+#### EXTRACT URL AND SOURCE FOR ANZ ####
+paths <- list.files("./raw_data/text/", pattern = "*.zip", full.names = T)
+source("/mnt/disks/pdisk/bgt_code_repo/safe_mclapply.R")
+df_src <- safe_mclapply(1:length(paths), function(i) {
+  name <- str_sub(paths[i], -21, -5)
+  name
+  warning(paste0("\nBEGIN: ",i,"  '",name,"'"))
+  cat(paste0("\nBEGIN: ",i,"  '",name,"'"))
+  system(paste0("unzip -n ",paths[i]," -d ./raw_data/text/"))
+  xml_path = gsub(".zip", ".xml", paths[i])
+  xml_path
+  df_xml <- read_xml(xml_path) %>%
+    xml_find_all(., ".//Job")
+  df_job_id <- xml_find_all(df_xml, ".//JobID") %>% xml_text
+  df_job_url <- xml_find_all(df_xml, ".//JobURL") %>% xml_text
+  df_job_domain <- xml_find_all(df_xml, ".//JobDomain") %>% xml_text
+  remove("df_xml")
+  df <- data.table(job_id = df_job_id, job_domain = df_job_domain, job_url = df_job_url)
+  unlink(xml_path)
+  warning(paste0("SUCCESS: ",i))
+  cat(paste0("\nSUCCESS: ",i,"\n"))
+  return(df)
+}, mc.cores = 10)
 
-#### MERGE WHAM PREDICTIONS INTO THE STRUCTURED DATA AND RESAVE ####
-remove(list = setdiff(ls(), c("df_wham", "df_oecd")))
+df_src <- rbindlist(df_src)
+df_src$job_id <- as.numeric(df_src$job_id)
+df_src <- df_src %>% unique(., by = "job_id")
+#### END ####
 
-# df_wham <- df_wham %>%
-#   merge(x = ., y = df_oecd, all.x = TRUE, by = "job_id")
-
-# rm(df_oecd)
-
-# df_wham <- df_wham %>%
-#   .[, wfh_oecd := ifelse(is.na(wfh_oecd),0,wfh_oecd)] %>%
-#   .[, wfh_oecd_nn := ifelse(is.na(wfh_oecd_nn),0,wfh_oecd_nn)]
-
-colnames(df_wham)
-mean(df_wham$wfh_wham)
-mean(df_wham$wfh_oecd)
+#### MERGE WHAM PREDICTIONS (!!AND WEB SOURCE!!) INTO THE STRUCTURED DATA AND RESAVE ####
+remove(list = setdiff(ls(), c("df_src", "df_wham")))
+mean(df_wham$wfh_wham, na.rm = T)
 
 paths <- list.files("/mnt/disks/pdisk/bg-anz/raw_data/main", pattern = ".zip", full.names = T)
 paths
-source("/mnt/disks/pdisk/code/safe_mclapply.R")
+source("/mnt/disks/pdisk/bgt_code_repo/safe_mclapply.R")
 
-safe_mclapply(2019:2022, function(x) {
-  x = 2019
+safe_mclapply(2014:2018, function(x) {
+  
   paths_year <- paths[grepl(x, paths)]
   
   df_stru <- safe_mclapply(1:length(paths_year), function(i) {
@@ -476,20 +489,20 @@ safe_mclapply(2019:2022, function(x) {
 
 #### END ####
 
-
 #### EXTRACT QUARTERLY DATA - AUSTRALIA ####
 remove(list = ls())
-df_anz_stru_2019 <- fread("../bg-anz/int_data/anz_stru_2019_wfh.csv", nThread = 4)
-df_anz_stru_2020 <- fread("../bg-anz/int_data/anz_stru_2020_wfh.csv", nThread = 4)
-df_anz_stru_2021 <- fread("../bg-anz/int_data/anz_stru_2021_wfh.csv", nThread = 4)
-df_anz_stru_2022 <- fread("../bg-anz/int_data/anz_stru_2022_wfh.csv", nThread = 4)
+df_anz_stru_2014 <- fread("../bg-anz/int_data/anz_stru_2014_wfh.csv", nThread = 8) %>% .[!is.na(wfh_wham)]
+df_anz_stru_2015 <- fread("../bg-anz/int_data/anz_stru_2015_wfh.csv", nThread = 8) %>% .[!is.na(wfh_wham)]
+df_anz_stru_2016 <- fread("../bg-anz/int_data/anz_stru_2016_wfh.csv", nThread = 8) %>% .[!is.na(wfh_wham)]
+df_anz_stru_2017 <- fread("../bg-anz/int_data/anz_stru_2017_wfh.csv", nThread = 8) %>% .[!is.na(wfh_wham)]
+df_anz_stru_2018 <- fread("../bg-anz/int_data/anz_stru_2018_wfh.csv", nThread = 8) %>% .[!is.na(wfh_wham)]
+df_anz_stru_2019 <- fread("../bg-anz/int_data/anz_stru_2019_wfh.csv", nThread = 8) %>% .[!is.na(wfh_wham)]
+df_anz_stru_2020 <- fread("../bg-anz/int_data/anz_stru_2020_wfh.csv", nThread = 8) %>% .[!is.na(wfh_wham)]
+df_anz_stru_2021 <- fread("../bg-anz/int_data/anz_stru_2021_wfh.csv", nThread = 8) %>% .[!is.na(wfh_wham)]
+df_anz_stru_2022 <- fread("../bg-anz/int_data/anz_stru_2022_wfh.csv", nThread = 8) %>% .[!is.na(wfh_wham)]
 
-df_aus_month_check <- df_anz_stru_2019 %>%
-  group_by(year_quarter) %>%
-  summarise(wfh_share = mean(wfh_wham, na.rm = T))
+df_all_aus <- rbindlist(list(df_anz_stru_2014,df_anz_stru_2015,df_anz_stru_2016,df_anz_stru_2017,df_anz_stru_2018,df_anz_stru_2019,df_anz_stru_2020,df_anz_stru_2021,df_anz_stru_2022)) %>% filter(canon_country == "AUS") %>% setDT(.)
 
-df_all_aus <- rbindlist(list(df_anz_stru_2019,df_anz_stru_2020,df_anz_stru_2021,df_anz_stru_2022)) %>% filter(canon_country == "AUS") %>% setDT(.)
-  
 remove(list = setdiff(ls(),"df_all_aus"))
 
 df_all_aus <- df_all_aus %>%
@@ -500,6 +513,8 @@ df_all_aus <- df_all_aus %>%
 # load weights
 w_aus_2019 <- fread("../bg_combined/aux_data/emp_weights/w_aus_2019.csv") %>%
   .[, emp_share := ifelse(is.na(emp_share), 0, emp_share)]
+
+head(w_aus_2019)
 
 # Merge in weights
 nrow(df_all_aus) # 4,254,688
@@ -566,32 +581,32 @@ table(df_all_aus$disjoint_degree_name)
 df_all_aus$bach_or_higher<-grepl("bachelor|master|doctor|PhD", df_all_aus$disjoint_degree_name, ignore.case = T)
 
 df_all_aus$bach_or_higher<-ifelse(df_all_aus$bach_or_higher==FALSE & 
-                                   df_all_aus$disjoint_degree_level >=16 & ! is.na(df_all_aus$disjoint_degree_level), 
-                                 TRUE, df_all_aus$bach_or_higher)
+                                    df_all_aus$disjoint_degree_level >=16 & ! is.na(df_all_aus$disjoint_degree_level), 
+                                  TRUE, df_all_aus$bach_or_higher)
 
 df_all_aus$bach_or_higher<-ifelse(is.na(df_all_aus$disjoint_degree_level) & df_all_aus$disjoint_degree_name == "",
-                                 NA, df_all_aus$bach_or_higher)
+                                  NA, df_all_aus$bach_or_higher)
 df_all_aus$bach_or_higher<-ifelse(df_all_aus$bach_or_higher == TRUE, 1, ifelse(df_all_aus$bach_or_higher == FALSE, 0, NA))
 
 # Cluster industry
 df_all_aus$sector_clustered<-ifelse(df_all_aus$disjoint_sector %in% c("Wholesale Trade", "Retail Trade", "WHOLESALE AND RETAIL TRADE; REPAIR OF MOTOR VEHICLES AND MOTORCYCLES"), "Wholesale and Retail Trade",
-                                   ifelse(df_all_aus$disjoint_sector %in% c("Accommodation and Food Services","ACCOMMODATION AND FOOD SERVICE ACTIVITIES"),"Accomodation and Food Services",
-                                          ifelse(df_all_aus$disjoint_sector %in% c("Electricity, Gas, Water and Waste Services","WATER SUPPLY; SEWERAGE, WASTE MANAGEMENT AND REMEDIATION ACTIVITIES", "Utilities", "ELECTRICITY, GAS, STEAM AND AIR CONDITIONING SUPPLY"), "Utility Services",
-                                                 ifelse(df_all_aus$disjoint_sector %in% c("Administrative and Support Services","Administrative and Support and Waste Management and Remediation Services","ADMINISTRATIVE AND SUPPORT SERVICE ACTIVITIES"),"Administrative and Support",
-                                                        ifelse(df_all_aus$disjoint_sector %in% c("Professional, Scientific and Technical Services","Professional, Scientific, and Technical Services", "PROFESSIONAL, SCIENTIFIC AND TECHNICAL ACTIVITIES"),"Technical Services",
-                                                               ifelse(df_all_aus$disjoint_sector %in% c("Other Services", "Other Services (except Public Administration)", "OTHER SERVICE ACTIVITIES"), "Other Services",
-                                                                      ifelse(df_all_aus$disjoint_sector %in% c("Education and Training", "Educational Services", "EDUCATION"), "Education",
-                                                                             ifelse(df_all_aus$disjoint_sector %in% c("Health Care and Social Assistance", "HUMAN HEALTH AND SOCIAL WORK ACTIVITIES"), "Healthcare",
-                                                                                    ifelse(df_all_aus$disjoint_sector %in% c("Public Administration and Safety", "Public Administration", "PUBLIC ADMINISTRATION AND DEFENCE; COMPULSORY SOCIAL SECURITY"), "Public Administration",
-                                                                                           ifelse(df_all_aus$disjoint_sector %in% c("Financial and Insurance Services", "Financial and Insurance", "FINANCIAL AND INSURANCE ACTIVITIES"), "Finance and Insurance",
-                                                                                                  ifelse(df_all_aus$disjoint_sector %in% c("Information Media and Telecommunications", "Information", "INFORMATION AND COMMUNICATION"), "Information and Communication",
-                                                                                                         ifelse(df_all_aus$disjoint_sector %in% c("Manufacturing", "MANUFACTURING"), "Manufacturing",
-                                                                                                                ifelse(df_all_aus$disjoint_sector %in% c("Construction", "CONSTRUCTION"), "Construction",
-                                                                                                                       ifelse(df_all_aus$disjoint_sector %in% c("Rental, Hiring and Real Estate Services","Real Estate and Rental and Leasing",  "REAL ESTATE ACTIVITIES"), "Real Estate",
-                                                                                                                              ifelse(df_all_aus$disjoint_sector %in% c("Agriculture, Forestry and Fishing",  "Agriculture, Forestry, Fishing and Hunting","AGRICULTURE, FORESTRY AND FISHING"),"Agriculture",
-                                                                                                                                     ifelse(df_all_aus$disjoint_sector %in% c("Transport, Postal and Warehousing", "Transportation and Warehousing","TRANSPORTATION AND STORAGE"), "Transportation",
-                                                                                                                                            ifelse(df_all_aus$disjoint_sector %in% c("Arts and Recreation Services","Arts, Entertainment, and Recreation",  "ARTS, ENTERTAINMENT AND RECREATION"), "Arts and Entertainment",
-                                                                                                                                                   ifelse(df_all_aus$disjoint_sector %in% c("Mining", "Mining, Quarrying, and Oil and Gas Extraction","MINING AND QUARRYING"), "Mining", NA))))))))))))))))))
+                                    ifelse(df_all_aus$disjoint_sector %in% c("Accommodation and Food Services","ACCOMMODATION AND FOOD SERVICE ACTIVITIES"),"Accomodation and Food Services",
+                                           ifelse(df_all_aus$disjoint_sector %in% c("Electricity, Gas, Water and Waste Services","WATER SUPPLY; SEWERAGE, WASTE MANAGEMENT AND REMEDIATION ACTIVITIES", "Utilities", "ELECTRICITY, GAS, STEAM AND AIR CONDITIONING SUPPLY"), "Utility Services",
+                                                  ifelse(df_all_aus$disjoint_sector %in% c("Administrative and Support Services","Administrative and Support and Waste Management and Remediation Services","ADMINISTRATIVE AND SUPPORT SERVICE ACTIVITIES"),"Administrative and Support",
+                                                         ifelse(df_all_aus$disjoint_sector %in% c("Professional, Scientific and Technical Services","Professional, Scientific, and Technical Services", "PROFESSIONAL, SCIENTIFIC AND TECHNICAL ACTIVITIES"),"Technical Services",
+                                                                ifelse(df_all_aus$disjoint_sector %in% c("Other Services", "Other Services (except Public Administration)", "OTHER SERVICE ACTIVITIES"), "Other Services",
+                                                                       ifelse(df_all_aus$disjoint_sector %in% c("Education and Training", "Educational Services", "EDUCATION"), "Education",
+                                                                              ifelse(df_all_aus$disjoint_sector %in% c("Health Care and Social Assistance", "HUMAN HEALTH AND SOCIAL WORK ACTIVITIES"), "Healthcare",
+                                                                                     ifelse(df_all_aus$disjoint_sector %in% c("Public Administration and Safety", "Public Administration", "PUBLIC ADMINISTRATION AND DEFENCE; COMPULSORY SOCIAL SECURITY"), "Public Administration",
+                                                                                            ifelse(df_all_aus$disjoint_sector %in% c("Financial and Insurance Services", "Financial and Insurance", "FINANCIAL AND INSURANCE ACTIVITIES"), "Finance and Insurance",
+                                                                                                   ifelse(df_all_aus$disjoint_sector %in% c("Information Media and Telecommunications", "Information", "INFORMATION AND COMMUNICATION"), "Information and Communication",
+                                                                                                          ifelse(df_all_aus$disjoint_sector %in% c("Manufacturing", "MANUFACTURING"), "Manufacturing",
+                                                                                                                 ifelse(df_all_aus$disjoint_sector %in% c("Construction", "CONSTRUCTION"), "Construction",
+                                                                                                                        ifelse(df_all_aus$disjoint_sector %in% c("Rental, Hiring and Real Estate Services","Real Estate and Rental and Leasing",  "REAL ESTATE ACTIVITIES"), "Real Estate",
+                                                                                                                               ifelse(df_all_aus$disjoint_sector %in% c("Agriculture, Forestry and Fishing",  "Agriculture, Forestry, Fishing and Hunting","AGRICULTURE, FORESTRY AND FISHING"),"Agriculture",
+                                                                                                                                      ifelse(df_all_aus$disjoint_sector %in% c("Transport, Postal and Warehousing", "Transportation and Warehousing","TRANSPORTATION AND STORAGE"), "Transportation",
+                                                                                                                                             ifelse(df_all_aus$disjoint_sector %in% c("Arts and Recreation Services","Arts, Entertainment, and Recreation",  "ARTS, ENTERTAINMENT AND RECREATION"), "Arts and Entertainment",
+                                                                                                                                                    ifelse(df_all_aus$disjoint_sector %in% c("Mining", "Mining, Quarrying, and Oil and Gas Extraction","MINING AND QUARRYING"), "Mining", NA))))))))))))))))))
 
 # CLUSTER EXP #
 df_all_aus <- df_all_aus %>%
@@ -612,13 +627,6 @@ head(df_all_aus)
 # SAVE #
 fwrite(df_all_aus, file = "./int_data/df_aus_standardised.csv")
 
-#df_all_aus <- split(df_all_aus, by="year_month")
-
-# lapply(1:length(df_all_aus), function(i) {
-#   fwrite(df_all_aus[[i]], file = paste0("../bg_combined/int_data/standardised_quarterly/bg_aus_",gsub(" ", "_",tolower(names(df_all_aus)[[i]])),".csv"))
-# })
-
-
 #### END AUSTRALIA ####
 
 
@@ -626,12 +634,17 @@ fwrite(df_all_aus, file = "./int_data/df_aus_standardised.csv")
 
 #### EXTRACT QUARTERLY DATA - NZ ####
 remove(list = ls())
-df_anz_stru_2019 <- fread("../bg-anz/int_data/anz_stru_2019_wfh.csv", nThread = 4)
-df_anz_stru_2020 <- fread("../bg-anz/int_data/anz_stru_2020_wfh.csv", nThread = 4)
-df_anz_stru_2021 <- fread("../bg-anz/int_data/anz_stru_2021_wfh.csv", nThread = 4)
-df_anz_stru_2022 <- fread("../bg-anz/int_data/anz_stru_2022_wfh.csv", nThread = 4)
+df_anz_stru_2014 <- fread("../bg-anz/int_data/anz_stru_2014_wfh.csv", nThread = 8) %>% .[!is.na(wfh_wham)]
+df_anz_stru_2015 <- fread("../bg-anz/int_data/anz_stru_2015_wfh.csv", nThread = 8) %>% .[!is.na(wfh_wham)]
+df_anz_stru_2016 <- fread("../bg-anz/int_data/anz_stru_2016_wfh.csv", nThread = 8) %>% .[!is.na(wfh_wham)]
+df_anz_stru_2017 <- fread("../bg-anz/int_data/anz_stru_2017_wfh.csv", nThread = 8) %>% .[!is.na(wfh_wham)]
+df_anz_stru_2018 <- fread("../bg-anz/int_data/anz_stru_2018_wfh.csv", nThread = 8) %>% .[!is.na(wfh_wham)]
+df_anz_stru_2019 <- fread("../bg-anz/int_data/anz_stru_2019_wfh.csv", nThread = 8) %>% .[!is.na(wfh_wham)]
+df_anz_stru_2020 <- fread("../bg-anz/int_data/anz_stru_2020_wfh.csv", nThread = 8) %>% .[!is.na(wfh_wham)]
+df_anz_stru_2021 <- fread("../bg-anz/int_data/anz_stru_2021_wfh.csv", nThread = 8) %>% .[!is.na(wfh_wham)]
+df_anz_stru_2022 <- fread("../bg-anz/int_data/anz_stru_2022_wfh.csv", nThread = 8) %>% .[!is.na(wfh_wham)]
 
-df_all_nz <- rbindlist(list(df_anz_stru_2019,df_anz_stru_2020,df_anz_stru_2021,df_anz_stru_2022)) %>% filter(canon_country == "NZL") %>% setDT(.)
+df_all_nz <- rbindlist(list(df_anz_stru_2014,df_anz_stru_2015,df_anz_stru_2016,df_anz_stru_2017,df_anz_stru_2018,df_anz_stru_2019,df_anz_stru_2020,df_anz_stru_2021,df_anz_stru_2022)) %>% filter(canon_country == "NZL") %>% setDT(.)
 
 remove(list = setdiff(ls(),"df_all_nz"))
 
@@ -645,6 +658,8 @@ w_nz_2019 <- fread("../bg_combined//aux_data/emp_weights/w_nz_2019.csv") %>%
   .[, anzsco_code := as.numeric(str_sub(anzsco_code, 1, 4))] %>%
   .[, .(tot_emp = sum(as.numeric(tot_emp), na.rm = T)), by = anzsco_code] %>%
   .[, emp_share := tot_emp / sum(tot_emp, na.rm = T)]
+
+head(w_nz_2019)
 
 # merge in weights
 nrow(df_all_nz) # 1,188,667
@@ -708,32 +723,32 @@ table(df_all_nz$disjoint_degree_name)
 df_all_nz$bach_or_higher<-grepl("bachelor|master|doctor|PhD", df_all_nz$disjoint_degree_name, ignore.case = T)
 
 df_all_nz$bach_or_higher<-ifelse(df_all_nz$bach_or_higher==FALSE & 
-                                    df_all_nz$disjoint_degree_level >=16 & ! is.na(df_all_nz$disjoint_degree_level), 
-                                  TRUE, df_all_nz$bach_or_higher)
+                                   df_all_nz$disjoint_degree_level >=16 & ! is.na(df_all_nz$disjoint_degree_level), 
+                                 TRUE, df_all_nz$bach_or_higher)
 
 df_all_nz$bach_or_higher<-ifelse(is.na(df_all_nz$disjoint_degree_level) & df_all_nz$disjoint_degree_name == "",
-                                  NA, df_all_nz$bach_or_higher)
+                                 NA, df_all_nz$bach_or_higher)
 df_all_nz$bach_or_higher<-ifelse(df_all_nz$bach_or_higher == TRUE, 1, ifelse(df_all_nz$bach_or_higher == FALSE, 0, NA))
 
 # Cluster industry
 df_all_nz$sector_clustered<-ifelse(df_all_nz$disjoint_sector %in% c("Wholesale Trade", "Retail Trade", "WHOLESALE AND RETAIL TRADE; REPAIR OF MOTOR VEHICLES AND MOTORCYCLES"), "Wholesale and Retail Trade",
-                                    ifelse(df_all_nz$disjoint_sector %in% c("Accommodation and Food Services","ACCOMMODATION AND FOOD SERVICE ACTIVITIES"),"Accomodation and Food Services",
-                                           ifelse(df_all_nz$disjoint_sector %in% c("Electricity, Gas, Water and Waste Services","WATER SUPPLY; SEWERAGE, WASTE MANAGEMENT AND REMEDIATION ACTIVITIES", "Utilities", "ELECTRICITY, GAS, STEAM AND AIR CONDITIONING SUPPLY"), "Utility Services",
-                                                  ifelse(df_all_nz$disjoint_sector %in% c("Administrative and Support Services","Administrative and Support and Waste Management and Remediation Services","ADMINISTRATIVE AND SUPPORT SERVICE ACTIVITIES"),"Administrative and Support",
-                                                         ifelse(df_all_nz$disjoint_sector %in% c("Professional, Scientific and Technical Services","Professional, Scientific, and Technical Services", "PROFESSIONAL, SCIENTIFIC AND TECHNICAL ACTIVITIES"),"Technical Services",
-                                                                ifelse(df_all_nz$disjoint_sector %in% c("Other Services", "Other Services (except Public Administration)", "OTHER SERVICE ACTIVITIES"), "Other Services",
-                                                                       ifelse(df_all_nz$disjoint_sector %in% c("Education and Training", "Educational Services", "EDUCATION"), "Education",
-                                                                              ifelse(df_all_nz$disjoint_sector %in% c("Health Care and Social Assistance", "HUMAN HEALTH AND SOCIAL WORK ACTIVITIES"), "Healthcare",
-                                                                                     ifelse(df_all_nz$disjoint_sector %in% c("Public Administration and Safety", "Public Administration", "PUBLIC ADMINISTRATION AND DEFENCE; COMPULSORY SOCIAL SECURITY"), "Public Administration",
-                                                                                            ifelse(df_all_nz$disjoint_sector %in% c("Financial and Insurance Services", "Financial and Insurance", "FINANCIAL AND INSURANCE ACTIVITIES"), "Finance and Insurance",
-                                                                                                   ifelse(df_all_nz$disjoint_sector %in% c("Information Media and Telecommunications", "Information", "INFORMATION AND COMMUNICATION"), "Information and Communication",
-                                                                                                          ifelse(df_all_nz$disjoint_sector %in% c("Manufacturing", "MANUFACTURING"), "Manufacturing",
-                                                                                                                 ifelse(df_all_nz$disjoint_sector %in% c("Construction", "CONSTRUCTION"), "Construction",
-                                                                                                                        ifelse(df_all_nz$disjoint_sector %in% c("Rental, Hiring and Real Estate Services","Real Estate and Rental and Leasing",  "REAL ESTATE ACTIVITIES"), "Real Estate",
-                                                                                                                               ifelse(df_all_nz$disjoint_sector %in% c("Agriculture, Forestry and Fishing",  "Agriculture, Forestry, Fishing and Hunting","AGRICULTURE, FORESTRY AND FISHING"),"Agriculture",
-                                                                                                                                      ifelse(df_all_nz$disjoint_sector %in% c("Transport, Postal and Warehousing", "Transportation and Warehousing","TRANSPORTATION AND STORAGE"), "Transportation",
-                                                                                                                                             ifelse(df_all_nz$disjoint_sector %in% c("Arts and Recreation Services","Arts, Entertainment, and Recreation",  "ARTS, ENTERTAINMENT AND RECREATION"), "Arts and Entertainment",
-                                                                                                                                                    ifelse(df_all_nz$disjoint_sector %in% c("Mining", "Mining, Quarrying, and Oil and Gas Extraction","MINING AND QUARRYING"), "Mining", NA))))))))))))))))))
+                                   ifelse(df_all_nz$disjoint_sector %in% c("Accommodation and Food Services","ACCOMMODATION AND FOOD SERVICE ACTIVITIES"),"Accomodation and Food Services",
+                                          ifelse(df_all_nz$disjoint_sector %in% c("Electricity, Gas, Water and Waste Services","WATER SUPPLY; SEWERAGE, WASTE MANAGEMENT AND REMEDIATION ACTIVITIES", "Utilities", "ELECTRICITY, GAS, STEAM AND AIR CONDITIONING SUPPLY"), "Utility Services",
+                                                 ifelse(df_all_nz$disjoint_sector %in% c("Administrative and Support Services","Administrative and Support and Waste Management and Remediation Services","ADMINISTRATIVE AND SUPPORT SERVICE ACTIVITIES"),"Administrative and Support",
+                                                        ifelse(df_all_nz$disjoint_sector %in% c("Professional, Scientific and Technical Services","Professional, Scientific, and Technical Services", "PROFESSIONAL, SCIENTIFIC AND TECHNICAL ACTIVITIES"),"Technical Services",
+                                                               ifelse(df_all_nz$disjoint_sector %in% c("Other Services", "Other Services (except Public Administration)", "OTHER SERVICE ACTIVITIES"), "Other Services",
+                                                                      ifelse(df_all_nz$disjoint_sector %in% c("Education and Training", "Educational Services", "EDUCATION"), "Education",
+                                                                             ifelse(df_all_nz$disjoint_sector %in% c("Health Care and Social Assistance", "HUMAN HEALTH AND SOCIAL WORK ACTIVITIES"), "Healthcare",
+                                                                                    ifelse(df_all_nz$disjoint_sector %in% c("Public Administration and Safety", "Public Administration", "PUBLIC ADMINISTRATION AND DEFENCE; COMPULSORY SOCIAL SECURITY"), "Public Administration",
+                                                                                           ifelse(df_all_nz$disjoint_sector %in% c("Financial and Insurance Services", "Financial and Insurance", "FINANCIAL AND INSURANCE ACTIVITIES"), "Finance and Insurance",
+                                                                                                  ifelse(df_all_nz$disjoint_sector %in% c("Information Media and Telecommunications", "Information", "INFORMATION AND COMMUNICATION"), "Information and Communication",
+                                                                                                         ifelse(df_all_nz$disjoint_sector %in% c("Manufacturing", "MANUFACTURING"), "Manufacturing",
+                                                                                                                ifelse(df_all_nz$disjoint_sector %in% c("Construction", "CONSTRUCTION"), "Construction",
+                                                                                                                       ifelse(df_all_nz$disjoint_sector %in% c("Rental, Hiring and Real Estate Services","Real Estate and Rental and Leasing",  "REAL ESTATE ACTIVITIES"), "Real Estate",
+                                                                                                                              ifelse(df_all_nz$disjoint_sector %in% c("Agriculture, Forestry and Fishing",  "Agriculture, Forestry, Fishing and Hunting","AGRICULTURE, FORESTRY AND FISHING"),"Agriculture",
+                                                                                                                                     ifelse(df_all_nz$disjoint_sector %in% c("Transport, Postal and Warehousing", "Transportation and Warehousing","TRANSPORTATION AND STORAGE"), "Transportation",
+                                                                                                                                            ifelse(df_all_nz$disjoint_sector %in% c("Arts and Recreation Services","Arts, Entertainment, and Recreation",  "ARTS, ENTERTAINMENT AND RECREATION"), "Arts and Entertainment",
+                                                                                                                                                   ifelse(df_all_nz$disjoint_sector %in% c("Mining", "Mining, Quarrying, and Oil and Gas Extraction","MINING AND QUARRYING"), "Mining", NA))))))))))))))))))
 
 # CLUSTER EXP #
 df_all_nz <- df_all_nz %>%
@@ -753,67 +768,7 @@ head(df_all_nz)
 
 # SAVE #
 fwrite(df_all_nz, file = "./int_data/df_nz_standardised.csv")
-
-#df_all_nz <- split(df_all_nz, by="year_month")
-
-# lapply(1:length(df_all_nz), function(i) {
-#   fwrite(df_all_nz[[i]], file = paste0("../bg_combined/int_data/standardised_quarterly/bg_nz_",gsub(" ", "_",tolower(names(df_all_nz)[[i]])),".csv"))
-# })
-
 #### END NEW ZEALAND ####
-
-#### MERGE IN URL AND SOURCE FOR ANZ ####
-
-#### MERGE IN DOMAIN AND URL ####
-paths <- list.files("./raw_data/text/", pattern = "*.zip", full.names = T)
-paths <- paths[grepl("2019|2020|2021|2022", paths)]
-source("/mnt/disks/pdisk/code/safe_mclapply.R")
-df_src <- safe_mclapply(1:length(paths), function(i) {
-  name <- str_sub(paths[i], -21, -5)
-  name
-  warning(paste0("\nBEGIN: ",i,"  '",name,"'"))
-  cat(paste0("\nBEGIN: ",i,"  '",name,"'"))
-  system(paste0("unzip -n ",paths[i]," -d ./raw_data/text/"))
-  xml_path = gsub(".zip", ".xml", paths[i])
-  xml_path
-  df_xml <- read_xml(xml_path) %>%
-    xml_find_all(., ".//Job")
-  df_job_id <- xml_find_all(df_xml, ".//JobID") %>% xml_text
-  df_job_url <- xml_find_all(df_xml, ".//JobURL") %>% xml_text
-  df_job_domain <- xml_find_all(df_xml, ".//JobDomain") %>% xml_text
-  remove("df_xml")
-  df <- data.table(job_id = df_job_id, job_domain = df_job_domain, job_url = df_job_url)
-  unlink(xml_path)
-  warning(paste0("SUCCESS: ",i))
-  cat(paste0("\nSUCCESS: ",i,"\n"))
-  return(df)
-}, mc.cores = 10)
-
-df_src <- rbindlist(df_src)
-
-df_src$job_id <- as.numeric(df_src$job_id)
-
-# Merge in NZ
-df_all_nz <- fread(file = "./int_data/df_nz_standardised.csv")
-df_all_nz$job_id <- as.numeric(df_all_nz$job_id)
-df_all_nz <- df_all_nz %>%
-  merge(x = ., y = df, by = "job_id", all.x = TRUE, all.y = FALSE)
-View(df_all_nz)
-fwrite(df_all_nz, file = "./int_data/df_nz_standardised.csv")
-
-# Merge in ANZ
-df_all_aus <- fread(file = "./int_data/df_aus_standardised.csv")
-df_all_aus$job_id <- as.numeric(df_all_aus$job_id)
-colnames(df_all_aus)
-df_all_aus <- df_all_aus %>%
-  merge(x = ., y = df_src, by = "job_id", all.x = TRUE, all.y = FALSE)
-fwrite(df_all_aus, file = "./int_data/df_aus_standardised.csv")
-
-View(head(df_all_aus, 1000))
-
-#### END ####
-
-
 
 
 

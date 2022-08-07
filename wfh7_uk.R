@@ -78,7 +78,7 @@ paths
 
 #### READ XML NAD MAKE SEQUENCES ####
 paths
-source("/mnt/disks/pdisk/code/safe_mclapply.R")
+source("/mnt/disks/pdisk/bgt_code_repo/safe_mclapply.R")
 
 safe_mclapply(1:length(paths), function(i) {
   name <- str_sub(paths[i], -21, -5)
@@ -290,7 +290,7 @@ rm(list = setdiff(ls(),c("paths", "df_dict", "all_dict", "wfh_dict_glob", "neg_d
 #### /END ####
 
 #### MAKE DFM ####
-source("/mnt/disks/pdisk/code/safe_mclapply.R")
+source("/mnt/disks/pdisk/bgt_code_repo/safe_mclapply.R")
 safe_mclapply(1:length(paths), function(i) {
 
   warning(paste0("BEGIN FILE: ",i))
@@ -340,7 +340,7 @@ system("echo sci2007! | sudo -S shutdown -h now")
 remove(list = ls())
 paths <- list.files("./int_data/wham_pred", pattern = "*.txt", full.names = T)
 paths <- paths[grepl("2019|2020|2021|2022", paths)]
-source("/mnt/disks/pdisk/code/safe_mclapply.R")
+source("/mnt/disks/pdisk/bgt_code_repo/safe_mclapply.R")
 
 df_wham <- safe_mclapply(1:length(paths), function(i) {
   df <- fread(paths[i])  %>%
@@ -351,6 +351,32 @@ df_wham <- safe_mclapply(1:length(paths), function(i) {
 }, mc.cores = 16)
 
 df_wham <- rbindlist(df_wham)
+
+df_wham$job_id <- as.numeric(df_wham$job_id)
+df_wham$wfh_prob <- as.numeric(df_wham$wfh_prob)
+
+df_wham_preperiod <- fread(file = "/mnt/disks/pdisk/bg_combined/int_data/subsample_wham/df_ss_wham.csv")
+#table(df_wham_preperiod$year)
+table(df_wham_preperiod$country)
+df_wham_preperiod <- setDT(df_wham_preperiod) %>%
+  .[country == "UK" & year < 2019] %>%
+  select(job_id, wfh_prob)
+
+df_wham_preperiod$job_id <- as.numeric(df_wham_preperiod$job_id)
+df_wham_preperiod$wfh_prob <- as.numeric(df_wham_preperiod$wfh_prob)
+
+head(df_wham)
+head(df_wham_preperiod)
+
+uniqueN(df_wham$job_id)/length(df_wham$job_id)
+uniqueN(df_wham_preperiod$job_id)/length(df_wham_preperiod$job_id)
+
+df_wham <- bind_rows(df_wham, df_wham_preperiod)
+
+remove(list = setdiff(ls(), "df_wham"))
+
+df_wham <- df_wham %>%
+  unique(., by = "job_id")
 
 df_wham <- df_wham %>%
   .[, wfh := as.numeric(wfh_prob>0.5)] %>%
@@ -364,57 +390,14 @@ df_wham <- df_wham %>%
          wfh_wham = wfh)
 #### /END ####
 
-# #### AGGREGATE DICTIONARY TO JOB AD LEVEL ####
-# paths <- list.files("./int_data/wfh_v8", pattern = "*.rds", full.names = T)
-# paths <- paths[grepl("2019|2020|2021|2022", paths)]
-# 
-# source("/mnt/disks/pdisk/code/safe_mclapply.R")
-# 
-# df_oecd <- safe_mclapply(1:length(paths), function(i) {
-#   df <- readRDS(paths[i]) %>%
-#     convert(., to = "data.frame") %>%
-#     rename(seq_id = doc_id) %>%
-#     mutate(wfh = rowSums(.[c(2, 17)], na.rm = TRUE)) %>%
-#     mutate(neg = rowSums(.[c(19, 29)], na.rm = TRUE)) %>%
-#     select(seq_id, wfh, neg) %>%
-#     mutate(wfh_nn = wfh*(1-neg))
-#   
-#   df <- df %>%
-#     setDT(.) %>%
-#     .[, job_id := str_sub(seq_id,1, -6)] %>%
-#     .[, .(wfh = as.numeric(max(wfh)>0), wfh_nn = as.numeric(max(wfh_nn)>0)), by = job_id]
-#   warning(paste0("\nDONE: ",i/length(paths)))
-#   return(df)
-# }, mc.cores = 8)
-# 
-# df_oecd <- rbindlist(df_oecd)
-# df_oecd$job_id <- as.numeric(df_oecd$job_id)
-# df_oecd <- df_oecd %>%
-#   rename(wfh_oecd = wfh,
-#          wfh_oecd_nn = wfh_nn)
-# #### /END ####
-
 #### MERGE WHAM PREDICTIONS INTO THE STRUCTURED DATA AND RESAVE ####
-remove(list = setdiff(ls(), c("df_wham", "df_oecd")))
-
-# df_wham <- df_wham %>%
-#   merge(x = ., y = df_oecd, all.x = TRUE, by = "job_id")
-
-# rm(df_oecd)
-
-# df_wham <- df_wham %>%
-#   .[, wfh_oecd := ifelse(is.na(wfh_oecd),0,wfh_oecd)] %>%
-#   .[, wfh_oecd_nn := ifelse(is.na(wfh_oecd_nn),0,wfh_oecd_nn)]
-
-colnames(df_wham)
-mean(df_wham$wfh_wham)
-mean(df_wham$wfh_oecd)
+mean(df_wham$wfh_wham, na.rm = T)
 
 paths <- list.files("/mnt/disks/pdisk/bg-uk/raw_data/main", pattern = ".zip", full.names = T)
 paths
-source("/mnt/disks/pdisk/code/safe_mclapply.R")
+source("/mnt/disks/pdisk/bgt_code_repo/safe_mclapply.R")
 
-safe_mclapply(2020:2022, function(x) {
+safe_mclapply(2014:2018, function(x) {
 
   paths_year <- paths[grepl(x, paths)]
   
@@ -460,12 +443,17 @@ safe_mclapply(2020:2022, function(x) {
 #### END ####
 
 #### EXTRACT QUARTERLY DATA ####
-df_uk_stru_2019 <- fread("../bg-uk/int_data/uk_stru_2019_wfh.csv", nThread = 4)
-df_uk_stru_2020 <- fread("../bg-uk/int_data/uk_stru_2020_wfh.csv", nThread = 4)
-df_uk_stru_2021 <- fread("../bg-uk/int_data/uk_stru_2021_wfh.csv", nThread = 4)
-df_uk_stru_2022 <- fread("../bg-uk/int_data/uk_stru_2022_wfh.csv", nThread = 4)
+df_uk_stru_2014 <- fread("../bg-uk/int_data/uk_stru_2014_wfh.csv", nThread = 8) %>% .[!is.na(wfh_wham)]
+df_uk_stru_2015 <- fread("../bg-uk/int_data/uk_stru_2015_wfh.csv", nThread = 8) %>% .[!is.na(wfh_wham)]
+df_uk_stru_2016 <- fread("../bg-uk/int_data/uk_stru_2016_wfh.csv", nThread = 8) %>% .[!is.na(wfh_wham)]
+df_uk_stru_2017 <- fread("../bg-uk/int_data/uk_stru_2017_wfh.csv", nThread = 8) %>% .[!is.na(wfh_wham)]
+df_uk_stru_2018 <- fread("../bg-uk/int_data/uk_stru_2018_wfh.csv", nThread = 8) %>% .[!is.na(wfh_wham)]
+df_uk_stru_2019 <- fread("../bg-uk/int_data/uk_stru_2019_wfh.csv", nThread = 8) %>% .[!is.na(wfh_wham)]
+df_uk_stru_2020 <- fread("../bg-uk/int_data/uk_stru_2020_wfh.csv", nThread = 8) %>% .[!is.na(wfh_wham)]
+df_uk_stru_2021 <- fread("../bg-uk/int_data/uk_stru_2021_wfh.csv", nThread = 8) %>% .[!is.na(wfh_wham)]
+df_uk_stru_2022 <- fread("../bg-uk/int_data/uk_stru_2022_wfh.csv", nThread = 8) %>% .[!is.na(wfh_wham)]
 
-df_all_uk <- rbindlist(list(df_uk_stru_2019,df_uk_stru_2020,df_uk_stru_2021,df_uk_stru_2022))
+df_all_uk <- rbindlist(list(df_uk_stru_2014,df_uk_stru_2015,df_uk_stru_2016,df_uk_stru_2017,df_uk_stru_2018, df_uk_stru_2019,df_uk_stru_2020,df_uk_stru_2021,df_uk_stru_2022))
 remove(list = setdiff(ls(),"df_all_uk"))
 
 df_all_uk <- df_all_uk %>%
