@@ -400,6 +400,36 @@ df_wham <- df_wham %>%
          wfh_wham = wfh)
 #### /END ####
 
+#### EXTRACT URL AND SOURCE FOR ANZ ####
+paths <- list.files("./raw_data/text/", pattern = "*.zip", full.names = T)
+paths
+source("/mnt/disks/pdisk/bgt_code_repo/safe_mclapply.R")
+df_src <- safe_mclapply(1:length(paths), function(i) {
+  name <- str_sub(paths[i], -21, -5)
+  name
+  warning(paste0("\nBEGIN: ",i,"  '",name,"'"))
+  cat(paste0("\nBEGIN: ",i,"  '",name,"'"))
+  system(paste0("unzip -n ",paths[i]," -d ./raw_data/text/"))
+  xml_path = gsub(".zip", ".xml", paths[i])
+  xml_path
+  df_xml <- read_xml(xml_path) %>%
+    xml_find_all(., ".//Job")
+  df_job_id <- xml_find_all(df_xml, ".//JobID") %>% xml_text
+  df_job_url <- xml_find_all(df_xml, ".//JobURL") %>% xml_text
+  df_job_domain <- xml_find_all(df_xml, ".//JobDomain") %>% xml_text
+  remove("df_xml")
+  df <- data.table(job_id = df_job_id, job_domain = df_job_domain, job_url = df_job_url)
+  unlink(xml_path)
+  warning(paste0("SUCCESS: ",i))
+  cat(paste0("\nSUCCESS: ",i,"\n"))
+  return(df)
+}, mc.cores = 8)
+
+df_src <- rbindlist(df_src)
+df_src$job_id <- as.numeric(df_src$job_id)
+df_src <- df_src %>% unique(., by = "job_id")
+#### END ####
+
 #### MERGE WHAM PREDICTIONS INTO THE STRUCTURED DATA AND RESAVE ####
 mean(df_wham$wfh_wham, na.rm = T)
 
@@ -407,7 +437,7 @@ paths <- list.files("/mnt/disks/pdisk/bg-can/raw_data/main", pattern = ".zip", f
 paths
 source("/mnt/disks/pdisk/bgt_code_repo/safe_mclapply.R")
 
-safe_mclapply(2014:2018, function(x) {
+safe_mclapply(2019:2022, function(x) {
   
   paths_year <- paths[grepl(x, paths)]
   
@@ -438,6 +468,9 @@ safe_mclapply(2014:2018, function(x) {
     df <- df %>%
       merge(x = ., y = df_wham, by = "job_id", all.x = TRUE, all.y = FALSE)
     
+    df <- df %>%
+      merge(x = ., y = df_src, by = "job_id", all.x = TRUE, all.y = FALSE)
+    
     warning(paste0("\nDONE: ",x,"   ",i))
     return(df)
   }, mc.cores = 1)
@@ -465,8 +498,12 @@ df_can_stru_2020 <- fread("../bg-can/int_data/can_stru_2020_wfh.csv", nThread = 
 df_can_stru_2021 <- fread("../bg-can/int_data/can_stru_2021_wfh.csv", nThread = 8) %>% .[!is.na(wfh_wham)]
 df_can_stru_2022 <- fread("../bg-can/int_data/can_stru_2022_wfh.csv", nThread = 8) %>% .[!is.na(wfh_wham)]
 
+
+
 df_all_can <- rbindlist(list(df_can_stru_2014,df_can_stru_2015,df_can_stru_2016,df_can_stru_2017,df_can_stru_2018,df_can_stru_2019,df_can_stru_2020,df_can_stru_2021,df_can_stru_2022))
 remove(list = setdiff(ls(),"df_all_can"))
+
+colnames(df_all_can)
 
 df_all_can <- df_all_can %>%
   .[, year_quarter := as.yearqtr(job_ymd)] %>%
@@ -508,7 +545,7 @@ df_all_can <- df_all_can %>%
 df_all_can <- df_all_can %>%
   select(job_id,country,year_month,job_date,wfh_wham_prob,wfh_wham,canon_state,canon_city,
          canon_employer,min_experience,max_experience,canon_minimum_degree,min_degree_level,min_annual_salary,canon_job_hours,bgt_occ,consolidated_inferred_naics,industry_name,
-         industry_group_name,sub_sector_name,sector_name,tot_emp_ad,job_id_weight)
+         industry_group_name,sub_sector_name,sector_name,tot_emp_ad,job_id_weight,job_domain,job_url)
 
 # Remove Cannon
 colnames(df_all_can) <- gsub("canon_","", colnames(df_all_can))
@@ -529,7 +566,7 @@ df_all_can <- df_all_can %>% rename(disjoint_sector = sector_name)
 df_all_can <- df_all_can %>% rename(disjoint_salary = min_annual_salary)
 
 # Final Subset
-df_all_can <- df_all_can %>% select(job_id, country, state, city, year_month, job_date, wfh_wham_prob, wfh_wham, employer, bgt_occ, disjoint_exp_max, disjoint_exp_min, job_hours, disjoint_sector, disjoint_degree_level, disjoint_degree_name, disjoint_salary, tot_emp_ad, job_id_weight)
+df_all_can <- df_all_can %>% select(job_id, country, state, city, year_month, job_date, wfh_wham_prob, wfh_wham, employer, bgt_occ, disjoint_exp_max, disjoint_exp_min, job_hours, disjoint_sector, disjoint_degree_level, disjoint_degree_name, disjoint_salary, tot_emp_ad, job_id_weight, job_domain, job_url)
 df_all_can$year <- year(df_all_can$year_month)
 df_all_can$month <- str_sub(as.character(df_all_can$year_month), 1, 3)
 df_all_can$month <- factor(df_all_can$month, levels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"))

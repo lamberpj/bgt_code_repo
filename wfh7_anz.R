@@ -27,6 +27,9 @@ library("ggpubr")
 library("ggthemr")
 ggthemr('flat')
 
+#system("git commit -a --allow-empty-message -m ''")
+#system("git push origin master")
+
 setDTthreads(2)
 getDTthreads()
 quanteda_options(threads = 1)
@@ -404,10 +407,13 @@ df_wham <- df_wham %>%
 df_wham <- df_wham %>%
   rename(wfh_wham_prob = wfh_prob,
          wfh_wham = wfh)
+
+remove(list = setdiff(ls(), "df_wham"))
 #### /END ####
 
 #### EXTRACT URL AND SOURCE FOR ANZ ####
 paths <- list.files("./raw_data/text/", pattern = "*.zip", full.names = T)
+paths
 source("/mnt/disks/pdisk/bgt_code_repo/safe_mclapply.R")
 df_src <- safe_mclapply(1:length(paths), function(i) {
   name <- str_sub(paths[i], -21, -5)
@@ -428,7 +434,7 @@ df_src <- safe_mclapply(1:length(paths), function(i) {
   warning(paste0("SUCCESS: ",i))
   cat(paste0("\nSUCCESS: ",i,"\n"))
   return(df)
-}, mc.cores = 10)
+}, mc.cores = 8)
 
 df_src <- rbindlist(df_src)
 df_src$job_id <- as.numeric(df_src$job_id)
@@ -443,7 +449,7 @@ paths <- list.files("/mnt/disks/pdisk/bg-anz/raw_data/main", pattern = ".zip", f
 paths
 source("/mnt/disks/pdisk/bgt_code_repo/safe_mclapply.R")
 
-safe_mclapply(2014:2018, function(x) {
+safe_mclapply(2014:2022, function(x) {
   
   paths_year <- paths[grepl(x, paths)]
   
@@ -473,6 +479,9 @@ safe_mclapply(2014:2018, function(x) {
     
     df <- df %>%
       merge(x = ., y = df_wham, by = "job_id", all.x = TRUE, all.y = FALSE)
+    
+    df <- df %>%
+      merge(x = ., y = df_src, by = "job_id", all.x = TRUE, all.y = FALSE)
     
     warning(paste0("\nDONE: ",x,"   ",i))
     return(df)
@@ -536,20 +545,12 @@ df_all_aus <- df_all_aus %>%
 
 # Check how problematic the extensive margin is
 df_all_aus <- df_all_aus %>%
-  select(job_id,country,year_month,job_date,wfh_wham_prob,wfh_wham,nation,region,canon_county,canon_city,ttwa,
-         canon_employer,min_experience,max_experience,canon_minimum_degree,min_degree_level,min_annual_salary,canon_job_hours,bgt_occ,sic_code,sic_class,
-         sic_group,sic_division,sic_section,tot_emp_ad,job_id_weight)
-
-df_all_aus <- df_all_aus %>%
   select(job_id,country,year_month,job_date,wfh_wham_prob,wfh_wham,canon_state,canon_city,
          canon_employer,min_experience,max_experience,canon_minimum_degree,min_degree_level,canon_job_hours,min_annual_salary,bgt_occ,anzsic_code,anzsic_class,anzsic_group,anzsic_subdivision,anzsic_division,
-         tot_emp_ad,job_id_weight)
+         tot_emp_ad,job_id_weight, job_domain, job_url)
 
 # Remove Cannon
 colnames(df_all_aus) <- gsub("canon_","", colnames(df_all_aus))
-
-# Job Title
-df_all_aus <- df_all_aus %>% rename(job_title = clean_job_title)
 
 # Experience - call this disjoint_exp_max, and disjoint_degree_level
 df_all_aus <- df_all_aus %>% rename(disjoint_exp_max = max_experience, disjoint_exp_min = min_experience)
@@ -566,7 +567,7 @@ df_all_aus <- df_all_aus %>% rename(disjoint_sector = anzsic_division)
 df_all_aus <- df_all_aus %>% rename(disjoint_salary = min_annual_salary)
 
 # Final Subset
-df_all_aus <- df_all_aus %>% select(job_id, country, state, city, year_month, job_date, wfh_wham_prob,wfh_wham, employer, bgt_occ, disjoint_exp_max, disjoint_exp_min, job_hours, disjoint_sector, disjoint_degree_level, disjoint_degree_name, disjoint_salary, tot_emp_ad, job_id_weight)
+df_all_aus <- df_all_aus %>% select(job_id, country, state, city, year_month, job_date, wfh_wham_prob,wfh_wham, employer, bgt_occ, disjoint_exp_max, disjoint_exp_min, job_hours, disjoint_sector, disjoint_degree_level, disjoint_degree_name, disjoint_salary, tot_emp_ad, job_id_weight, job_domain, job_url)
 df_all_aus$year <- year(df_all_aus$year_month)
 df_all_aus$month <- str_sub(as.character(df_all_aus$year_month), 1, 3)
 df_all_aus$month <- factor(df_all_aus$month, levels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"))
@@ -688,7 +689,7 @@ colnames(df_all_nz)
 df_all_nz <- df_all_nz %>%
   select(job_id,country,year_month,job_date,wfh_wham_prob,wfh_wham,canon_state,canon_city,
          canon_employer,min_experience,max_experience,canon_minimum_degree,min_degree_level,canon_job_hours,min_annual_salary,bgt_occ,anzsic_code,anzsic_class,anzsic_group,anzsic_subdivision,anzsic_division,
-         tot_emp_ad,job_id_weight)
+         tot_emp_ad,job_id_weight, job_domain, job_url)
 
 # Remove Cannon
 colnames(df_all_nz) <- gsub("canon_","", colnames(df_all_nz))
@@ -708,7 +709,7 @@ df_all_nz <- df_all_nz %>% rename(disjoint_sector = anzsic_division)
 df_all_nz <- df_all_nz %>% rename(disjoint_salary = min_annual_salary)
 
 # Final Subset
-df_all_nz <- df_all_nz %>% select(job_id, country, state, city, year_month, job_date, wfh_wham_prob,wfh_wham, employer, bgt_occ, disjoint_exp_max, disjoint_exp_min, job_hours, disjoint_sector, disjoint_degree_level, disjoint_degree_name, disjoint_salary, tot_emp_ad, job_id_weight)
+df_all_nz <- df_all_nz %>% select(job_id, country, state, city, year_month, job_date, wfh_wham_prob,wfh_wham, employer, bgt_occ, disjoint_exp_max, disjoint_exp_min, job_hours, disjoint_sector, disjoint_degree_level, disjoint_degree_name, disjoint_salary, tot_emp_ad, job_id_weight, job_domain, job_url)
 df_all_nz$year <- year(df_all_nz$year_month)
 df_all_nz$month <- str_sub(as.character(df_all_nz$year_month), 1, 3)
 df_all_nz$month <- factor(df_all_nz$month, levels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"))
@@ -769,28 +770,4 @@ head(df_all_nz)
 # SAVE #
 fwrite(df_all_nz, file = "./int_data/df_nz_standardised.csv")
 #### END NEW ZEALAND ####
-
-
-
-
-
-
-
-
-
-
-
-
-
-#### ADD DATA FOR YABRA TO CHECK ####
-remove(list = ls())
-paths <- list.files(path = "/mnt/disks/pdisk/bg-us/int_data", pattern = "2022", full.names = TRUE)
-
-paths
-
-lapply(paths, function(x) {
-  #paste0("gsutil -m cp -r ",x," gs://for_transfer/for_yabra ")
-  system(paste0("gsutil -m cp -r ",x," gs://for_transfer/for_yabra "))
-})
-
 

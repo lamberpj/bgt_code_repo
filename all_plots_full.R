@@ -45,21 +45,21 @@ df_nz <- fread("../bg-anz/int_data/df_nz_standardised.csv", nThread = 8)
 df_aus <- fread("../bg-anz/int_data/df_aus_standardised.csv", nThread = 8)
 df_can <- fread("../bg-can/int_data/df_can_standardised.csv", nThread = 8)
 df_uk <- fread("../bg-uk/int_data/df_uk_standardised.csv", nThread = 8)
+df_us_2014 <- fread("../bg-us/int_data/df_us_2014_standardised.csv", nThread = 8)
+df_us_2015 <- fread("../bg-us/int_data/df_us_2015_standardised.csv", nThread = 8)
+df_us_2016 <- fread("../bg-us/int_data/df_us_2016_standardised.csv", nThread = 8)
+df_us_2017 <- fread("../bg-us/int_data/df_us_2017_standardised.csv", nThread = 8)
+df_us_2018 <- fread("../bg-us/int_data/df_us_2018_standardised.csv", nThread = 8)
 df_us_2019 <- fread("../bg-us/int_data/df_us_2019_standardised.csv", nThread = 8)
 df_us_2020 <- fread("../bg-us/int_data/df_us_2020_standardised.csv", nThread = 8)
 df_us_2021 <- fread("../bg-us/int_data/df_us_2021_standardised.csv", nThread = 8)
 df_us_2022 <- fread("../bg-us/int_data/df_us_2022_standardised.csv", nThread = 8)
 
 #df_all <- rbindlist(list(df_nz,df_aus,df_can,df_uk,df_us_2019,df_us_2020,df_us_2021,df_us_2022), use.names = TRUE, fill = TRUE)
-df_all_list <- list(df_nz,df_aus,df_can,df_uk,df_us_2019,df_us_2020,df_us_2021,df_us_2022)
+df_all_list <- list(df_nz,df_aus,df_can,df_uk,df_us_2014,df_us_2015,df_us_2016,df_us_2017,df_us_2018,df_us_2019,df_us_2020,df_us_2021,df_us_2022)
 ls()
 remove(list = setdiff(ls(), "df_all_list"))
 
-table(df_all_list[[1]]$job_domain)
-nrow(df_all_list[[1]])
-df_all_list[[1]] <- df_all_list[[1]] %>%
-  .[job_domain != "nz.mercadojobs.com"]
-nrow(df_all_list[[1]])
 #### END ####
 
 #### ACROSS COUNTRIES ####
@@ -119,15 +119,15 @@ nrow(wfh_occ_ag) # 102,252
 colnames(wfh_occ_ag)
 
 # Check weights
-weights_check <- wfh_occ_ag %>%
-  setDT(.) %>%
-  .[, .(share_bert_unweighted = sum(tot_vac, na.rm = T),
-        share_bert_wc_vac = sum(wc_tot_vacs, na.rm = T),
-        share_bert_wc_emp = sum(wc_tot_emp, na.rm = T),
-        share_bert_us_vac = sum(us_tot_vacs, na.rm = T),
-        share_bert_us_emp = sum(us_tot_emp, na.rm = T)),
-    by = .(country, year_month, year)] %>%
-  setDT(.)
+#weights_check <- wfh_occ_ag %>%
+#  setDT(.) %>%
+#  .[, .(share_bert_unweighted = sum(tot_vac, na.rm = T),
+#        share_bert_wc_vac = sum(wc_tot_vacs, na.rm = T),
+#        share_bert_wc_emp = sum(wc_tot_emp, na.rm = T),
+#        share_bert_us_vac = sum(us_tot_vacs, na.rm = T),
+#        share_bert_us_emp = sum(us_tot_emp, na.rm = T)),
+#    by = .(country, year_month, year)] %>%
+#  setDT(.)
 
 # Aggregate
 wfh_ag <- wfh_occ_ag %>%
@@ -162,59 +162,50 @@ compare_weights$`Occupation-weights` <- c("Unweighted", "2019 Vacancy Weighted",
 compare_weights <- compare_weights %>%
   select(-weights) %>%
   select(`Occupation-weights`, everything())
-  
+compare_weights
 stargazer(compare_weights, title = "2021 Share of Remote Work Vacancy Postings, by Different Occupation-weighting Scheme", summary = F, type = "latex", rownames = F)
 
 # Transitory spike
-colnames(wfh_ag)
-wfh_ag_pre_period <- wfh_ag %>%
-  filter(year_month <= as.yearmon(c("Feb 2020"))) %>%
-  group_by(country) %>%
-  select(country, year_month, share_bert_wc_emp) %>%
-  summarise(mean_share = 100*mean(share_bert_wc_emp, na.rm = T))
-#
-wfh_ag_month_spike <- wfh_ag %>%
-  filter(year_month %in% as.yearmon(c("Feb 2020", "Apr 2020", "Apr 2021"))) %>%
-  group_by(country) %>%
-  select(country, year_month, share_bert_wc_emp) %>%
-  mutate(share_bert_wc_emp = share_bert_wc_emp*100) %>%
-  pivot_wider(., names_from = year_month, values_from = share_bert_wc_emp) %>%
-  mutate(pc_change_1 = 100*(`Apr 2020` - `Feb 2020`)/`Feb 2020`) %>%
-  mutate(pc_change_2 = 100*(`Apr 2021` - `Apr 2020`)/`Apr 2020`) %>%
-  ungroup() %>%
-  arrange(country)
-#
-wfh_ag_spike <- left_join(wfh_ag_pre_period, wfh_ag_month_spike)
-#
-wfh_ag_spike <- bind_rows(wfh_ag_spike,
-                          wfh_ag_spike %>%
-                            summarise(mean_share = mean(mean_share),
-                                      `Feb 2020` = mean(`Feb 2020`),
-                                      `Apr 2020` = mean(`Apr 2020`),
-                                      `Apr 2021` = mean(`Apr 2021`),
-                                      pc_change_1 = mean(pc_change_1),
-                                      pc_change_2 = mean(pc_change_2)) %>%
-                            mutate(country = "Average")) %>%
-  mutate(across(c(2:7), ~ round(.x, 2)))
-
-stargazer(wfh_ag_spike, type = "latex", title = "COVID Spike in Remote Work Adoption", summary = F, rownames = F, digits = 2, font.size = "footnotesize")
+# colnames(wfh_ag)
+# wfh_ag_month_spike <- wfh_ag %>%
+#   filter(year_month %in% as.yearmon(c("Jan 2019", "June 2019", "Jan 2020", "June 2020", "Jan 2021", "June 2021", "Jan 2022", "June 2022"))) %>%
+#   group_by(country) %>%
+#   select(country, year_month, share_bert_wc_emp) %>%
+#   mutate(share_bert_wc_emp = share_bert_wc_emp*100) %>%
+#   pivot_wider(., names_from = year_month, values_from = share_bert_wc_emp) %>%
+#   ungroup() %>%
+#   arrange(country)
+# wfh_ag_month_spike
+# 
+# stargazer(wfh_ag_month_spike, type = "latex", title = "COVID Spike in Remote Work Adoption", summary = F, rownames = F, digits = 2, font.size = "footnotesize")
 
 # Emp Weighted
 cbbPalette <- c("#E69F00", "#009E73", "#CC79A7", "#0072B2", "#D55E00")
+
+wfh_ag_quar <- wfh_ag %>%
+  .[, year_quart := as.yearqtr(as.Date(as.yearmon(year_month)))] %>%
+  .[, .(share_bert_unweighted = mean(share_bert_unweighted),
+        share_bert_wc_vac = mean(share_bert_wc_vac),
+        share_bert_wc_emp = mean(share_bert_wc_emp),
+        share_bert_us_vac = mean(share_bert_us_vac),
+        share_bert_us_emp = mean(share_bert_us_emp)),
+    by = .(country, year, year_quart)]
 
 p = wfh_ag %>%
   ggplot(., aes(x = as.Date(as.yearmon(year_month)), y = 100*share_bert_wc_emp, col = country)) +
   #stat_smooth (geom="line", alpha=0.8, size=2, span=0.2) +
   #stat_smooth(span = 0.1, alpha=0.5, se=FALSE, size = 2) +
-  geom_point(size = 2.25) +
+  geom_point(size = 1.75) +
   geom_line(size = 1.25) +
   ylab("Share (%)") +
   xlab("Date") +
   labs(title = "Share of Remote Work Vacancy Postings (%)", subtitle = "Employment Weighted") +
-  scale_x_date(breaks = as.Date(c("2019-01-01", "2019-07-01", "2020-01-01", "2020-07-01", "2021-01-01", "2021-07-01", "2022-01-01", "2022-07-01")),
-               date_labels = '%b-%y') +
+  scale_x_date(breaks = as.Date(c("2014-01-01", "2015-01-01", "2016-01-01",
+                                  "2017-01-01", "2018-01-01", "2019-01-01",
+                                  "2020-01-01", "2021-01-01", "2022-01-01")),
+               date_labels = '%Y') +
   scale_y_continuous(labels = scales::number_format(accuracy = 1),  breaks = seq(0,30,2)) +
-  coord_cartesian(ylim = c(0, 20)) +
+  coord_cartesian(ylim = c(0, 15)) +
   scale_colour_manual(values=cbbPalette) +
   theme(
     axis.title.x=element_blank(),
@@ -231,58 +222,57 @@ p
 p_egg <- set_panel_size(p = p,
                         width = unit(5, "in"),
                         height = unit(3, "in"))
-ggsave(p_egg, filename = "./plots/bert_wfh_sr_ts_emp2019_a.pdf", width = 8, height = 6)
+ggsave(p_egg, filename = "./plots/rwa_country_ts_w_emp2019_month.pdf", width = 8, height = 6)
 
 remove(list = c("p", "p_egg"))
 
-# # Emp Weighted Index
-# wfh_ag_index <- df_all %>%
-#   select(country, year_month, year, wfh, tot_emp_ad, us_tot_emp, us_tot_vacs, wc_tot_emp, wc_tot_vacs, job_id_weight, bgt_occ) %>%
-#   setDT(.) %>%
-#   .[, .(share_bert_unweighted = sum(job_id_weight*wfh, na.rm = T)/sum(job_id_weight, na.rm = T),
-#         share_bert_wc_vac = sum(wc_tot_vacs*wfh, na.rm = T)/sum(wc_tot_vacs, na.rm = T),
-#         share_bert_wc_emp = sum(wc_tot_emp*wfh, na.rm = T)/sum(wc_tot_emp, na.rm = T),
-#         share_bert_us_vac = sum(us_tot_vacs*wfh, na.rm = T)/sum(us_tot_vacs, na.rm = T),
-#         share_bert_us_emp = sum(us_tot_emp*wfh, na.rm = T)/sum(us_tot_emp, na.rm = T)),
-#     by = .(country, year)] %>%
-#   setDT(.) %>%
-#   .[, share_bert_wc_emp := 100*share_bert_wc_emp/share_bert_wc_emp[year == 2019], by = country]
-# p = wfh_ag_index %>%
-#   ggplot(., aes(x = year, y = share_bert_wc_emp, col = country)) +
-#   #stat_smooth (geom="line", alpha=0.8, size=2, span=0.2) +
-#   #stat_smooth(span = 0.1, alpha=0.5, se=FALSE, size = 2) +
-#   geom_point(size = 2.25) +
-#   geom_line(size = 1.25) +
-#   ylab("Index (2019 = 100)") +
-#   xlab("Date") +
-#   labs(title = "Index of Remote Work Share (100 = 2019)", subtitle = "Employment Weighted") +
-#   #scale_x_yearmon(format = '%Y-%-m', breaks = seq(from = as.yearmon("2014-1"), to = as.yearmon("2021-9"), by = 1),  limits = c(as.yearmon("2014-1"), as.yearmon("2021-9"))) +
-#   #scale_x_date(breaks = as.Date(c("2014-01-01", "2015-01-01", "2016-01-01", "2017-01-01", "2018-01-01", "2019-01-01", "2020-01-01", "2021-01-01", "2022-01-01", "2022-01-01")),
-#   #             minor_breaks = as.Date(c("2014-01-01","2014-07-01","2015-01-01","2015-07-01","2016-01-01","2016-07-01","2017-01-01","2017-07-01",
-#   #                                      "2018-01-01","2018-07-01","2019-01-01","2019-07-01","2020-01-01","2020-07-01","2021-01-01","2021-07-01", "2022-01-01")),
-#   #             date_labels = '%Y') +
-#   scale_x_continuous(breaks = seq(2014,2022)) +
-#   scale_y_continuous(breaks = seq(100,1100, 200)) +
-#   coord_cartesian(ylim = c(90, 1150)) +
-#   scale_colour_manual(values=cbbPalette) +
-#   theme(
-#     axis.title.x=element_blank(),
-#     legend.position="bottom",
-#     legend.title = element_blank(),
-#     axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-#   guides(col = guide_legend(nrow = 1, reverse = T)) +
-#   theme(text = element_text(size=15, family="serif", colour = "black"),
-#         axis.text = element_text(size=14, family="serif", colour = "black"),
-#         axis.title = element_text(size=15, family="serif", colour = "black"),
-#         legend.text = element_text(size=14, family="serif", colour = "black"),
-#         panel.background = element_rect(fill = "white"))
-# p
-# p_egg <- set_panel_size(p = p,
-#                         width = unit(5, "in"),
-#                         height = unit(3, "in"))
-# ggsave(p_egg, filename = "./plots/bert_wfh_sr_index_emp2019_a.pdf", width = 8, height = 6)
-# 
-# remove(list = c("p", "p_egg"))
+# Emp Weighted Index
+wfh_ag_year <- wfh_ag %>%
+  .[, year_quart := as.yearqtr(as.Date(as.yearmon(year_month)))] %>%
+  .[, .(share_bert_unweighted = mean(share_bert_unweighted),
+        share_bert_wc_vac = mean(share_bert_wc_vac),
+        share_bert_wc_emp = mean(share_bert_wc_emp),
+        share_bert_us_vac = mean(share_bert_us_vac),
+        share_bert_us_emp = mean(share_bert_us_emp)),
+    by = .(country, year)] %>%
+  .[, share_bert_wc_emp := 100*share_bert_wc_emp/mean(share_bert_wc_emp[year == 2019]), by = country]
+
+p = wfh_ag_year %>%
+  ggplot(., aes(x = year, y = share_bert_wc_emp, col = country)) +
+  #stat_smooth (geom="line", alpha=0.8, size=2, span=0.2) +
+  #stat_smooth(span = 0.1, alpha=0.5, se=FALSE, size = 2) +
+  geom_point(size = 2.25) +
+  geom_line(size = 1.25) +
+  ylab("Index (2019 = 100)") +
+  xlab("Date") +
+  labs(title = "Index of Remote Work Share (100 = 2019)", subtitle = "Employment Weighted") +
+  #scale_x_yearmon(format = '%Y-%-m', breaks = seq(from = as.yearmon("2014-1"), to = as.yearmon("2021-9"), by = 1),  limits = c(as.yearmon("2014-1"), as.yearmon("2021-9"))) +
+  #scale_x_date(breaks = as.Date(c("2014-01-01", "2015-01-01", "2016-01-01", "2017-01-01", "2018-01-01", "2019-01-01", "2020-01-01", "2021-01-01", "2022-01-01", "2022-01-01")),
+  #             minor_breaks = as.Date(c("2014-01-01","2014-07-01","2015-01-01","2015-07-01","2016-01-01","2016-07-01","2017-01-01","2017-07-01",
+  #                                      "2018-01-01","2018-07-01","2019-01-01","2019-07-01","2020-01-01","2020-07-01","2021-01-01","2021-07-01", "2022-01-01")),
+  #             date_labels = '%Y') +
+  scale_x_continuous(breaks = seq(2014,2022)) +
+  scale_y_continuous(breaks = seq(100,900, 100)) +
+  coord_cartesian(ylim = c(90, 900)) +
+  scale_colour_manual(values=cbbPalette) +
+  theme(
+    axis.title.x=element_blank(),
+    legend.position="bottom",
+    legend.title = element_blank(),
+    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  guides(col = guide_legend(nrow = 1, reverse = T)) +
+  theme(text = element_text(size=15, family="serif", colour = "black"),
+        axis.text = element_text(size=14, family="serif", colour = "black"),
+        axis.title = element_text(size=15, family="serif", colour = "black"),
+        legend.text = element_text(size=14, family="serif", colour = "black"),
+        panel.background = element_rect(fill = "white"))
+p
+p_egg <- set_panel_size(p = p,
+                        width = unit(5, "in"),
+                        height = unit(3, "in"))
+ggsave(p_egg, filename = "./plots/rwa_country_ts_w_emp2019_index_year.pdf", width = 8, height = 6)
+
+remove(list = c("p", "p_egg"))
 
 
 # Unweighted
@@ -295,8 +285,10 @@ p = wfh_ag %>%
   ylab("Share (%)") +
   xlab("Date") +
   labs(title = "Share of Remote Work Vacancy Postings (%)", subtitle = "Unweighted") +
-  scale_x_date(breaks = as.Date(c("2019-01-01", "2019-07-01", "2020-01-01", "2020-07-01", "2021-01-01", "2021-07-01", "2022-01-01", "2022-07-01")),
-               date_labels = '%b-%y') +
+  scale_x_date(breaks = as.Date(c("2014-01-01", "2015-01-01", "2016-01-01",
+                                  "2017-01-01", "2018-01-01", "2019-01-01",
+                                  "2020-01-01", "2021-01-01", "2022-01-01")),
+               date_labels = '%Y') +
   scale_y_continuous(labels = scales::number_format(accuracy = 1),  breaks = seq(0,30,2)) +
   coord_cartesian(ylim = c(0, 20)) +
   scale_colour_manual(values=cbbPalette) +
@@ -315,8 +307,7 @@ p
 p_egg <- set_panel_size(p = p,
                         width = unit(5, "in"),
                         height = unit(3, "in"))
-ggsave(p_egg, filename = "./plots/bert_wfh_sr_ts_unweighted.pdf", width = 8, height = 6)
-
+ggsave(p_egg, filename = "./plots/rwa_country_ts_w_unweighted_month.pdf", width = 8, height = 6)
 remove(list = c("p", "p_egg"))
 
 # Vac Weighted
@@ -329,8 +320,10 @@ p = wfh_ag %>%
   ylab("Share (%)") +
   xlab("Date") +
   labs(title = "Share of Remote Work Vacancy Postings (%)", subtitle = "Vac Weighted") +
-  scale_x_date(breaks = as.Date(c("2019-01-01", "2019-07-01", "2020-01-01", "2020-07-01", "2021-01-01", "2021-07-01", "2022-01-01", "2022-07-01")),
-               date_labels = '%b-%y') +
+  scale_x_date(breaks = as.Date(c("2014-01-01", "2015-01-01", "2016-01-01",
+                                  "2017-01-01", "2018-01-01", "2019-01-01",
+                                  "2020-01-01", "2021-01-01", "2022-01-01")),
+               date_labels = '%Y') +
   scale_y_continuous(labels = scales::number_format(accuracy = 1),  breaks = seq(0,30,2)) +
   coord_cartesian(ylim = c(0, 20)) +
   scale_colour_manual(values=cbbPalette) +
@@ -349,7 +342,7 @@ p
 p_egg <- set_panel_size(p = p,
                         width = unit(5, "in"),
                         height = unit(3, "in"))
-ggsave(p_egg, filename = "./plots/bert_wfh_sr_ts_vac_weighted.pdf", width = 8, height = 6)
+ggsave(p_egg, filename = "./plots/rwa_country_ts_w_2019vac_month.pdf", width = 8, height = 6)
 
 remove(list = c("p", "p_egg"))
 
@@ -363,8 +356,10 @@ p = wfh_ag %>%
   ylab("Share (%)") +
   xlab("Date") +
   labs(title = "Share of Remote Work Vacancy Postings (%)", subtitle = "USA Emp Weighted") +
-  scale_x_date(breaks = as.Date(c("2019-01-01", "2019-07-01", "2020-01-01", "2020-07-01", "2021-01-01", "2021-07-01", "2022-01-01", "2022-07-01")),
-               date_labels = '%b-%y') +
+  scale_x_date(breaks = as.Date(c("2014-01-01", "2015-01-01", "2016-01-01",
+                                  "2017-01-01", "2018-01-01", "2019-01-01",
+                                  "2020-01-01", "2021-01-01", "2022-01-01")),
+               date_labels = '%Y') +
   scale_y_continuous(labels = scales::number_format(accuracy = 1),  breaks = seq(0,30,2)) +
   coord_cartesian(ylim = c(0, 20)) +
   scale_colour_manual(values=cbbPalette) +
@@ -384,7 +379,7 @@ p
 p_egg <- set_panel_size(p = p,
                         width = unit(5, "in"),
                         height = unit(3, "in"))
-ggsave(p_egg, filename = "./plots/bert_wfh_sr_ts_us_emp2019_a.pdf", width = 8, height = 6)
+ggsave(p_egg, filename = "./plots/rwa_country_ts_w_us_2019emp_month.pdf", width = 8, height = 6)
 
 remove(list = c("p", "p_egg"))
 
@@ -398,8 +393,10 @@ p = wfh_ag %>%
   ylab("Share (%)") +
   xlab("Date") +
   labs(title = "Share of Remote Work Vacancy Postings (%)", subtitle = "USA Vac Weighted") +
-  scale_x_date(breaks = as.Date(c("2019-01-01", "2019-07-01", "2020-01-01", "2020-07-01", "2021-01-01", "2021-07-01", "2022-01-01", "2022-07-01")),
-               date_labels = '%b-%y') +
+  scale_x_date(breaks = as.Date(c("2014-01-01", "2015-01-01", "2016-01-01",
+                                  "2017-01-01", "2018-01-01", "2019-01-01",
+                                  "2020-01-01", "2021-01-01", "2022-01-01")),
+               date_labels = '%Y') +
   scale_y_continuous(labels = scales::number_format(accuracy = 1),  breaks = seq(0,30,2)) +
   coord_cartesian(ylim = c(0, 20)) +
   scale_colour_manual(values=cbbPalette) +
@@ -419,7 +416,7 @@ p
 p_egg <- set_panel_size(p = p,
                         width = unit(5, "in"),
                         height = unit(3, "in"))
-ggsave(p_egg, filename = "./plots/bert_wfh_sr_ts_us_vac2019_a.pdf", width = 8, height = 6)
+ggsave(p_egg, filename = "./plots/rwa_country_ts_w_us_2019vac_month.pdf", width = 8, height = 6)
 
 remove(list = c("p", "p_egg"))
 
