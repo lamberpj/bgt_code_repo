@@ -37,6 +37,11 @@ library(fixest)
 #loadfonts(device="postscript")
 #fonts()
 
+# git init
+# git add .
+# git commit -m "autosave"
+# git push origin master
+
 setDTthreads(8)
 getDTthreads()
 #quanteda_options(threads = 1)
