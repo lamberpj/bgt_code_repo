@@ -37,6 +37,7 @@ library(fixest)
 #loadfonts(device="postscript")
 #fonts()
 
+# cd /mnt/disks/pdisk/bgt_code_repo
 # git init
 # git add .
 # git commit -m "autosave"
