@@ -38,13 +38,12 @@ library(fixest)
 #fonts()
 
 ##### GITHUB RUN ####
-# cd /mnt/disks/pdisk/bgt_code_repo/
+# cd /mnt/disks/pdisk/bgt_code_repo
+# git init
 # git add .
-# git commit -a --allow-empty-message -m ''"
-# echo A782EC16 && echo $HISTCONTROL && /usr/bin/env && echo EDC27D09
+# git pull -m "check"
+# git commit -m "autosave"
 # git push origin master
-
-# test
 
 setDTthreads(8)
 getDTthreads()

@@ -33,17 +33,17 @@ ggthemr('flat')
 library(egg)
 library(extrafont)
 library(fixest)
-# font_import()
-#loadfonts(device="postscript")
-#fonts()
 library('officer')
 library('rvg')
 library('here')
 
-system("cd /mnt/disks/pdisk/bgt_code_repo/")
-system("git add .")
-system("git commit -a --allow-empty-message -m ''")
-system("git push origin master")
+##### GITHUB RUN ####
+# cd /mnt/disks/pdisk/bgt_code_repo
+# git init
+# git add .
+# git pull -m "check"
+# git commit -m "autosave"
+# git push origin master
 
 setDTthreads(4)
 getDTthreads()

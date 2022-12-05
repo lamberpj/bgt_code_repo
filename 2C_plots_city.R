@@ -33,9 +33,14 @@ ggthemr('flat')
 library(egg)
 library(extrafont)
 library(fixest)
-# font_import()
-#loadfonts(device="postscript")
-#fonts()
+
+##### GITHUB RUN ####
+# cd /mnt/disks/pdisk/bgt_code_repo
+# git init
+# git add .
+# git pull -m "check"
+# git commit -m "autosave"
+# git push origin master
 
 setDTthreads(4)
 getDTthreads()
