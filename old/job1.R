@@ -1,0 +1,5 @@
+lm1 <- feols(bach_or_higher ~ covid | month + idcountry, df)
+lm2 <- feols(bach_or_higher ~ covid | month + idcountry + idesco_level_4, df)
+lm3 <- feols(bach_or_higher ~ covid | month + idcountry + idmacro_sector, df)
+lm4 <- feols(bach_or_higher ~ covid | month + idprovince, df)
+lm5 <- feols(bach_or_higher ~ covid | month + idprovince + idesco_level_4 + idmacro_sector, df)
