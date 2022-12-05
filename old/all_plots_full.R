@@ -40,8 +40,23 @@ library(fixest)
 # cd /mnt/disks/pdisk/bgt_code_repo
 # git init
 # git add .
+# git pull -m "check"
 # git commit -m "autosave"
 # git push origin master
+
+install.packages("git2r")
+library(git2r)
+
+repo <- init("/mnt/disks/pdisk/bgt_code_repo")
+git2r::init(path = ".")
+git2r::add(path = ".")
+git2r::commit(repo = repo, all = T, message = "check")
+
+workdir(repo)
+setwd("")
+git2r::add(repo = ".", path = NULL, force = FALSE)
+git2r::commit(repo = ".", message = "commit message")
+git2r::push(credentials = whatever-you-need-for-pushing-to-bitbucket)
 
 setDTthreads(8)
 getDTthreads()
