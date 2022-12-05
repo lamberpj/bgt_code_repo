@@ -46,28 +46,16 @@ remove(list = ls())
 #system("gsutil -m cp -r gs://for_transfer/data_ingest/bgt_upload/ANZ_raw /mnt/disks/pdisk/bg-anz/raw_data/text")
 #system("gsutil -m cp -r gs://for_transfer/data_ingest/bgt_upload/ANZ_stru /mnt/disks/pdisk/bg-anz/raw_data/main")
 #system("gsutil -m cp -r gs://for_transfer/wham/ANZ /mnt/disks/pdisk/bg-anz/int_data/wham_pred")
-system("gsutil -m cp -r gs://for_transfer/dict_results/ANZ_full_results.rds /mnt/disks/pdisk/bg-anz/int_data/")
+#system("gsutil -m cp -r gs://for_transfer/dict_results/ANZ_full_results.rds /mnt/disks/pdisk/bg-anz/int_data/")
 
-#
-#library(filesstrings)
-#paths <- list.files("/mnt/disks/pdisk/bg-anz/raw_data/main/", full.names = T, pattern = ".zip", recursive = T)
-#paths
-#lapply(paths, function(x) {
-#  file.move(x, "/mnt/disks/pdisk/bg-anz/raw_data/text")
-#})
-
-#lapply(1:length(paths), function(i) {
-#  system(paste0("unzip -n ",paths[i]," -d ./raw_data/main"))
-#})
-
-#lapply(1:length(paths), function(i) {
-#  unlink(paths[i])
-#})
-
-#system("zip -r /mnt/disks/pdisk/bg-anz/int_data/us_sequences.zip /mnt/disks/pdisk/bg-anz/int_data/sequences/")
-
-# Upload Sequences
-#system("gsutil -m cp -r /mnt/disks/pdisk/bg-anz/int_data/sequences/ gs://for_transfer/sequences_anz/")
+# paths <- list.files("/mnt/disks/pdisk/bg-anz/int_data/sequences", pattern = "2022", full.names = T)
+# 
+# lapply(1:length(paths), function(i) {
+#   print(paths[i])
+#   paste0("gsutil -m cp -r ",paths[i]," gs://for_transfer/sequences_anz/sequences/")
+#   system(paste0("gsutil -m cp -r ",paths[i]," gs://for_transfer/sequences_anz/sequences/"))
+#   return("")
+# })
 
 #### END ####
 
@@ -220,7 +208,7 @@ safe_mclapply(1:length(paths), function(i) {
 }, mc.cores = 10)
 
 #sink()
-system("echo sci2007! | sudo -S shutdown -h now")
+#system("echo sci2007! | sudo -S shutdown -h now")
 #### END ####
 
 # Transfer sequences to instance

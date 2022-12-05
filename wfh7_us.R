@@ -42,9 +42,16 @@ remove(list = ls())
 #system("gsutil -m cp -r gs://for_transfer/data_ingest/bgt_upload/US_raw /mnt/disks/pdisk/bg-us/raw_data/text/")
 #system("gsutil -m cp -r gs://for_transfer/wham/US /mnt/disks/pdisk/bg-us/int_data/wham_pred/")
 # system("gsutil -m cp -r gs://for_transfer/wham/US /mnt/disks/pdisk/bg-us/int_data/wham_pred/")
-# system("gsutil -m cp -r /mnt/disks/pdisk/bg-us/int_data/sequences/sequences_20220818_20220824.rds gs://for_transfer/sequences_us/sequences_latest/")
-# system("gsutil -m cp -r /mnt/disks/pdisk/bg-us/int_data/sequences/sequences_20220825_20220831.rds gs://for_transfer/sequences_us/sequences_latest/")
-# system("gsutil -m cp -r /mnt/disks/pdisk/bg-us/int_data/sequences/sequences_20220901_20220907.rds gs://for_transfer/sequences_us/sequences_latest/")
+
+# paths <- list.files("/mnt/disks/pdisk/bg-us/int_data/sequences", pattern = "2022", full.names = T)
+# 
+# lapply(1:length(paths), function(i) {
+#   print(paths[i])
+#   paste0("gsutil -m cp -r ",paths[i]," gs://for_transfer/sequences_us/sequences/")
+#   system(paste0("gsutil -m cp -r ",paths[i]," gs://for_transfer/sequences_us/sequences/"))
+#   return("")
+# })
+
 #system("gzip -d /mnt/disks/pdisk/bg-us/int_data/dict/US_full_results.csv.gz")
 
 #
@@ -87,8 +94,6 @@ paths_check[!(paths_check %in% paths_done)]
 paths <- paths[!(paths_check %in% paths_done)]
 remove(list = c("paths_check", "paths_done"))
 
-paths <- paths[7:9]
-paths <- paths[3]
 paths
 #### /END ####
 
@@ -220,7 +225,7 @@ safe_mclapply(1:length(paths), function(i) {
       
       return(df_chunked)
       
-    }, mc.cores = 2)
+    }, mc.cores = 12)
     
     df_chunked <- rbindlist(df_chunked)
     
@@ -253,14 +258,14 @@ df_wham <- safe_mclapply(1:length(paths), function(i) {
     .[, .(wfh_prob = max(wfh_prob)), by = job_id]
   warning(paste0("\nDONE: ",i/length(paths)))
   return(df)
-}, mc.cores = 4)
+}, mc.cores = 16)
 
 df_wham <- rbindlist(df_wham)
 
 df_wham$job_id <- as.numeric(df_wham$job_id)
 df_wham$wfh_prob <- as.numeric(df_wham$wfh_prob)
 
-df_wham_preperiod <- fread(file = "/mnt/disks/pdisk/bg_combined/int_data/subsample_wham/df_ss_wham.csv")
+df_wham_preperiod <- fread(file = "/mnt/disks/pdisk/bg_combined/int_data/subsample_wham/df_ss_wham.csv", nThread = 8)
 #table(df_wham_preperiod$year)
 #table(df_wham_preperiod$country)
 df_wham_preperiod <- setDT(df_wham_preperiod) %>%
@@ -314,7 +319,7 @@ df_wham <- df_wham %>%
 #   ungroup()
 # fwrite(df_dict_all, "/mnt/disks/pdisk/bg-us/int_data/dict/US_full_results_job_level.csv")
 
-df_dict <- fread("/mnt/disks/pdisk/bg-us/int_data/dict/US_full_results_job_level.csv")
+df_dict <- fread("/mnt/disks/pdisk/bg-us/int_data/dict/US_full_results_job_level.csv", nThread = 8)
 head(df_dict)
 head(df_wham)
 df_dict <- df_dict %>%
@@ -397,7 +402,7 @@ df_src <- safe_mclapply(1:length(paths), function(i) {
   df <- fread(paths[i], nThread = 1)
   warning(paste0("\nDONE: ",i/length(paths)))
   return(df)
-}, mc.cores = 4)
+}, mc.cores = 16)
 
 df_src <- rbindlist(df_src)
 head(df_src)
@@ -417,7 +422,7 @@ paths <- list.files("/mnt/disks/pdisk/bg-us/raw_data/main", pattern = ".zip", fu
 paths
 source("/mnt/disks/pdisk/bgt_code_repo/safe_mclapply.R")
 
-safe_mclapply(2021:2022, function(x) {
+safe_mclapply(2014:2017, function(x) {
   
   paths_year <- paths[grepl(x, paths)]
   
@@ -426,7 +431,8 @@ safe_mclapply(2021:2022, function(x) {
     warning(paste0("\nSTART: ",i,"\n"))
     warning(paste0(paths_year[i]))
     df <- fread(cmd = paste0('unzip -p ', paths_year[i]), nThread = 8, colClasses = "character", stringsAsFactors = FALSE,
-                select = c("BGTJobId", "JobDate", "SOC", "ONET", "BGTOcc", "Employer", "SectorName",
+                select = c("BGTJobId", "JobDate", "SOC", "ONET", "BGTOcc", "Employer",
+                           "Sector", "SectorName", "NAICS3", "NAICS4", "NAICS5", "NAICS6",
                            "City", "State", "County", "FIPS", "MSA", "Edu", "MaxEdu", "Degree", "MaxDegree",
                            "MinSalary", "MaxSalary", "MinHrlySalary", "MaxHrlySalary", "SalaryType",
                            "JobHours", "Exp", "MaxExp")) %>%
@@ -465,6 +471,8 @@ safe_mclapply(2021:2022, function(x) {
   return("")
   
 }, mc.cores = 1)
+
+system("echo sci2007! | sudo -S shutdown -h now")
 
 #### END ####
 
@@ -652,6 +660,7 @@ df_all_us <- df_all_us %>%
 
 # SAVE #
 fwrite(df_all_us, file = "./int_data/df_us_2022_standardised.csv")
+
 
 
 

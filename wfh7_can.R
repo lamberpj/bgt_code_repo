@@ -48,21 +48,15 @@ remove(list = ls())
 #system("gsutil -m cp -r gs://for_transfer/wham/CAN /mnt/disks/pdisk/bg-can/int_data/wham_pred")
 #system("gsutil -m cp -r gs://for_transfer/dict_results/CAN_full_results.rds /mnt/disks/pdisk/bg-can/int_data/")
 
-#
-#library(filesstrings)
-#paths <- list.files("/mnt/disks/pdisk/bg-can/raw_data/main/", full.names = T, pattern = ".zip", recursive = T)
-#paths
-#lapply(paths, function(x) {
-#  file.move(x, "/mnt/disks/pdisk/bg-anz/raw_data/text")
-#})
+# paths <- list.files("/mnt/disks/pdisk/bg-can/int_data/sequences", pattern = "2022", full.names = T)
+# 
+# lapply(1:length(paths), function(i) {
+#   print(paths[i])
+#   paste0("gsutil -m cp -r ",paths[i]," gs://for_transfer/sequences_can/sequences/")
+#   system(paste0("gsutil -m cp -r ",paths[i]," gs://for_transfer/sequences_can/sequences/"))
+#   return("")
+# })
 
-#lapply(1:length(paths), function(i) {
-#  system(paste0("unzip -n ",paths[i]," -d ./raw_data/main"))
-#})
-
-#lapply(1:length(paths), function(i) {
-#  unlink(paths[i])
-#})
 
 #system("zip -r /mnt/disks/pdisk/bg-can/int_data/us_sequences.zip /mnt/disks/pdisk/bg-can/int_data/sequences/")
 

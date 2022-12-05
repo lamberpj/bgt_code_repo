@@ -43,15 +43,14 @@ remove(list = ls())
 #system("gsutil -m cp -r gs://for_transfer/wham/UK /mnt/disks/pdisk/bg-uk/int_data/wham_pred/")
 #system("gsutil -m cp -r gs://for_transfer/dict_results/UK_full_results.rds /mnt/disks/pdisk/bg-uk/int_data/dict/")
 
-#
-#library(filesstrings)
-#paths <- list.files("/mnt/disks/pdisk/bg-uk/raw_data/main/", full.names = T, pattern = ".zip", recursive = T)
-#paths
-#
-#lapply(1:length(paths), function(i) {
-#  system(paste0("unzip -n ",paths[i]," -d ./raw_data/main"))
-#  unlink(paths[i])
-#})
+# paths <- list.files("/mnt/disks/pdisk/bg-uk/int_data/sequences", pattern = "2022", full.names = T)
+# 
+# lapply(1:length(paths), function(i) {
+#   print(paths[i])
+#   paste0("gsutil -m cp -r ",paths[i]," gs://for_transfer/sequences_uk/sequences/")
+#   system(paste0("gsutil -m cp -r ",paths[i]," gs://for_transfer/sequences_uk/sequences/"))
+#   return("")
+# })
 
 #### END ####
 
@@ -195,7 +194,7 @@ safe_mclapply(1:length(paths), function(i) {
   warning(paste0("SUCCESS: ",i))
   cat(paste0("\nSUCCESS: ",i,"\n"))
   return("")
-}, mc.cores = 18)
+}, mc.cores = 8)
 
 #sink()
 system("echo sci2007! | sudo -S shutdown -h now")
