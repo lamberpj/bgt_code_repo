@@ -44,6 +44,8 @@ library(fixest)
 # echo A782EC16 && echo $HISTCONTROL && /usr/bin/env && echo EDC27D09
 # git push origin master
 
+# test
+
 setDTthreads(8)
 getDTthreads()
 #quanteda_options(threads = 1)
