@@ -142,7 +142,7 @@ p = df_us_oc %>%
   scale_x_discrete(labels = function(x) str_wrap(x, width = 60)) +
   theme(aspect.ratio=4/4)
 p
-save(p, file = "./ppt/ggplots/occ_dist_alt.pdf.RData")
+save(p, file = "./ppt/ggplots/occ_dist_alt.RData")
 remove(p)
 
 

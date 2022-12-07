@@ -158,12 +158,11 @@ a <- ifelse(grepl("(AUS)", as.vector(levels(df_cit_large$city_country_fac))), "r
 
 df_cit_large <- df_cit_large %>%
   mutate(year = ifelse(year == 2019, "2019", "2021-22"))
-
-p = ggplot(df_cit_large, aes(x = city_country_fac, y = 100*wfh_share, fill = as.factor(year))) +
+df_cit_large
+p = ggplot(df_cit_large, aes(x = city_country_fac, y = wfh_share, fill = as.factor(year))) +
   geom_bar(stat = "identity", width=1, position = position_dodge(width=0.8))  +
   geom_text(aes(label = prop_growth, family = "serif"), size = 5, vjust = 0, colour = "black", hjust = -0.5) +
   ylab("Share (%)") +
-  labs(title = "WFH Share Distribution by City / Year", subtitle = "Vacancy Weighted, National") +
   scale_y_continuous(breaks = seq(0,100,5), limits = c(0, 32)) +
   scale_fill_manual(values = cbbPalette_cit) +
   #scale_shape_manual(values=rep(0:4, 3)) +
@@ -181,18 +180,15 @@ p = ggplot(df_cit_large, aes(x = city_country_fac, y = 100*wfh_share, fill = as.
         legend.text = element_text(size=14, family="serif", colour = "black"),
         panel.background = element_rect(fill = "white"),
         legend.key.width = unit(1,"cm"),
-        axis.text.y = element_text(hjust=0, colour = "black"),
-        legend.position = c(.72, .08)) +
+        axis.text.y = element_text(hjust=0.5, colour = "black"),
+        legend.position = c(0.80, 0.125)) +
   guides(fill = guide_legend(ncol = 1)) +
   coord_flip() +
-  scale_x_discrete(labels = function(x) str_wrap(x, width = 60))
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 60)) +
+  theme(aspect.ratio=4/4)
 p
-p_egg <- set_panel_size(p = p,
-                        width = unit(3.5, "in"),
-                        height = unit(20*0.65, "cm"))
-ggsave(p_egg, filename = "./plots/city_dist_alt.pdf", width = 9, height = 20*0.65+3)
-
-remove(list = setdiff(ls(),"df_all"))
+save(p, file = "./ppt/ggplots/city_dist_alt.RData")
+remove(p)
 
 #### END ####
 
@@ -255,6 +251,8 @@ p_in <- df_cit_scat %>%
 
 scaleFUN <- function(x) {paste0(sprintf('%.2f',round(x, 2)), "%")}
 
+log(32)
+
 p = p_in %>%
   ggplot(., aes(x = wfh_share_2019, y = wfh_share_2022,
                 color = `country`, shape = `country`)) +
@@ -265,29 +263,23 @@ p = p_in %>%
   scale_x_continuous(trans = log_trans(), 
                      labels=scaleFUN,
                      breaks = c(0.25, 0.5, 1, 2, 4, 8, 16, 32, 64)) +
-  geom_point(data = p_in[is.na(title_keep)], aes(x = wfh_share_2019, y = wfh_share_2022), size = 1.5, stroke = 1, alpha = 0.3)  +
+  geom_point(data = p_in[is.na(title_keep) & wfh_share_2019 > 0.3 & wfh_share_2022 > 2], aes(x = wfh_share_2019, y = wfh_share_2022), size = 1.5, stroke = 1, alpha = 0.3)  +
   geom_smooth(method=lm, se=FALSE, aes(group=1), colour = "blue", size = 0.8) +
-  geom_point(data = p_in[!is.na(title_keep)], aes(x = wfh_share_2019, y = wfh_share_2022), size = 3, stroke = 2) +
-  stat_poly_eq(aes(group=1, label=paste(..eq.label.., sep = "~~~")),geom="label",alpha=1,method = lm,label.y = 3.45, label.x = -0.125,
+  geom_point(data = p_in[!is.na(title_keep) & wfh_share_2019 > 0.3 & wfh_share_2022 > 2], aes(x = wfh_share_2019, y = wfh_share_2022), size = 3, stroke = 2) +
+  stat_poly_eq(aes(group=1, label=paste(..eq.label.., sep = "~~~")),geom="label",alpha=1,method = lm,label.y = log(3), label.x = log(14),
                eq.with.lhs = "plain(log)(y)~`=`~",
                eq.x.rhs = "~plain(log)(italic(x))", colour = "blue", size = 4.5) +
-  stat_poly_eq(aes(group=1, label=paste(..rr.label.., sep = "~~~")),geom="label",alpha=1,method = lm,label.y = 3.20, label.x = -0.125,
+  stat_poly_eq(aes(group=1, label=paste(..rr.label.., sep = "~~~")),geom="label",alpha=1,method = lm,label.y = log(2.2), label.x = log(14),
                colour = "blue", size = 4.5) +
   ylab("Share (%) (2021-22) (Logscale)") +
   xlab("Share (%) (2019)  (Logscale)") +
   #scale_y_continuous(breaks = c(0,1,2,3,4,5)) +
   #scale_x_continuous(breaks = c(0,1,2,3,4,5)) +
-  #coord_cartesian(ylim = c(exp(1), exp(3.5)), xlim = c(exp(0), exp(3))) +
-  labs(title = "Pre- and Post-Pandemic WFH Share by City",
-       subtitle = paste0("Vacancy Weighted, USA. ",
-                         "2019/2022 Mean (SD) = ", round(mean(p_in$wfh_share_2019),3), "(", round(sd(p_in$wfh_share_2019),3), ") / ",
-                         round(mean(p_in$wfh_share_2022),3), "(", round(sd(p_in$wfh_share_2022),3), "). ")) +
+  coord_cartesian(ylim = c(2, 32), xlim = c(0.5, 26)) +
   guides(size = "none") +
   theme(
-    legend.position = c(.5, .02),
-    legend.justification = c("centre", "bottom"),
-    legend.box.just = "right",
-    legend.margin = margin(1, 1, 1, 1)) +
+    legend.position="bottom"
+  ) +
   theme(text = element_text(size=15, family="serif", colour = "black"),
         axis.text = element_text(size=14, family="serif", colour = "black"),
         axis.title = element_text(size=15, family="serif", colour = "black"),
@@ -304,17 +296,11 @@ p = p_in %>%
   geom_text_repel(data = p_in[pos == "below"], aes(label = title_keep[pos == "below"]), 
                   fontface = "bold", size = 4, max.overlaps = 1000, force_pull = 1, force = 1, box.padding = 0.5,
                   bg.color = "white", nudge_y = -0.2, nudge_x = -0.2,
-                  bg.r = 0.15, seed = 1234, show.legend = FALSE)
-
+                  bg.r = 0.15, seed = 1234, show.legend = FALSE) +
+  theme(aspect.ratio=3/5)
 p
+save(p, file = "./ppt/ggplots/wfh_pre_post_by_city.RData")
 
-p_egg <- set_panel_size(p = p,
-                        width = unit(6, "in"),
-                        height = unit(4, "in"))
-
-ggsave(p_egg, filename = "./plots/wfh_pre_post_by_city.pdf", width = 9, height = 7)
-remove(p)
-remove(p_egg)
 # 
 # # Scatter Plot (Levels)
 # p = df_cit_scat %>%

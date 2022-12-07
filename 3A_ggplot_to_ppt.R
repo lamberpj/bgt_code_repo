@@ -149,7 +149,7 @@ base::print(ppt, target = paste0("ppt/f",fig_number,"_",fig_short_name,".pptx"))
 #### END ####
 
 #### 3 REMOTE WORK ACROSS OCCUPATIONS - BAR PLOT ####
-load(file = "./ppt/ggplots/occ_dist_alt.pdf.RData")
+load(file = "./ppt/ggplots/occ_dist_alt.RData")
 fig_number <- 3
 fig_number_title <- paste0("Figure ", fig_number, ": ")
 fig_short_name <- "wham_soc2_bar"
@@ -242,6 +242,102 @@ ppt <- ppt %>%
 try(unlink(paste0("ppt/f",fig_number,"_",fig_short_name,".pptx")))
 base::print(ppt, target = paste0("ppt/f",fig_number,"_",fig_short_name,".pptx"))
 #### END ####
+
+#### 5 REMOTE WORK ACROSS CITIES - BAR PLOT ####
+load(file = "./ppt/ggplots/city_dist_alt.RData")
+fig_number <- 5
+fig_number_title <- paste0("Figure ", fig_number, ": ")
+fig_short_name <- "wham_city_bar"
+fig_title <- "Share of Online Job Vacancy Postings which Advertise Remote Work, by Large City"
+fig_footnote <- "We calculate the share of all job vacancy postings which explicitly advertise remote working arrangements, by large cities across our five countries.  We compare calendar year 2019 to the period 2021 Q3 to 2022 Q2, inclusive.  The location of each job ad is based on the establishment/firm which is hiring."
+p
+p_dml <- rvg::dml(ggobj = p, pointsize = 10, editable = TRUE)
+p_dml
+ppt <- officer::read_pptx() %>%
+  officer::add_slide(layout = "Title and Content", master = "Office Theme")
+s_s <- slide_size(ppt)
+(s_w <- s_s$width) # width of slides
+(s_h <- s_s$height) # height of slides
+f_w <- 9 # width of figure
+f_h <- 5 # height of figure
+left_f <- (s_w/2) - (f_w/2) 
+top_f <- (s_h/2) - (f_h/2)
+cap_w <- 9
+cap_h <- 3
+left_cap <-  (s_w/2) - (cap_w/2) 
+top_cap <- (s_h/2) + (f_h/2) - 1
+ppt <- ppt %>%
+  ph_with(p_dml, ph_location(left = left_f, top = top_f + 0.15, width = f_w, height = f_h)) %>%
+  ph_with(
+    block_list(
+      fpar(
+        ftext(fig_number_title, prop = fp_text(bold = TRUE, font.size = 20, color = "black")),
+        ftext(fig_title, prop = fp_text(font.size = 20, color = "black")),
+        fp_p = fp_par(text.align = "justify")
+      )
+    ),
+    location = ph_location_type(type = "title")
+  ) %>%
+  ph_with(
+    block_list(
+      fpar(
+        ftext("Note: ", prop = fp_text(bold = TRUE, font.size = 12, color = "black")),
+        ftext(fig_footnote, prop = fp_text(font.size = 12, color = "black")),
+        fp_p = fp_par(text.align = "justify")
+      )
+    ),
+    location = ph_location(left = left_cap, top = top_cap, width = cap_w, height = cap_h))
+try(unlink(paste0("ppt/f",fig_number,"_",fig_short_name,".pptx")))
+base::print(ppt, target = paste0("ppt/f",fig_number,"_",fig_short_name,".pptx"))
+#### END ####
+
+#### 6 REMOTE WORK ACROSS CITIES - SCATTER PLOT ####
+load(file = "./ppt/ggplots/wfh_pre_post_by_city.RData")
+fig_number <- 6
+fig_number_title <- paste0("Figure ", fig_number, ": ")
+fig_short_name <- "wham_city_scatter"
+fig_title <- "Share of Online Job Vacancy Postings which Advertise Remote Work Pre- and Post-COVID, by City"
+fig_footnote <- "We calculate the share of all job vacancy postings which explicitly advertise remote working arrangements, by large cities across our five countries. The x-axis reports information from calendar year 2019, the y-axis reports information from the period 2021Q3 to 2022Q2, inclusive.  Panel (b) applies the inverse-hyperbolic-sine transformation.  The blue solid line is a least-squares regression fit, with the linear coefficients and the coefficient of determination in the bottom right of each panel. Vacancy Weighted, USA. 2019/2022 Mean (SD) = 3.573(2.135) / 11.08(5.276)"
+p
+p_dml <- rvg::dml(ggobj = p)
+ppt <- officer::read_pptx() %>%
+  officer::add_slide(layout = "Title and Content", master = "Office Theme")
+s_s <- slide_size(ppt)
+(s_w <- s_s$width) # width of slides
+(s_h <- s_s$height) # height of slides
+f_w <- 7 # width of figure
+f_h <- 5 # height of figure
+left_f <- (s_w/2) - (f_w/2) 
+top_f <- (s_h/2) - (f_h/2)
+cap_w <- 9
+cap_h <- 3
+left_cap <-  (s_w/2) - (cap_w/2) 
+top_cap <- (s_h/2) + (f_h/2) - 1
+ppt <- ppt %>%
+  ph_with(p_dml, ph_location(left = left_f, top = top_f, width = f_w, height = f_h)) %>%
+  ph_with(
+    block_list(
+      fpar(
+        ftext(fig_number_title, prop = fp_text(bold = TRUE, font.size = 20, color = "black")),
+        ftext(fig_title, prop = fp_text(font.size = 20, color = "black")),
+        fp_p = fp_par(text.align = "justify")
+      )
+    ),
+    location = ph_location_type(type = "title")
+  ) %>%
+  ph_with(
+    block_list(
+      fpar(
+        ftext("Note: ", prop = fp_text(bold = TRUE, font.size = 12, color = "black")),
+        ftext(fig_footnote, prop = fp_text(font.size = 12, color = "black")),
+        fp_p = fp_par(text.align = "justify")
+      )
+    ),
+    location = ph_location(left = left_cap, top = top_cap, width = cap_w, height = cap_h))
+try(unlink(paste0("ppt/f",fig_number,"_",fig_short_name,".pptx")))
+base::print(ppt, target = paste0("ppt/f",fig_number,"_",fig_short_name,".pptx"))
+#### END ####
+
 
 #### ACS vs WHAM ####
 load(file = "./ppt/ggplots/wham_vs_acs.RData")
