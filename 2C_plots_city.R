@@ -827,11 +827,7 @@ p = df_acs_wham_ag %>%
   theme(aspect.ratio=3/5)
 
 p
-
 save(p, file = "./ppt/ggplots/wham_vs_acs.RData")
-
-ggsave(p_egg, filename = "./plots/wham_vs_acs_msa_level_names.pdf", width = 9, height = 7)
-remove(list = c("p", "p_egg"))
 
 #### END ####
 

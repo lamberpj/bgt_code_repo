@@ -64,13 +64,9 @@ nrow(df_us)
 df_us <- df_us %>% .[!(onet %in% c("19-2099.01","19-4099.03"))]
 nrow(df_us)
 
-
 #### END ####
 remove(list = setdiff(ls(), "df_us"))
-
 df_us$year_quarter <- as.yearqtr(df_us$job_date)
-
-colnames(df_us)
 
 df_us_oc <- df_us %>%
   .[year_quarter %in% as.yearqtr(c("2019 Q1", "2019 Q2", "2019 Q3", "2019 Q4", "2021 Q3", "2021 Q4", "2022 Q1", "2022 Q2"))] %>%
@@ -87,7 +83,6 @@ df_us_oc <- df_us %>%
   setDT(.)
 
 soc2010_names <- fread(file = "./aux_data/us_soc_2010_names.csv")
-soc2010_names
 soc2010_names$soc10_2d <- as.numeric(soc2010_names$soc10_2d)
 df_us_oc$soc2 <- as.numeric(df_us_oc$soc2)
 nrow(df_us_oc)
@@ -103,26 +98,17 @@ df_us_oc <- df_us_oc %>% filter(!is.na(df_us_oc$name))
 df_us_oc <- setDT(df_us_oc)
 df_us_oc$ussoc_2d_wn <- paste0(df_us_oc$name)
 
-# df_us_top <- df_us[onet %in% c("19-2099.01","19-4099.03","15-2021.00","27-3043.05","15-2041.02")]
-# fwrite(df_us_top, "./aux_data/check_top_5_onets.csv")
-
 #### BAR PLOT 2021 vs 2019 ####
 df_us_oc <- df_us_oc %>%
   group_by(ussoc_2d_wn) %>%
   mutate(prop_growth = ifelse(!is.na(lag(wfh_share)), paste0(round((wfh_share)/lag(wfh_share),1),"X"), NA)) %>%
   ungroup() %>%
   setDT(.)
-
-df_us_oc
-
 df_us_oc$wfh_share_index <- 100*df_us_oc$wfh_share_index
-
 cbbPalette <- c("#E69F00", "#009E73", "#CC79A7", "#0072B2", "#D55E00")
 cbbPalette_oc <- c("#000000", "darkorange")
 cbbPalette_ind <- c("#000000", "#F0E442")
-
 df_us_oc$prop_growth[is.na(df_us_oc$prop_growth)] <- ""
-
 df_us_oc <- df_us_oc %>%
   mutate(year = ifelse(year == 2019, "2019", "2021-22"))
 
@@ -133,7 +119,6 @@ p = df_us_oc %>%
   geom_bar(stat = "identity", width=1, position = position_dodge(width=0.8))  +
   geom_text(aes(label = prop_growth, family = "serif"), size = 5, vjust = 0, colour = "black", hjust = -0.5) +
   ylab("Share (%)") +
-  labs(title = "WFH Share Distribution by Occupation / Year", subtitle = "Employment Weighted, Global") +
   scale_y_continuous(breaks = seq(0,100,5), limits = c(0, 35)) +
   scale_fill_manual(values = cbbPalette_oc) +
   theme(
@@ -150,17 +135,16 @@ p = df_us_oc %>%
         legend.text = element_text(size=14, family="serif", colour = "black"),
         panel.background = element_rect(fill = "white"),
         legend.key.width = unit(1,"cm"),
-        axis.text.y = element_text(hjust=0),
-        legend.position = c(0.65, 0.05)) +
-  guides(fill = guide_legend(ncol = 2)) +
+        axis.text.y = element_text(hjust=0.5),
+        legend.position = c(0.80, 0.125)) +
+  guides(fill = guide_legend(ncol = 1)) +
   coord_flip() +
-  scale_x_discrete(labels = function(x) str_wrap(x, width = 60))
-
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 60)) +
+  theme(aspect.ratio=4/4)
 p
-p_egg <- set_panel_size(p = p,
-                        width = unit(3.5, "in"),
-                        height = unit(22*0.65, "cm"))
-ggsave(p_egg, filename = "./plots/occ_dist_alt.pdf", width = 9, height = 22*0.65+3)
+save(p, file = "./ppt/ggplots/occ_dist_alt.pdf.RData")
+remove(p)
+
 
 #### END ####
 
@@ -223,7 +207,7 @@ df_us_oc_wide <- df_us_oc_wide %>%
   .[, title_keepA := ifelse(title %in%
                       c("Software Developers, Applications", "Telemarketers", "Advertising Sales Agents", "Loan Officers",
                         "Mental Health and Substance Abuse Social Workers",
-                        "Loan Counselors", "Gas Plant Operators"),
+                        "Gas Plant Operators"),
                       title, NA)] %>%
   .[, title_keepA := gsub(" and ", " & ", title_keepA)] %>%
   .[, title_keepA := gsub(", Applications", "", title_keepA)] %>%
@@ -261,8 +245,13 @@ min(p_in[`D&N Classification:` == "Teleworkable"]$wfh_share_2022)
 mean(p_in[`D&N Classification:` == "Teleworkable"]$wfh_share_2022)
 sd(p_in[`D&N Classification:` == "Teleworkable"]$wfh_share_2022)
 
-scaleFUN <- function(x) {paste0(sprintf('%.2f',round(x, 2)), "%")}
+scaleFUN <- function(x) {paste0(sprintf('%.2f',round(x, 2)))}
 
+exp(-0.5)
+log(0.25)
+log(0.25)
+0.25-0.125
+p_in$wfh_share_2019
 # Scatter plot - logscale
 p = ggplot(data = p_in, aes(x = wfh_share_2019, y = wfh_share_2022,
                 color = `D&N Classification:`, shape = `D&N Classification:`)) +
@@ -273,23 +262,19 @@ p = ggplot(data = p_in, aes(x = wfh_share_2019, y = wfh_share_2022,
   scale_x_continuous(trans = log_trans(),
                      labels=scaleFUN,
                      breaks = c(0.25, 0.5, 1, 2, 4, 8, 16, 32, 64)) +
-  geom_point(data = p_in[is.na(title_keepA) & is.na(title_keepB)], aes(x = wfh_share_2019, y = wfh_share_2022), size = 1.5, stroke = 1, alpha = 0.3)  +
+  geom_point(data = p_in[is.na(title_keepA) & is.na(title_keepB) & wfh_share_2019 > 0.2 & wfh_share_2022 > 0.2], aes(x = wfh_share_2019, y = wfh_share_2022), size = 1.5, stroke = 1, alpha = 0.3)  +
   geom_smooth(method=lm, se=FALSE, aes(group=1), colour = "blue", size = 0.8) +
-  geom_point(data = p_in[!is.na(title_keepA) | !is.na(title_keepB)], aes(x = wfh_share_2019, y = wfh_share_2022), size = 3, stroke = 2) +
-  stat_poly_eq(aes(group=1, label=paste(..eq.label.., sep = "~~~")),geom="label",alpha=1,method = lm,label.y = 0, label.x = 3.5,
+  geom_point(data = p_in[!is.na(title_keepA) | !is.na(title_keepB) & wfh_share_2019 > 0.2 & wfh_share_2022 > 0.2], aes(x = wfh_share_2019, y = wfh_share_2022), size = 3, stroke = 2) +
+  stat_poly_eq(aes(group=1, label=paste(..eq.label.., sep = "~~~")),geom="label",alpha=1,method = lm,label.y = log(0.425), label.x = 3.5,
                eq.with.lhs = "plain(log)(y)~`=`~",
                eq.x.rhs = "~plain(log)(italic(x))", colour = "blue", size = 4.5) +
-  stat_poly_eq(aes(group=1, label=paste(..rr.label.., sep = "~~~")),geom="label",alpha=1,method = lm,label.y = -0.6, label.x = 3.5,
+  stat_poly_eq(aes(group=1, label=paste(..rr.label.., sep = "~~~")),geom="label",alpha=1,method = lm,label.y = log(0.23), label.x = 3.5,
                colour = "blue", size = 4.5) +
   ylab("Share (%) (2021-22) (Logscale)") +
   xlab("Share (%) (2019)  (Logscale)") +
   #scale_y_continuous(breaks = c(0,1,2,3,4,5)) +
   #scale_x_continuous(breaks = c(0,1,2,3,4,5)) +
   coord_cartesian(ylim = c(exp(-1.5), exp(4.5)), xlim = c(exp(-1.5), exp(4.5))) +
-  labs(title = "Pre- and Post-Pandemic WFH Share by ONET",
-       subtitle = paste0("Vacancy Weighted, USA. ",
-       "2019/2022 Mean (SD) = ", round(mean(p_in$wfh_share_2019),3), "(", round(sd(p_in$wfh_share_2019),3), ") / ",
-       round(mean(p_in$wfh_share_2022),3), "(", round(sd(p_in$wfh_share_2022),3), "). ")) +
   theme(
     #axis.title.x=element_blank(),
     legend.position="bottom",
@@ -310,67 +295,11 @@ p = ggplot(data = p_in, aes(x = wfh_share_2019, y = wfh_share_2022,
   geom_text_repel(aes(label = title_keepB),
                   fontface = "bold", size = 4, max.overlaps = 1000, point.padding = 0, box.padding = 0.5, nudge_x = 0.4, nudge_y = -0.4, force = 10, force_pull = 1,
                   bg.color = "white",
-                  bg.r = 0.15, seed = 1234, show.legend = FALSE)
-  
+                  bg.r = 0.15, seed = 1234, show.legend = FALSE) +
+  theme(aspect.ratio=3/5)
 p
-
-p_egg <- set_panel_size(p = p,
-                        width = unit(6, "in"),
-                        height = unit(4, "in"))
-ggsave(p_egg, filename = "./plots/wfh_pre_post_by_tele.pdf", width = 9, height = 7)
-
-remove(list = c("p", "p_egg"))
-
-# Scatter Plot (Levels)
-p = ggplot(data = p_in, aes(x = wfh_share_2019, y = wfh_share_2022,
-                            color = `D&N Classification:`, shape = `D&N Classification:`)) +
-  scale_color_manual(values = cbbPalette_d_and_n) +
-  #geom_abline(intercept = 0, slope = 1, size = 0.5, colour = "grey", linetype = "dashed") +
-  geom_point(data = p_in[title_keep == ""], aes(x = wfh_share_2019, y = wfh_share_2022), size = 1.5, stroke = 1, alpha = 0.5)  +
-  geom_smooth(method=lm, se=FALSE, aes(group=1), colour = "blue", size = 0.8) +
-  geom_point(data = p_in[title_keep != ""], aes(x = wfh_share_2019, y = wfh_share_2022), size = 3, stroke = 2)  +
-  stat_poly_eq(aes(group=1, label=paste(..eq.label.., sep = "~~~")),geom="label",alpha=1,method = lm,label.y = 13, label.x = 30,
-               eq.with.lhs = "(y)~`=`~",
-               eq.x.rhs = "~(italic(x))", colour = "blue", size = 4.5) +
-  stat_poly_eq(aes(group=1, label=paste(..rr.label.., sep = "~~~")),geom="label",alpha=1,method = lm,label.y = 5, label.x = 30,
-               eq.with.lhs = "(y)~`=`~",
-               eq.x.rhs = "~(italic(x))", colour = "blue", size = 4.5) +
-  ylab("Share (%) (2021-22)") +
-  xlab("Share (%) (2019)") +
-  scale_y_continuous(breaks = c(0,10,20,30,40,50,60,70,80,90,100)) +
-  scale_x_continuous(breaks = c(0,10,20,30,40,50,60,70,80,90,100)) +
-  coord_cartesian(ylim = c(0, 55), xlim = c(0, 35)) +
-  labs(title = "Pre- and Post-Pandemic WFH Share by ONET", subtitle = "Vacancy Weighted, USA") +
-  theme(
-    #axis.title.x=element_blank(),
-    legend.position="bottom",
-    axis.text.x = element_text(angle = 0)) +
-  theme(text = element_text(size=15, family="serif", colour = "black"),
-        axis.text = element_text(size=14, family="serif", colour = "black"),
-        axis.title = element_text(size=15, family="serif", colour = "black"),
-        legend.text = element_text(size=14, family="serif", colour = "black"),
-        panel.background = element_rect(fill = "white"),
-        legend.key.width = unit(1,"cm")) +
-  guides(size = "none") +
-  scale_shape_manual(values=c(1, 2)) +
-  guides(colour = guide_legend(override.aes = list(size=3))) +
-  geom_text_repel(aes(label = title_keep),
-                  fontface = "bold", size = 3.5, max.overlaps = 1000, point.padding = 0, box.padding = 0.5, min.segment.length = 0, force = 2,
-                  bg.color = "white", nudge_y = 1,
-                  bg.r = 0.15, seed = 1548, show.legend = FALSE)
-
-p
-p_egg <- set_panel_size(p = p,
-                        width = unit(6, "in"),
-                        height = unit(4, "in"))
-ggsave(p_egg, filename = "./plots/level_wfh_pre_post_by_tele.pdf", width = 8, height = 6)
-
-dist_feats <- df %>%
-  filter(n_post_2019 > 250)
-mean(dist_feats$wfh_share_2019) # 0.03647199
-sd(dist_feats$wfh_share_2019) # 0.0487183
-mean(dist_feats$wfh_share_2022) # 0.09670947
-sd(dist_feats$wfh_share_2022) # 0.1033183
+save(p, file = "./ppt/ggplots/wfh_pre_post_by_tele.RData")
+remove(p)
 
 #### END ####
 

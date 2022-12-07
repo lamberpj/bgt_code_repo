@@ -45,7 +45,7 @@ library(fixest)
 # git commit -m "autosave"
 # git push origin master
 
-setDTthreads(8)
+setDTthreads(4)
 getDTthreads()
 #quanteda_options(threads = 1)
 setwd("/mnt/disks/pdisk/bg_combined/")
@@ -103,216 +103,33 @@ setwd("/mnt/disks/pdisk/bg_combined/")
 # })
 # 
 # save(df_all_list, file = "./aux_data/df_all_list.RData")
-# load(file = "./aux_data/df_all_list.RData")
-# 
-# 
-# #### ACROSS COUNTRIES ####
-# 
-# # Unweighted share
-# wfh_daily_share_list <- lapply(df_all_list, function(x) {
-#   x <- x %>% select(country, wfh_wham, job_date, bgt_occ, month, narrow_result, neg_narrow_result, job_id_weight)
-#   x <- x[!is.na(wfh_wham)]
-#   x <- x[!is.na(bgt_occ)]
-#   x <- x[, month := factor(month, levels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"))]
-#   x <- x[, job_ymd := ymd(job_date)]
-#   x <- x[, year_month := as.yearmon(job_ymd)]
-#   x <- x[, year := year(job_ymd)]
-#   x <- setDT(x)
-#   
-#   x <- x %>%
-#     select(country, job_date, year_month, year, wfh_wham, job_id_weight) %>%
-#     setDT(.) %>%
-#     .[, .(wfh_sum = sum(job_id_weight*wfh_wham, na.rm = T), job_ads_sum = sum(job_id_weight, na.rm = T)), by = .(country, job_date, year_month, year)] %>%
-#     .[, wfh_share := wfh_sum / job_ads_sum] %>%
-#     setDT(.)
-#   
-#   return(x)
-# })
-# 
-# wfh_daily_share <- rbindlist(wfh_daily_share_list)
-# rm("wfh_daily_share_list")
-# 
-# wfh_daily_share <- wfh_daily_share %>%
-#   rename(daily_share = wfh_share, N = job_ads_sum)
+load(file = "./aux_data/df_all_list.RData")
 
+#### PREPARE DATA ####
+# Make Unweighted daily shares
+wfh_daily_share_list <- lapply(df_all_list, function(x) {
+  x <- x %>% select(country, wfh_wham, job_date, bgt_occ, month, narrow_result, neg_narrow_result, job_id_weight)
+  x <- x[!is.na(wfh_wham)]
+  x <- x[!is.na(bgt_occ)]
+  x <- x[, month := factor(month, levels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"))]
+  x <- x[, job_ymd := ymd(job_date)]
+  x <- x[, year_month := as.yearmon(job_ymd)]
+  x <- x[, year := year(job_ymd)]
+  x <- setDT(x)
+  x <- x %>%
+    select(country, job_date, year_month, year, wfh_wham, job_id_weight) %>%
+    setDT(.) %>%
+    .[, .(wfh_sum = sum(job_id_weight*wfh_wham, na.rm = T), job_ads_sum = sum(job_id_weight, na.rm = T)), by = .(country, job_date, year_month, year)] %>%
+    .[, wfh_share := wfh_sum / job_ads_sum] %>%
+    setDT(.)
+  return(x)
+})
+wfh_daily_share <- rbindlist(wfh_daily_share_list)
+rm("wfh_daily_share_list")
+wfh_daily_share <- wfh_daily_share %>% rename(daily_share = wfh_share, N = job_ads_sum)
 fwrite(wfh_daily_share, file = "./int_data/country_daily_wfh.csv")
 
-# Raw Series Dictionary vs Wham
-wfh_monthly_share_list <- lapply(df_all_list, function(x) {
-  x <- x %>% select(country, wfh_wham, job_date, bgt_occ, month, narrow_result, neg_narrow_result, job_id_weight)
-  x <- x[!is.na(wfh_wham)]
-  x <- x[, month := factor(month, levels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"))]
-  x <- x[, job_ymd := ymd(job_date)]
-  x <- x[, year_month := as.yearmon(job_ymd)]
-  x <- x[, year := year(job_ymd)]
-  x <- setDT(x)
-  x <- x[, narrow_result := ifelse(narrow_result == "", NA, narrow_result)]
-  x <- x[, neg_narrow_result := ifelse(neg_narrow_result == "", NA, neg_narrow_result)]
-  x <- x[, wfh_wham := ifelse(wfh_wham == "", NA, wfh_wham)]
-  
-  x <- x %>%
-    select(country, job_date, year_month, year, wfh_wham, narrow_result, neg_narrow_result, job_id_weight) %>%
-    setDT(.) %>%
-    .[, .(wfh_wham_share = sum(job_id_weight*wfh_wham, na.rm = T)/sum(job_id_weight, na.rm = T),
-          wfh_dict_share = sum(job_id_weight[!is.na(narrow_result)]*narrow_result[!is.na(narrow_result)], na.rm = T)/sum(job_id_weight[!is.na(narrow_result)], na.rm = T),
-          wfh_dict_nn_share = sum(job_id_weight[!is.na(neg_narrow_result)]*neg_narrow_result[!is.na(neg_narrow_result)], na.rm = T)/sum(job_id_weight[!is.na(neg_narrow_result)], na.rm = T),          job_date = min(job_date)),
-      by = .(country, year_month, year)] %>%
-    setDT(.)
-  
-  return(x)
-})
-
-wfh_monthly_share <- rbindlist(wfh_monthly_share_list)
-rm(wfh_monthly_share_list)
-
-wfh_us_monthly_share <- wfh_monthly_share %>%
-  .[country == "US"] %>%
-  .[year >= 2019]
-
-head(wfh_us_monthly_share)
-
-wfh_us_monthly_share <- wfh_us_monthly_share %>%
-  group_by(country, year_month, year, job_date) %>%
-  pivot_longer(cols = wfh_wham_share:wfh_dict_nn_share) %>%
-  setDT(.)
-
-p = wfh_us_monthly_share %>%
-  filter(name != "wfh_dict_nn_share") %>%
-  mutate(measurement = ifelse(name == "wfh_dict_share", "Dictionary", "Our Method")) %>%
-  filter(as.Date(year_month) <= ymd("2021-07-01")) %>%
-  ggplot(., aes(x = as.Date(year_month), y = 100*value, col = measurement)) +
-  #stat_smooth (geom="line", alpha=0.8, size=2, span=0.2) +
-  #stat_smooth(span = 0.1, alpha=0.5, se=FALSE, size = 2) +
-  geom_point(size = 2.25) +
-  geom_line(size = 1.25) +
-  ylab("Share (%)") +
-  xlab("Date") +
-  labs(title = "Share of Remote Work Vacancy Postings (%)") +
-  scale_x_date(breaks = as.Date(c("2014-01-01", "2015-01-01", "2016-01-01",
-                                  "2017-01-01", "2018-01-01", "2019-01-01",
-                                  "2020-01-01", "2021-01-01", "2022-01-01")),
-               date_labels = '%Y') +
-  scale_y_continuous(labels = scales::number_format(accuracy = 1),  breaks = seq(0,30,2)) +
-  coord_cartesian(ylim = c(2, 26)) +
-  #scale_colour_manual(values=cbbPalette) +
-  theme(
-    axis.title.x=element_blank(),
-    legend.position="bottom",
-    legend.title = element_blank(),
-    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  guides(col = guide_legend(nrow = 1, reverse = T)) +
-  theme(text = element_text(size=15, family="serif", colour = "black"),
-        axis.text = element_text(size=14, family="serif", colour = "black"),
-        axis.title = element_text(size=15, family="serif", colour = "black"),
-        legend.text = element_text(size=14, family="serif", colour = "black"),
-        panel.background = element_rect(fill = "white"))
-p
-p_egg <- set_panel_size(p = p,
-                        width = unit(5, "in"),
-                        height = unit(3, "in"))
-ggsave(p_egg, filename = "./plots/rwa_us_compare_methods_month.pdf", width = 8, height = 6)
-remove(list = c("p", "p_egg"))
-
-# Compare Occupations Dict
-wfh_monthly_compare_occ_list <- lapply(df_all_list, function(x) {
-  x <- x %>% select(country, wfh_wham, job_date, bgt_occ, month, narrow_result, neg_narrow_result, job_id_weight)
-  x <- x[, bgt_occ5 := str_sub(bgt_occ, 1, 6)]
-  x <- x[!is.na(wfh_wham)]
-  x <- x[, month := factor(month, levels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"))]
-  x <- x[, job_ymd := ymd(job_date)]
-  x <- x[, year_month := as.yearmon(job_ymd)]
-  x <- x[, year := year(job_ymd)]
-  x <- setDT(x)
-  x <- x[, narrow_result := ifelse(narrow_result == "", NA, narrow_result)]
-  x <- x[, neg_narrow_result := ifelse(neg_narrow_result == "", NA, neg_narrow_result)]
-  x <- x[, wfh_wham := ifelse(wfh_wham == "", NA, wfh_wham)]
-  
-  x <- x %>%
-    select(country, job_date, bgt_occ5, year_month, year, wfh_wham, narrow_result, neg_narrow_result, job_id_weight) %>%
-    setDT(.) %>%
-    .[, .(wfh_wham_share = sum(job_id_weight*wfh_wham, na.rm = T)/sum(job_id_weight, na.rm = T),
-          wfh_dict_share = sum(job_id_weight[!is.na(narrow_result)]*narrow_result[!is.na(narrow_result)], na.rm = T)/sum(job_id_weight[!is.na(narrow_result)], na.rm = T),
-          wfh_dict_nn_share = sum(job_id_weight[!is.na(neg_narrow_result)]*neg_narrow_result[!is.na(neg_narrow_result)], na.rm = T)/sum(job_id_weight[!is.na(neg_narrow_result)], na.rm = T),          job_date = min(job_date)),
-      by = .(country, year, bgt_occ5)] %>%
-    setDT(.)
-  
-  return(x)
-})
-
-wfh_monthly_compare_occ <- rbindlist(wfh_monthly_compare_occ_list)
-rm(wfh_monthly_compare_occ_list)
-
-wfh_monthly_us_compare_occ <- wfh_monthly_compare_occ %>%
-  .[country == "US"] %>%
-  .[year == 2022] %>%
-  .[, diff := wfh_wham_share - wfh_dict_nn_share]
-
-View(wfh_monthly_us_compare_occ)
-
-wfh_monthly_us_compare_occ <- wfh_monthly_us_compare_occ %>% .[bgt_occ5 %in% c("45-402", "15-115")]
-
-View(wfh_monthly_us_compare_occ)
-
-# Vacancy Weighted Share
-wfh_daily_soc3_share_list <- lapply(df_all_list, function(x) {
-  x <- x %>% select(country, wfh_wham, job_date, bgt_occ, month, narrow_result, neg_narrow_result, job_id_weight)
-  x <- x[!is.na(wfh_wham)]
-  x <- x[!is.na(bgt_occ)]
-  x <- x[, bgt_occ3 := str_sub(bgt_occ, 1, 4)]
-  x <- x[, month := factor(month, levels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"))]
-  x <- x[, job_ymd := ymd(job_date)]
-  x <- x[, year_month := as.yearmon(job_ymd)]
-  x <- x[, year := year(job_ymd)]
-  x <- setDT(x)
-  
-  x <- x %>%
-    select(country, bgt_occ3, job_date, year_month, year, wfh_wham, job_id_weight) %>%
-    setDT(.) %>%
-    .[, .(wfh_sum = sum(job_id_weight*wfh_wham, na.rm = T), job_ads_sum = sum(job_id_weight, na.rm = T)), by = .(country, bgt_occ3, job_date, year_month, year)] %>%
-    .[, wfh_share := wfh_sum / job_ads_sum] %>%
-    setDT(.)
-  
-  return(x)
-})
-
-wfh_daily_soc3_share <- rbindlist(wfh_daily_soc3_share_list)
-rm("wfh_daily_soc3_share_list")
-
-wfh_daily_soc3_share <- wfh_daily_soc3_share %>%
-  rename(daily_share = wfh_share, N = job_ads_sum)
-
-fwrite(wfh_daily_soc3_share, file = "./int_data/country_soc3_daily_wfh.csv")
-
-# State shares
-wfh_daily_state_share_list <- lapply(df_all_list, function(x) {
-  x <- x %>% select(country, state, wfh_wham, job_date, bgt_occ, month, narrow_result, neg_narrow_result, job_id_weight)
-  x <- x[!is.na(wfh_wham)]
-  x <- x[!is.na(bgt_occ)]
-  x <- x[, month := factor(month, levels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"))]
-  x <- x[, job_ymd := ymd(job_date)]
-  x <- x[, year_month := as.yearmon(job_ymd)]
-  x <- x[, year := year(job_ymd)]
-  x <- setDT(x)
-  
-  x <- x %>%
-    select(country, state, job_date, year_month, year, wfh_wham, job_id_weight) %>%
-    setDT(.) %>%
-    .[, .(wfh_sum = sum(job_id_weight*wfh_wham, na.rm = T), job_ads_sum = sum(job_id_weight, na.rm = T)), by = .(country, state, job_date, year_month, year)] %>%
-    .[, wfh_share := wfh_sum / job_ads_sum] %>%
-    setDT(.)
-  
-  return(x)
-})
-
-wfh_daily_state_share <- rbindlist(wfh_daily_state_share_list)
-rm("wfh_daily_state_share_list")
-
-wfh_daily_state_share <- wfh_daily_state_share %>%
-  rename(daily_share = wfh_share, N = job_ads_sum)
-
-fwrite(wfh_daily_state_share, file = "./int_data/country_state_daily_wfh.csv")
-
-# Filter Unweighted
+# Filter Unweighted daily shares
 wfh_daily_share <- fread(file = "./int_data/country_daily_wfh.csv")
 
 ts_for_plot <- wfh_daily_share %>%
@@ -324,22 +141,16 @@ ts_for_plot <- wfh_daily_share %>%
   .[, l1o_keep := ifelse(as.yearmon(year_month) %in% as.yearmon(ymd(c("20200301", "20200401", "20200501", "20200601"))), 1, l1o_keep)] %>%
   .[, l1o_daily_with_nas := ifelse(l1o_keep == 1, daily_share, NA)]
 
-head(ts_for_plot)
-
-nrow(ts_for_plot)
 dropped_days <- ts_for_plot %>%
   .[l1o_keep == 0] %>%
   select(country, job_date) %>%
   .[, drop := 1]
-nrow(dropped_days)
 
-check <- ts_for_plot %>%
-  .[, .(days = .N, replaced = sum(1-l1o_keep)), by = .(country, year_month)] %>%
-  .[, share_replaced := replaced/days]
+# check <- ts_for_plot %>%
+#   .[, .(days = .N, replaced = sum(1-l1o_keep)), by = .(country, year_month)] %>%
+#   .[, share_replaced := replaced/days]
+# (days_replaced <- 100*round(sum(check$replaced)/sum(check$days), digits = 4))
 
-(days_replaced <- 100*round(sum(check$replaced)/sum(check$days), digits = 4))
-
-# Unweighted ts filter
 ts_for_plot <- ts_for_plot %>%
   .[order(country, job_date)] %>%
   .[, daily_share_l10 := na.approx(l1o_daily_with_nas, rule = 2), by = .(country)] %>%
@@ -355,74 +166,79 @@ ts_for_plot <- ts_for_plot %>%
   .[, monthly_mean_3ma := ifelse(as.yearmon(year_month) %in% as.yearmon(ymd(c("20200301", "20200401", "20200501", "20200601"))), monthly_mean, monthly_mean_3ma)] %>%
   .[, monthly_mean_3ma_l1o := ifelse(as.yearmon(year_month) %in% as.yearmon(ymd(c("20200301", "20200401", "20200501", "20200601"))), monthly_mean, monthly_mean_3ma_l1o)]
 
-head(ts_for_plot)
-
-
-
-head(dropped_days)
-
 ts_for_plot <- ts_for_plot %>%
   group_by(country, year_month, job_date) %>%
   pivot_longer(cols = c(monthly_mean:monthly_mean_3ma_l1o)) %>%
   setDT(.)
 
-# Filter vacancy-weighted
-wfh_daily_soc3_share <- fread(file = "./int_data/country_state_daily_wfh.csv")
+# Make Vacancy Weighted Monthly Shares (Using Filters from above)
+wfh_monthly_bgt_occ_share_list <- lapply(df_all_list, function(x) {
+  x <- x %>% select(country, wfh_wham, job_date, bgt_occ, month, narrow_result, neg_narrow_result, job_id_weight)
+  x <- x[!is.na(wfh_wham)]
+  x <- x[!is.na(bgt_occ)]
+  x <- x[, bgt_occ5 := str_sub(bgt_occ, 1, 6)]
+  x <- x[, month := factor(month, levels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"))]
+  x <- x[, job_ymd := ymd(job_date)]
+  x <- x[, year_month := as.yearmon(job_ymd)]
+  x <- x[, year := year(job_ymd)]
+  x <- setDT(x)
+  nrow(x)
+  x <- merge(x = x, y = dropped_days, all.x = TRUE, all.y = FALSE, by = c("country", "job_date"))
+  x <- x[is.na(drop)]
+  nrow(x)
+  x <- x %>%
+    select(country, bgt_occ5, year_month, year, wfh_wham, job_id_weight) %>%
+    setDT(.) %>%
+    .[, .(wfh_sum = sum(job_id_weight*wfh_wham, na.rm = T), job_ads_sum = sum(job_id_weight, na.rm = T)),
+      by = .(country, bgt_occ5, year_month, year)] %>%
+    .[, wfh_share := wfh_sum / job_ads_sum] %>%
+    setDT(.)
+  return(x)
+})
+wfh_monthly_bgt_occ_share <- rbindlist(wfh_monthly_bgt_occ_share_list)
+rm("wfh_monthly_bgt_occ_share_list")
+wfh_monthly_bgt_occ_share <- wfh_monthly_bgt_occ_share %>%
+  rename(monthly_share = wfh_share, N = job_ads_sum)
 
-dropped_days
-
-nrow(wfh_daily_soc3_share) # 1119803
-wfh_daily_soc3_share <- wfh_daily_soc3_share %>%
-  mutate(job_date = ymd(job_date)) %>%
-  left_join(dropped_days %>% mutate(job_date = ymd(job_date))) %>%
-  setDT(.) %>%
-  .[is.na(drop)] %>%
-  select(-drop)
-nrow(wfh_daily_soc3_share) # 1112512
-
-# Reweight Vacancy weighted
-head(wfh_daily_soc3_share)
-shares_df <- wfh_daily_soc3_share %>%
-  .[bgt_occ3 != ""] %>%
+# Make US 2019 vacancy weights
+head(wfh_monthly_bgt_occ_share)
+shares_df <- wfh_monthly_bgt_occ_share %>%
+  .[bgt_occ5 != "" & !is.na(bgt_occ5)] %>%
   .[year == 2019 & country == "US"] %>%
-  .[, .(N = sum(N)), by = .(bgt_occ3)] %>%
-  .[, share := N/sum(N)] %>%
-  select(bgt_occ3, share)
+  .[, .(N = sum(N, na.rm = T)), by = .(bgt_occ5)] %>%
+  .[, share := N/sum(N, na.rm = T)] %>%
+  select(bgt_occ5, share)
 
-head(shares_df)
-
-nrow(wfh_daily_soc3_share) # 1112512
-wfh_daily_soc3_share <- wfh_daily_soc3_share %>%
-  left_join(shares_df) %>%
+wfh_monthly_bgt_occ_share <- wfh_monthly_bgt_occ_share %>%
+  .[bgt_occ5 != "" & !is.na(bgt_occ5)] %>%
+  merge(x = ., y = shares_df, by = "bgt_occ5", all.x = TRUE, all.y = FALSE) %>%
   setDT(.)
-nrow(wfh_daily_soc3_share) # 1112512
+wfh_monthly_bgt_occ_share
+wfh_monthly_bgt_occ_share <- wfh_monthly_bgt_occ_share %>%
+  .[, .(monthly_mean = sum(monthly_share*(share/sum(share, na.rm = T)), na.rm = T)), by = .(country, year_month)]
 
-ts_for_plot_us_weight <- wfh_daily_soc3_share %>%
-  .[, job_date := ymd(job_date)] %>%
-  .[as.yearmon(year_month) <= as.yearmon(ymd("20220601"))] %>%
-  .[, .(job_date = min(job_date), monthly_mean = sum(daily_share*N, na.rm = T)/(sum(N, na.rm = T)), share = share[1]), by = .(country, bgt_occ3, year_month)] %>%
-  .[, .(monthly_mean = sum(monthly_mean*share, na.rm = T)), by = .(country, year_month)]
+ts_for_plot_us_weight <- wfh_monthly_bgt_occ_share
+fwrite(ts_for_plot_us_weight, file = "./int_data/ts_for_plot_us_weight")
 
-View(ts_for_plot_us_weight)
+# Filter vacancy-weighted
+remove(list = setdiff(ls(), c("ts_for_plot", "ts_for_plot_us_weight", "df_all_list")))
 
 # Plot unweighted
 cbbPalette <- c("#E69F00", "#009E73", "#CC79A7", "#0072B2", "#D55E00")
-
-cbbPalette[1]
-
 (country_list <- unique(ts_for_plot$country))
+
+ts_for_plot
 
 # Unweighted
 p = ts_for_plot %>%
   filter(name == "monthly_mean_l1o") %>%
-  ggplot(., aes(x = as.Date(year_month), y = 100*value, col = country)) +
+  ggplot(., aes(x = as.Date(as.yearmon(year_month)), y = 100*value, col = country)) +
   #stat_smooth (geom="line", alpha=0.8, size=2, span=0.2) +
   #stat_smooth(span = 0.1, alpha=0.5, se=FALSE, size = 2) +
   geom_point(size = 2.25) +
   geom_line(size = 1.25) +
   ylab("Share (%)") +
   xlab("Date") +
-  labs(title = "Share of Remote Work Vacancy Postings (%)", subtitle = paste0("Unweighted, Outliers Removed. Removed ",days_replaced, "% of days across all data")) +
   scale_x_date(breaks = as.Date(c("2014-01-01", "2015-01-01", "2016-01-01",
                                   "2017-01-01", "2018-01-01", "2019-01-01",
                                   "2020-01-01", "2021-01-01", "2022-01-01")),
@@ -436,18 +252,15 @@ p = ts_for_plot %>%
     legend.title = element_blank(),
     axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
   guides(col = guide_legend(nrow = 1, reverse = T)) +
-  theme(text = element_text(size=15, family="serif", colour = "black"),
-        axis.text = element_text(size=14, family="serif", colour = "black"),
-        axis.title = element_text(size=15, family="serif", colour = "black"),
-        legend.text = element_text(size=14, family="serif", colour = "black"),
-        panel.background = element_rect(fill = "white"))
+  theme(text = element_text(size=10, family="serif", colour = "black"),
+        axis.text = element_text(size=10, family="serif", colour = "black"),
+        axis.title = element_text(size=10, family="serif", colour = "black"),
+        legend.text = element_text(size=15, family="serif", colour = "black"),
+        panel.background = element_rect(fill = "white")) +
+  theme(aspect.ratio=3/5)
 p
-p_egg <- set_panel_size(p = p,
-                        width = unit(5, "in"),
-                        height = unit(3, "in"))
-ggsave(p_egg, filename = "./plots/rwa_country_ts_w_unweighted_month.pdf", width = 8, height = 6)
-remove(list = c("p", "p_egg"))
-head(ts_for_plot_us_weight)
+save(p, file = "./ppt/ggplots/rwa_country_ts_w_unweighted_month.RData")
+remove(p)
 
 # Occ Weighted to US
 cbbPalette <- c("#E69F00", "#009E73", "#CC79A7", "#0072B2", "#D55E00")
@@ -459,7 +272,6 @@ p = ts_for_plot_us_weight %>%
   geom_line(size = 1.25) +
   ylab("Share (%)") +
   xlab("Date") +
-  labs(title = "Share of Remote Work Vacancy Postings (%)", subtitle = paste0("US 2019 Vac Weighted, Outliers Removed. Removed")) +
   scale_x_date(breaks = as.Date(c("2014-01-01", "2015-01-01", "2016-01-01",
                                   "2017-01-01", "2018-01-01", "2019-01-01",
                                   "2020-01-01", "2021-01-01", "2022-01-01")),
@@ -477,223 +289,15 @@ p = ts_for_plot_us_weight %>%
         axis.text = element_text(size=14, family="serif", colour = "black"),
         axis.title = element_text(size=15, family="serif", colour = "black"),
         legend.text = element_text(size=14, family="serif", colour = "black"),
-        panel.background = element_rect(fill = "white"))
-p
-
-p_egg <- set_panel_size(p = p,
-                        width = unit(5, "in"),
-                        height = unit(3, "in"))
-ggsave(p_egg, filename = "./plots/rwa_country_ts_w_us_vac_month.pdf", width = 8, height = 6)
-remove(list = c("p", "p_egg"))
-
-# Time series by US division
-remove(list = setdiff(ls(), "df_all_list"))
-wfh_daily_state_share <- fread(file = "./int_data/country_state_daily_wfh.csv")
-
-divisions <- fread(file = "./aux_data/us census bureau regions and divisions.csv") %>% clean_names
-
-divisions$state[!(divisions$state %in% wfh_daily_state_share$state)]
-
-nrow(wfh_daily_state_share) # 244506
-wfh_daily_state_share <- wfh_daily_state_share %>%
-  left_join(divisions) %>%
-  setDT(.)
-nrow(wfh_daily_state_share) # 244506
-head(wfh_daily_state_share)
-ts_for_plot <- wfh_daily_state_share %>%
-  setDT(.) %>%
-  .[country == "US"] %>%
-  .[, .(daily_share = sum(wfh_sum)/sum(N), N = sum(N)), by = .(job_date, year_month, year, division)] %>%
-  .[, job_date := ymd(job_date)] %>%
-  .[as.yearmon(year_month) <= as.yearmon(ymd("20220601"))] %>%
-  .[, l1o_monthly_mean := (sum(daily_share*N)-daily_share*N)/(sum(N) - N), by = .(division, year_month)] %>%
-  .[, monthly_mean := sum(daily_share*N)/(sum(N)), by = .(division, year_month)] %>%
-  .[, l1o_keep := ifelse(abs(monthly_mean - l1o_monthly_mean) > 0.02 | abs(log(monthly_mean/l1o_monthly_mean)) > 0.10, 0, 1)] %>%
-  .[, l1o_keep := ifelse(as.yearmon(year_month) %in% as.yearmon(ymd(c("20200301", "20200401", "20200501", "20200601"))), 1, l1o_keep)] %>%
-  .[, l1o_daily_with_nas := ifelse(l1o_keep == 1, daily_share, NA)] %>%
-  .[order(division, job_date)] %>%
-  .[, daily_share_l10 := na.approx(l1o_daily_with_nas, rule = 2), by = .(division)] %>%
-  .[, monthly_mean_l1o := sum(daily_share_l10[!is.na(daily_share_l10)]*N[!is.na(daily_share_l10)], na.rm = T)/(sum(N[!is.na(daily_share_l10)], na.rm = T)),
-    by = .(division, year_month)] %>%
-  .[, .(job_date = min(job_date),
-        monthly_mean = monthly_mean[1],
-        monthly_mean_l1o = monthly_mean_l1o[1]),
-    by = .(division, year_month)] %>%
-  .[, monthly_mean_3ma := rollmean(monthly_mean, k = 3, align = "right", fill = NA), by = .(division)] %>%
-  .[, monthly_mean_3ma_l1o := rollmean(monthly_mean_l1o, k = 3, align = "right", fill = NA), by = .(division)] %>%
-  .[, monthly_mean_l1o := ifelse(as.yearmon(year_month) %in% as.yearmon(ymd(c("20200301", "20200401", "20200501", "20200601"))), monthly_mean, monthly_mean_l1o)] %>%
-  .[, monthly_mean_3ma := ifelse(as.yearmon(year_month) %in% as.yearmon(ymd(c("20200301", "20200401", "20200501", "20200601"))), monthly_mean, monthly_mean_3ma)] %>%
-  .[, monthly_mean_3ma_l1o := ifelse(as.yearmon(year_month) %in% as.yearmon(ymd(c("20200301", "20200401", "20200501", "20200601"))), monthly_mean, monthly_mean_3ma_l1o)]
-
-head(ts_for_plot)
-
-ts_for_plot <- ts_for_plot %>%
-  group_by(division, year_month, job_date) %>%
-  pivot_longer(cols = c(monthly_mean:monthly_mean_3ma_l1o)) %>%
-  setDT(.)
-
-ts_for_plot <- ts_for_plot %>% .[!is.na(division)]
-
-uniqueN(divisions$division)
-
-p = ts_for_plot %>%
-  .[year(as.Date(as.yearmon(year_month)))>= 2019] %>%
-  filter(name == "monthly_mean_3ma_l1o") %>%
-  ggplot(., aes(x = as.Date(as.yearmon(year_month)), y = 100*value, colour = division, shape = division)) +
-  #stat_smooth (geom="line", alpha=0.8, size=2, span=0.2) +
-  #stat_smooth(span = 0.1, alpha=0.5, se=FALSE, size = 2) +
-  geom_point(size = 3) +
-  geom_line(size = 1) +
-  ylab("Share (%)") +
-  xlab("Date") +
-  labs(title = "Share of Remote Work Vacancy Postings (%)", subtitle = paste0("Unweighted, Outliers Removed. Removed ")) +
-  scale_x_date(date_breaks = "3 months",
-               date_labels = '%Y-%m') +
-  scale_y_continuous(labels = scales::number_format(accuracy = 1),  breaks = seq(0,30,2)) +
-  coord_cartesian(ylim = c(2, 14)) +
-  scale_colour_brewer(palette = "Paired") +
-  scale_shape_manual(values=c(15,16,17,18,19,15,16,17,18,19)) +
-  theme(
-    axis.title.x=element_blank(),
-    legend.position="bottom",
-    legend.title = element_blank(),
-    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  guides(col = guide_legend(nrow = 3, reverse = T)) +
-  theme(text = element_text(size=15, family="serif", colour = "black"),
-        axis.text = element_text(size=14, family="serif", colour = "black"),
-        axis.title = element_text(size=15, family="serif", colour = "black"),
-        legend.text = element_text(size=14, family="serif", colour = "black"),
         panel.background = element_rect(fill = "white")) +
-  guides(shape = "none")
+  theme(aspect.ratio=3/5)
 p
-p_egg <- set_panel_size(p = p,
-                        width = unit(5, "in"),
-                        height = unit(3, "in"))
-ggsave(p_egg, filename = "./plots/rwa_us_region_ts_w_unweighted_3ma.pdf", width = 8, height = 6)
-remove(list = c("p", "p_egg"))
-
-# City-level comparisons
-
-# load city plots
-head(ts_for_plot)
-
-View(ts_for_plot)
-
-ts_for_plot_cit <- ts_for_plot %>%
-  .[grepl("Odessa|Miami Beach|Savannah|Birm|Boston|Cleveland|Columbus|Des Moines|Indianapolis|Jacksonville|Louisville|Memphis|New York|Oklahoma City|San Francisco|Wichita", city)] %>%
-  .[name == "monthly_mean_3ma_l1o"] %>%
-  .[country == "US"] %>%
-  .[city_state != "Columbus, Georgia"]
-
-sort(unique(ts_for_plot_cit$city_state))
-
-remove(ts_for_plot)
-
-View(ts_for_plot)
-
-head(ts_for_plot_cit)
-
-ts_for_plot_ag <- ts_for_plot %>%
-  .[country == "US"] %>%
-  .[name == "monthly_mean_3ma_l1o"] %>%
-  .[, city_state := "US National"]
-
-ts_for_plot_cit_national <- bind_rows(ts_for_plot_cit, ts_for_plot_ag)
-View(ts_for_plot_cit_national)
-divisions <- fread(file = "./aux_data/us census bureau regions and divisions.csv") %>% clean_names
-
-nrow(ts_for_plot_cit_national)
-ts_for_plot_cit_national <- ts_for_plot_cit_national %>%
-  left_join(divisions)
-nrow(ts_for_plot_cit_national)
-
-View(ts_for_plot_cit_national)
-
-unique(ts_for_plot_cit_national$region)
-
-library("RColorBrewer")
-(pal <- brewer.pal(7,"Dark2"))
-pal[7] <- "black"
-
-p = ts_for_plot_cit_national %>%
-  .[year(as.Date(as.yearmon(year_month)))>= 2019] %>%
-  filter(grepl("Odessa|Miami Beach|Savannah|New York|Jacksonville|Cleveland|Los Ang", city) | city_state == "US National") %>%
-  filter(city != "North Miami Beach"  | city_state == "US National") %>%
-  ggplot(., aes(x = as.Date(as.yearmon(year_month)), y = 100*value, colour = city_state, shape = city_state)) +
-  #stat_smooth (geom="line", alpha=0.8, size=2, span=0.2) +
-  #stat_smooth(span = 0.1, alpha=0.5, se=FALSE, size = 2) +
-  geom_point(size = 3) +
-  geom_line(size = 1) +
-  ylab("Share (%)") +
-  xlab("Date") +
-  labs(title = "Share of Remote Work Vacancy Postings (%)", subtitle = paste0("Unweighted, Outliers Removed. Removed ")) +
-  scale_x_date(date_breaks = "3 months",
-               date_labels = '%Y-%m') +
-  scale_y_continuous(labels = scales::number_format(accuracy = 1),  breaks = seq(0,28,5)) +
-  coord_cartesian(ylim = c(0, 20)) +
-  scale_shape_manual(values=c(15,16,17,18,19,15,16,17,18,19)) +
-  scale_color_manual(values = pal) +
-  theme(
-    axis.title.x=element_blank(),
-    legend.position="bottom",
-    legend.title = element_blank(),
-    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  guides(col = guide_legend(nrow = 4, reverse = T)) +
-  theme(text = element_text(size=15, family="serif", colour = "black"),
-        axis.text = element_text(size=14, family="serif", colour = "black"),
-        axis.title = element_text(size=15, family="serif", colour = "black"),
-        legend.text = element_text(size=14, family="serif", colour = "black"),
-        panel.background = element_rect(fill = "white")) +
-  guides(shape = "none")
-p
-p_egg <- set_panel_size(p = p,
-                        width = unit(5, "in"),
-                        height = unit(3, "in"))
-ggsave(p_egg, filename = "./plots/other_cities.pdf", width = 8, height = 6)
-
-remove(list = c("p", "p_egg"))
-
-unique(ts_for_plot_cit_national$region)
-
-p = ts_for_plot_cit_national %>%
-  .[year(as.Date(as.yearmon(year_month)))>= 2019] %>%
-  filter(region %in% c("Midwest", "Northeast") | city_state == "US National") %>%
-  ggplot(., aes(x = as.Date(as.yearmon(year_month)), y = 100*value, colour = city_state, shape = city_state)) +
-  #stat_smooth (geom="line", alpha=0.8, size=2, span=0.2) +
-  #stat_smooth(span = 0.1, alpha=0.5, se=FALSE, size = 2) +
-  geom_point(size = 3) +
-  geom_line(size = 1) +
-  ylab("Share (%)") +
-  xlab("Date") +
-  labs(title = "Share of Remote Work Vacancy Postings (%)", subtitle = paste0("Unweighted, Outliers Removed. Removed ")) +
-  scale_x_date(date_breaks = "3 months",
-               date_labels = '%Y-%m') +
-  scale_y_continuous(labels = scales::number_format(accuracy = 1),  breaks = seq(0,30,2)) +
-  coord_cartesian(ylim = c(2, 30)) +
-  scale_shape_manual(values=c(15,16,17,18,19,15,16,17,18,19)) +
-  scale_color_manual(values = pal) +
-  theme(
-    axis.title.x=element_blank(),
-    legend.position="bottom",
-    legend.title = element_blank(),
-    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  guides(col = guide_legend(nrow = 4, reverse = T)) +
-  theme(text = element_text(size=15, family="serif", colour = "black"),
-        axis.text = element_text(size=14, family="serif", colour = "black"),
-        axis.title = element_text(size=15, family="serif", colour = "black"),
-        legend.text = element_text(size=14, family="serif", colour = "black"),
-        panel.background = element_rect(fill = "white")) +
-  guides(shape = "none")
-p
-p_egg <- set_panel_size(p = p,
-                        width = unit(5, "in"),
-                        height = unit(3, "in"))
-ggsave(p_egg, filename = "./plots/san_fran_vs_south_san_fran.pdf", width = 8, height = 6)
-remove(list = c("p", "p_egg"))
+save(p, file = "./ppt/ggplots/rwa_country_ts_w_us_vac_month.RData")
+remove(p)
+#### END ####
 
 
-
-# OLD
+# OLD CODE - OTHER TYPES OF AGGREGATION #
 
 # Aggregate by occupation
 wfh_monthly_share_list <- lapply(df_all_list, function(x) {

@@ -42,7 +42,7 @@ library(fixest)
 # git commit -m "autosave"
 # git push origin master
 
-setDTthreads(8)
+setDTthreads(4)
 getDTthreads()
 #quanteda_options(threads = 1)
 setwd("/mnt/disks/pdisk/bg_combined/")
