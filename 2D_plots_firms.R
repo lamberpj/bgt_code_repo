@@ -69,6 +69,226 @@ df_us <- df_us %>%
   .[!grepl("careerbuilder", job_domain)]
 nrow(df_us) # 65,938,081
 ls()
+
+#### SPECIFIC EXAMPLES - AEROSPACE MANUF SECTOR MANAGEMENT OCCS ####
+df_air_man <- df_us %>%
+  .[, naics4 := str_sub(naics5, 1, 4)] %>%
+  .[, soc2 := str_sub(soc, 1, 2)] %>%
+  .[naics4 == "3364" & soc2 == "11"] %>%
+  setDT(.) %>%
+  .[, .(.N, wfh_share = round(100*mean(wfh_wham, na.rm = T),2)), by = .(employer, period)] %>%
+  .[, sumsqrt_N := sum(N^0.5), by = employer] %>%
+  .[order(-sumsqrt_N)] %>%
+  .[employer %in% c("Northrop Grumman", "Lockheed Martin Corporation", "The Boeing Company", "United Technologies Corporation", "Textron", "Sierra Nevada Corporation", "Pratt & Whitney", "Spacex")] %>%
+  .[, employer_ord :=
+      factor(employer,
+             levels = rev(c("The Boeing Company","Pratt & Whitney","Lockheed Martin Corporation","Northrop Grumman","United Technologies Corporation","Sierra Nevada Corporation","Textron", "Spacex")))]
+
+p = df_air_man %>%
+  ggplot(aes(x = employer_ord, y = wfh_share+0.2, fill = as.factor(period)), group = employer_ord) +
+  geom_bar(stat = "identity", width=0.7, position = position_dodge(width=0.7))  +
+  ylab("Share (%)") +
+  scale_y_continuous(breaks = seq(0,100,5)) +
+  scale_fill_manual(values = c("#000000", "#CC6600")) +
+  theme(
+    axis.title.y=element_blank(),
+    legend.position="bottom",
+    legend.title = element_blank(),
+    axis.text.x = element_text(angle = 0),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank()) +
+  theme(text = element_text(size=15, family="serif", colour = "black"),
+        axis.text = element_text(size=14, family="serif", colour = "black"),
+        axis.title = element_text(size=15, family="serif", colour = "black"),
+        legend.text = element_text(size=14, family="serif", colour = "black"),
+        panel.background = element_rect(fill = "white"),
+        legend.key.width = unit(1,"cm"),
+        legend.position = c(.7, .2)) +
+  guides(fill = guide_legend(ncol = 1)) +
+  coord_flip() +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 60)) +
+  theme(aspect.ratio=3/5)
+p
+save(p, file = "./ppt/ggplots/top_us_firms_soc2_11_naics4_3364_airspace_management.RData")
+#### END ####
+
+#### SPECIFIC EXAMPLES - INSURANCE SECTOR MATH OCCS ####
+df_ins_math <- df_us %>%
+  .[, naics4 := str_sub(naics5, 1, 4)] %>%
+  .[, soc4 := str_sub(soc, 1, 5)] %>%
+  .[naics4 == "5241" & soc4 == "15-20"] %>%
+  setDT(.) %>%
+  .[, .(.N, wfh_share = round(100*mean(wfh_wham, na.rm = T),2)), by = .(employer, period)] %>%
+  .[, sumsqrt_N := sum(N^0.5), by = employer] %>%
+  .[order(-sumsqrt_N)] %>%
+  .[employer %in% c("Mutual of Omaha Company","UnitedHealth Group","Zurich Insurance","Centene Corporation","Highmark Health","Liberty Mutual","Anthem Blue Cross","Humana","American International Group Incorporated")] %>%
+  .[, employer := ifelse(employer == "American International Group Incorporated", "AIG", employer)] %>%
+  .[, employer_ord :=
+      factor(employer,
+             levels = rev(c("Mutual of Omaha Company","UnitedHealth Group","Zurich Insurance","Centene Corporation","Highmark Health","Liberty Mutual","Anthem Blue Cross","Humana","AIG")))]
+
+View(df_ins_math)
+
+p = df_ins_math %>%
+  ggplot(aes(x = employer_ord, y = wfh_share+0.2, fill = as.factor(period)), group = employer_ord) +
+  geom_bar(stat = "identity", width=0.7, position = position_dodge(width=0.7))  +
+  ylab("Share (%)") +
+  scale_y_continuous(breaks = seq(0,100,10)) +
+  scale_fill_manual(values = c("#000000", "#FFCC33")) +
+  theme(
+    axis.title.y=element_blank(),
+    legend.position="bottom",
+    legend.title = element_blank(),
+    axis.text.x = element_text(angle = 0),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank()) +
+  theme(text = element_text(size=15, family="serif", colour = "black"),
+        axis.text = element_text(size=14, family="serif", colour = "black"),
+        axis.title = element_text(size=15, family="serif", colour = "black"),
+        legend.text = element_text(size=14, family="serif", colour = "black"),
+        panel.background = element_rect(fill = "white"),
+        legend.key.width = unit(1,"cm"),
+        legend.position = c(.7, .2)) +
+  guides(fill = guide_legend(ncol = 1)) +
+  coord_flip() +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 60)) +
+  theme(aspect.ratio=3/5)
+p
+save(p, file = "./ppt/ggplots/top_us_firms_soc2_15-20_naics4_5241_insurance_math_occs.RData")
+#### END ####
+
+#### SPECIFIC EXAMPLES - UNIVERSITIES ADMIN STAFF ####
+df_sunis_admin <- df_us %>%
+  .[, naics4 := str_sub(naics5, 1, 4)] %>%
+  .[, soc4 := str_sub(soc, 1, 5)] %>%
+  .[naics4 == "6113" & soc4 == "43-60"] %>%
+  setDT(.) %>%
+  .[, .(.N, wfh_share = round(100*mean(wfh_wham, na.rm = T),2)), by = .(employer, period)] %>%
+  .[, sumsqrt_N := sum(N^0.5), by = employer] %>%
+  .[order(-sumsqrt_N)] %>%
+  .[employer %in% c("University of Texas", "Stanford University", "University of Florida", "University of Michigan", "University of Utah", "California State University", "Pennsylvania State University", "Cornell University", "Harvard University", "University of Wisconsin")] %>%
+  .[, employer_ord :=
+      factor(employer,
+             levels = rev(c("University of Michigan","Stanford University","Harvard University","University of Wisconsin","University of Texas","Cornell University","University of Utah","California State University","Pennsylvania State University","University of Florida")))]
+
+View(df_sunis_admin)
+
+p = df_sunis_admin %>%
+  ggplot(aes(x = employer_ord, y = wfh_share+0.2, fill = as.factor(period)), group = employer_ord) +
+  geom_bar(stat = "identity", width=0.7, position = position_dodge(width=0.7))  +
+  ylab("Share (%)") +
+  scale_y_continuous(breaks = seq(0,100,10)) +
+  scale_fill_manual(values = c("#000000", "#FFCC33")) +
+  theme(
+    axis.title.y=element_blank(),
+    legend.position="bottom",
+    legend.title = element_blank(),
+    axis.text.x = element_text(angle = 0),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank()) +
+  theme(text = element_text(size=15, family="serif", colour = "black"),
+        axis.text = element_text(size=14, family="serif", colour = "black"),
+        axis.title = element_text(size=15, family="serif", colour = "black"),
+        legend.text = element_text(size=14, family="serif", colour = "black"),
+        panel.background = element_rect(fill = "white"),
+        legend.key.width = unit(1,"cm"),
+        legend.position = c(.7, .2)) +
+  guides(fill = guide_legend(ncol = 1)) +
+  coord_flip() +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 60)) +
+  theme(aspect.ratio=3/5)
+p
+save(p, file = "./ppt/ggplots/top_us_firms_soc2_43-60_naics4_6113_universities_sec_and_admin_assistant_occs.RData")
+#### END ####
+
+#### SPECIFIC EXAMPLES - ACCOUNTING SERVICES INDUSTRY, FINANCIAL SPECIALIST OCCUPATIONS  ####
+df_accounting_fin_spec_occs <- df_us %>%
+  .[, naics4 := str_sub(naics5, 1, 4)] %>%
+  .[, soc4 := str_sub(soc, 1, 5)] %>%
+  .[naics4 == "5412" & soc4 == "13-20"] %>%
+  setDT(.) %>%
+  .[, .(.N, wfh_share = round(100*mean(wfh_wham, na.rm = T),2)), by = .(employer, period)] %>%
+  .[, sumsqrt_N := sum(N^0.5), by = employer] %>%
+  .[order(-sumsqrt_N)] %>%
+  .[employer %in% c("PricewaterhouseCoopers","Grant Thornton","Eide Bailly","BDO International","KPMG","H&R Block","Jackson Hewitt Tax Service","Moss Adams Llp")] %>%
+  .[, employer_ord :=
+      factor(employer,
+             levels = rev(c("PricewaterhouseCoopers","Grant Thornton","Eide Bailly","BDO International","KPMG","H&R Block","Jackson Hewitt Tax Service","Moss Adams Llp")))]
+
+View(df_accounting_fin_spec_occs)
+
+p = df_accounting_fin_spec_occs %>%
+  ggplot(aes(x = employer_ord, y = wfh_share+0.2, fill = as.factor(period)), group = employer_ord) +
+  geom_bar(stat = "identity", width=0.7, position = position_dodge(width=0.7))  +
+  ylab("Share (%)") +
+  scale_y_continuous(breaks = seq(0,100,10)) +
+  scale_fill_manual(values = c("#000000", "#33CC33")) +
+  theme(
+    axis.title.y=element_blank(),
+    legend.position="bottom",
+    legend.title = element_blank(),
+    axis.text.x = element_text(angle = 0),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank()) +
+  theme(text = element_text(size=15, family="serif", colour = "black"),
+        axis.text = element_text(size=14, family="serif", colour = "black"),
+        axis.title = element_text(size=15, family="serif", colour = "black"),
+        legend.text = element_text(size=14, family="serif", colour = "black"),
+        panel.background = element_rect(fill = "white"),
+        legend.key.width = unit(1,"cm"),
+        legend.position = c(.7, .2)) +
+  guides(fill = guide_legend(ncol = 1)) +
+  coord_flip() +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 60)) +
+  theme(aspect.ratio=3/5)
+p
+save(p, file = "./ppt/ggplots/top_us_firms_soc2_13-20_naics4_5412_accounting_services_ind_fin_spec_occs.RData")
+#### END ####
+
+#### SPECIFIC EXAMPLES - CONSULTANCIES, COMPUTER OCCUPATIONS  ####
+df_man_consult_comp_occs <- df_us %>%
+  .[, soc2 := str_sub(soc, 1, 2)] %>%
+  .[soc2 == "13"] %>%
+  .[, employer := ifelse(employer %in% c("Bain Company", "Bain Company Incorporated"), "Bain Company", employer)] %>%
+  .[, employer := ifelse(employer %in% c("Boston Consulting Group Bcg", "Boston Consulting Group", "Boston Consulting Group Incorporated"), "Boston Consulting Group", employer)] %>%
+  .[, employer := ifelse(employer %in% c("Bain Company", "Bain Company Incorporated"), "Bain Company", employer)] %>%
+  .[, employer := ifelse(employer %in% c("PricewaterhouseCoopers", "Price Waterhouse Coopers", "Pricewaterhouse Coopers"), "PricewaterhouseCoopers", employer)] %>%
+  setDT(.) %>%
+  .[, .(.N, wfh_share = round(100*mean(wfh_wham, na.rm = T),2)), by = .(employer, period)] %>%
+  .[, sumsqrt_N := sum(N^0.5), by = employer] %>%
+  .[order(-sumsqrt_N)] %>%
+  .[employer %in% c("McKinsey & Company","Boston Group","Accenture","Booz Allen Hamilton Inc.","KPMG","Bain Company","Boston Consulting Group","Deloitte","PricewaterhouseCoopers","Ernst & Young")]
+
+
+p = df_man_consult_comp_occs %>%
+  ggplot(aes(x = employer_ord, y = wfh_share+0.2, fill = as.factor(period)), group = employer_ord) +
+  geom_bar(stat = "identity", width=0.7, position = position_dodge(width=0.7))  +
+  ylab("Share (%)") +
+  scale_y_continuous(breaks = seq(0,100,10)) +
+  scale_fill_manual(values = c("#000000", "#33CC33")) +
+  theme(
+    axis.title.y=element_blank(),
+    legend.position="bottom",
+    legend.title = element_blank(),
+    axis.text.x = element_text(angle = 0),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank()) +
+  theme(text = element_text(size=15, family="serif", colour = "black"),
+        axis.text = element_text(size=14, family="serif", colour = "black"),
+        axis.title = element_text(size=15, family="serif", colour = "black"),
+        legend.text = element_text(size=14, family="serif", colour = "black"),
+        panel.background = element_rect(fill = "white"),
+        legend.key.width = unit(1,"cm"),
+        legend.position = c(.7, .2)) +
+  guides(fill = guide_legend(ncol = 1)) +
+  coord_flip() +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 60)) +
+  theme(aspect.ratio=3/5)
+p
+save(p, file = "./ppt/ggplots/top_us_firms_soc2_13_consulting_firms.RData")
+#### END ####
+
+
 #### FIRM SIZE and REMOTE WORK ####
 remove(list = setdiff(ls(), "df_us"))
 
@@ -131,7 +351,7 @@ df_us_top_employers_cells <- df_us %>%
          city = as.character(city),
          soc = as.character(soc)) %>%
   setDT(.)
-  
+
 mod1 <- feols(data = df_us_top_employers_cells,
               fml = wfh_share ~ -1 | naics5 + city + soc, cluster = ~ employer)
 
@@ -245,6 +465,8 @@ r_by_soc2 <- r_by_soc2 %>% select(soc2, name, everything())
 r_by_soc2$name <- gsub("/", "and", r_by_soc2$name)
 
 stargazer(r_by_soc2, summary = FALSE, title = "Spread of Advertised Remote Work Shares, across Firms within SOC2 Occupations (Residualized using NAICS5 + City + SOC Fixed Effects)", rownames = FALSE)
+
+#### END ####
 
 # Specific Case Studies
 good_soc2_11_naics5 <- c(33641,52411, 54121, 52211, 33611, 33441, 42361, 52393, 61131, 52311, 81341, 81219, 92111, 92119, 32561, 72251)

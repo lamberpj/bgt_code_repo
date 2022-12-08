@@ -338,30 +338,16 @@ try(unlink(paste0("ppt/f",fig_number,"_",fig_short_name,".pptx")))
 base::print(ppt, target = paste0("ppt/f",fig_number,"_",fig_short_name,".pptx"))
 #### END ####
 
-
-#### ACS vs WHAM ####
-load(file = "./ppt/ggplots/wham_vs_acs.RData")
-
-fig_number <- 10
+#### 7 REMOTE WORK ACROSS CITIES - MIDWEST ####
+load(file = "./ppt/ggplots/ts_cities_mw.RData")
+fig_number <- 7
 fig_number_title <- paste0("Figure ", fig_number, ": ")
-
-fig_short_name <- "wham_vs_acs"
-
-fig_title <- "Share of Online Job Vacancy Postings which Advertise Remote Work (2022) vs Share of Employees who reported ‘Mostly Working from Home’ in the 2021 American Community Survey (ACS), by MSA"
-
-fig_footnote <- "The y-axis shows our measurement of the share of all new job vacancy postings which explicitly advertise remote working arrangements, by MSA. The x-axis shows the share of employees in the American Communities Survey (ACS) who responded that they `mostly worked from home'.  This latter series is constructed using sampling weights, and in all cases we take the ACS' best effort to calculate the point-estimate for the population based on their survey data.  We cut off one substantial outlier, but do not remove any outliers when calculating fit statistics.  Roughly half of all MSAs were removed due to missing values in the ACS."
-
-p
+fig_short_name <- "city_ts_midwest"
+fig_title <- "Share of Online Job Vacancy Postings which Advertise Remote Work, by Selected Cities from the North-East and West US Regions"
+fig_footnote <- "We calculate the monthly share of all new job vacancy postings which explicitly advertise remote working arrangements, by selected cities. Prior to aggregation at the monthly level, we employ a jackknife filter to remove a small number of outlier days (see Appendix XXX: Data for further details). This figure shows the 3-month moving average, except for March-May 2020, where the monthly level is shown."
 p_dml <- rvg::dml(ggobj = p)
-
-p_dml
-
-# initialize PowerPoint slide ----
 ppt <- officer::read_pptx() %>%
   officer::add_slide(layout = "Title and Content", master = "Office Theme")
-
-layout_properties(ppt, layout = "Title and Content")
-
 s_s <- slide_size(ppt)
 (s_w <- s_s$width) # width of slides
 (s_h <- s_s$height) # height of slides
@@ -373,8 +359,6 @@ cap_w <- 9
 cap_h <- 3
 left_cap <-  (s_w/2) - (cap_w/2) 
 top_cap <- (s_h/2) + (f_h/2) - 1
-
-
 ppt <- ppt %>%
   ph_with(p_dml, ph_location(left = left_f, top = top_f + 0.15, width = f_w, height = f_h)) %>%
   ph_with(
@@ -383,10 +367,195 @@ ppt <- ppt %>%
         ftext(fig_number_title, prop = fp_text(bold = TRUE, font.size = 20, color = "black")),
         ftext(fig_title, prop = fp_text(font.size = 20, color = "black")),
         fp_p = fp_par(text.align = "justify")
-        )
-      ),
+      )
+    ),
     location = ph_location_type(type = "title")
-    ) %>%
+  ) %>%
+  ph_with(
+    block_list(
+      fpar(
+        ftext("Note: ", prop = fp_text(bold = TRUE, font.size = 12, color = "black")),
+        ftext(fig_footnote, prop = fp_text(font.size = 12, color = "black")),
+        fp_p = fp_par(text.align = "justify")
+      )
+    ),
+    location = ph_location(left = left_cap, top = top_cap, width = cap_w, height = cap_h))
+try(unlink(paste0("ppt/f",fig_number,"_",fig_short_name,".pptx")))
+base::print(ppt, target = paste0("ppt/f",fig_number,"_",fig_short_name,".pptx"))
+#### END ####
+
+#### 8 REMOTE WORK ACROSS CITIES - NORTH-EAST and WEST ####
+load(file = "./ppt/ggplots/ts_cities_ne_w.RData")
+fig_number <- 8
+fig_number_title <- paste0("Figure ", fig_number, ": ")
+fig_short_name <- "city_ts_ne_w"
+fig_title <- "Share of Online Job Vacancy Postings which Advertise Remote Work, by Selected Cities from the Mid-West US Region"
+fig_footnote <- "We calculate the monthly share of all new job vacancy postings which explicitly advertise remote working arrangements, by selected cities. Prior to aggregation at the monthly level, we employ a jackknife filter to remove a small number of outlier days (see Appendix XXX: Data for further details). This figure shows the 3-month moving average, except for March-May 2020, where the monthly level is shown."
+p_dml <- rvg::dml(ggobj = p)
+ppt <- officer::read_pptx() %>%
+  officer::add_slide(layout = "Title and Content", master = "Office Theme")
+s_s <- slide_size(ppt)
+(s_w <- s_s$width) # width of slides
+(s_h <- s_s$height) # height of slides
+f_w <- 7 # width of figure
+f_h <- 5 # height of figure
+left_f <- (s_w/2) - (f_w/2) 
+top_f <- (s_h/2) - (f_h/2)
+cap_w <- 9
+cap_h <- 3
+left_cap <-  (s_w/2) - (cap_w/2) 
+top_cap <- (s_h/2) + (f_h/2) - 1
+ppt <- ppt %>%
+  ph_with(p_dml, ph_location(left = left_f, top = top_f + 0.15, width = f_w, height = f_h)) %>%
+  ph_with(
+    block_list(
+      fpar(
+        ftext(fig_number_title, prop = fp_text(bold = TRUE, font.size = 20, color = "black")),
+        ftext(fig_title, prop = fp_text(font.size = 20, color = "black")),
+        fp_p = fp_par(text.align = "justify")
+      )
+    ),
+    location = ph_location_type(type = "title")
+  ) %>%
+  ph_with(
+    block_list(
+      fpar(
+        ftext("Note: ", prop = fp_text(bold = TRUE, font.size = 12, color = "black")),
+        ftext(fig_footnote, prop = fp_text(font.size = 12, color = "black")),
+        fp_p = fp_par(text.align = "justify")
+      )
+    ),
+    location = ph_location(left = left_cap, top = top_cap, width = cap_w, height = cap_h))
+try(unlink(paste0("ppt/f",fig_number,"_",fig_short_name,".pptx")))
+base::print(ppt, target = paste0("ppt/f",fig_number,"_",fig_short_name,".pptx"))
+#### END ####
+
+#### 9 REMOTE WORK ACROSS CITIES - SOUTH ####
+load(file = "./ppt/ggplots/ts_cities_s.RData")
+fig_number <- 9
+fig_number_title <- paste0("Figure ", fig_number, ": ")
+fig_short_name <- "city_ts_south"
+fig_title <- "Share of Online Job Vacancy Postings which Advertise Remote Work, by Selected Cities from the South US Region"
+fig_footnote <- "We calculate the monthly share of all new job vacancy postings which explicitly advertise remote working arrangements, by selected cities. Prior to aggregation at the monthly level, we employ a jackknife filter to remove a small number of outlier days (see Appendix XXX: Data for further details). This figure shows the 3-month moving average, except for March-May 2020, where the monthly level is shown."
+p_dml <- rvg::dml(ggobj = p)
+ppt <- officer::read_pptx() %>%
+  officer::add_slide(layout = "Title and Content", master = "Office Theme")
+s_s <- slide_size(ppt)
+(s_w <- s_s$width) # width of slides
+(s_h <- s_s$height) # height of slides
+f_w <- 7 # width of figure
+f_h <- 5 # height of figure
+left_f <- (s_w/2) - (f_w/2) 
+top_f <- (s_h/2) - (f_h/2)
+cap_w <- 9
+cap_h <- 3
+left_cap <-  (s_w/2) - (cap_w/2) 
+top_cap <- (s_h/2) + (f_h/2) - 1
+ppt <- ppt %>%
+  ph_with(p_dml, ph_location(left = left_f, top = top_f + 0.15, width = f_w, height = f_h)) %>%
+  ph_with(
+    block_list(
+      fpar(
+        ftext(fig_number_title, prop = fp_text(bold = TRUE, font.size = 20, color = "black")),
+        ftext(fig_title, prop = fp_text(font.size = 20, color = "black")),
+        fp_p = fp_par(text.align = "justify")
+      )
+    ),
+    location = ph_location_type(type = "title")
+  ) %>%
+  ph_with(
+    block_list(
+      fpar(
+        ftext("Note: ", prop = fp_text(bold = TRUE, font.size = 12, color = "black")),
+        ftext(fig_footnote, prop = fp_text(font.size = 12, color = "black")),
+        fp_p = fp_par(text.align = "justify")
+      )
+    ),
+    location = ph_location(left = left_cap, top = top_cap, width = cap_w, height = cap_h))
+try(unlink(paste0("ppt/f",fig_number,"_",fig_short_name,".pptx")))
+base::print(ppt, target = paste0("ppt/f",fig_number,"_",fig_short_name,".pptx"))
+#### END ####
+
+#### 10 REMOTE WORK ACROSS CITIES - UK ####
+load(file = "./ppt/ggplots/ts_cities_uk.RData")
+fig_number <- 10
+fig_number_title <- paste0("Figure ", fig_number, ": ")
+fig_short_name <- "city_ts_uk"
+fig_title <- "Share of Online Job Vacancy Postings which Advertise Remote Work, by Selected Cities from the United Kingdom"
+fig_footnote <- "We calculate the monthly share of all new job vacancy postings which explicitly advertise remote working arrangements, by selected cities. Prior to aggregation at the monthly level, we employ a jackknife filter to remove a small number of outlier days (see Appendix XXX: Data for further details). This figure shows the 3-month moving average, except for March-May 2020, where the monthly level is shown."
+p_dml <- rvg::dml(ggobj = p)
+ppt <- officer::read_pptx() %>%
+  officer::add_slide(layout = "Title and Content", master = "Office Theme")
+s_s <- slide_size(ppt)
+(s_w <- s_s$width) # width of slides
+(s_h <- s_s$height) # height of slides
+f_w <- 7 # width of figure
+f_h <- 5 # height of figure
+left_f <- (s_w/2) - (f_w/2) 
+top_f <- (s_h/2) - (f_h/2)
+cap_w <- 9
+cap_h <- 3
+left_cap <-  (s_w/2) - (cap_w/2) 
+top_cap <- (s_h/2) + (f_h/2) - 1
+ppt <- ppt %>%
+  ph_with(p_dml, ph_location(left = left_f, top = top_f + 0.15, width = f_w, height = f_h)) %>%
+  ph_with(
+    block_list(
+      fpar(
+        ftext(fig_number_title, prop = fp_text(bold = TRUE, font.size = 20, color = "black")),
+        ftext(fig_title, prop = fp_text(font.size = 20, color = "black")),
+        fp_p = fp_par(text.align = "justify")
+      )
+    ),
+    location = ph_location_type(type = "title")
+  ) %>%
+  ph_with(
+    block_list(
+      fpar(
+        ftext("Note: ", prop = fp_text(bold = TRUE, font.size = 12, color = "black")),
+        ftext(fig_footnote, prop = fp_text(font.size = 12, color = "black")),
+        fp_p = fp_par(text.align = "justify")
+      )
+    ),
+    location = ph_location(left = left_cap, top = top_cap, width = cap_w, height = cap_h))
+try(unlink(paste0("ppt/f",fig_number,"_",fig_short_name,".pptx")))
+base::print(ppt, target = paste0("ppt/f",fig_number,"_",fig_short_name,".pptx"))
+#### END ####
+
+#### 11 ACS vs WHAM ####
+load(file = "./ppt/ggplots/wham_vs_acs.RData")
+fig_number <- 11
+fig_number_title <- paste0("Figure ", fig_number, ": ")
+fig_short_name <- "wham_vs_acs"
+fig_title <- "Share of Online Job Vacancy Postings which Advertise Remote Work (2022) vs Share of Employees who reported ‘Mostly Working from Home’ in the 2021 American Community Survey (ACS), by MSA"
+fig_footnote <- "The y-axis shows our measurement of the share of all new job vacancy postings which explicitly advertise remote working arrangements, by MSA. The x-axis shows the share of employees in the American Communities Survey (ACS) who responded that they `mostly worked from home'.  This latter series is constructed using sampling weights, and in all cases we take the ACS' best effort to calculate the point-estimate for the population based on their survey data.  We cut off one substantial outlier, but do not remove any outliers when calculating fit statistics.  Roughly half of all MSAs were removed due to missing values in the ACS."
+p_dml <- rvg::dml(ggobj = p)
+ppt <- officer::read_pptx() %>%
+  officer::add_slide(layout = "Title and Content", master = "Office Theme")
+layout_properties(ppt, layout = "Title and Content")
+s_s <- slide_size(ppt)
+(s_w <- s_s$width) # width of slides
+(s_h <- s_s$height) # height of slides
+f_w <- 7 # width of figure
+f_h <- 5 # height of figure
+left_f <- (s_w/2) - (f_w/2) 
+top_f <- (s_h/2) - (f_h/2)
+cap_w <- 9
+cap_h <- 3
+left_cap <-  (s_w/2) - (cap_w/2) 
+top_cap <- (s_h/2) + (f_h/2) - 1
+ppt <- ppt %>%
+  ph_with(p_dml, ph_location(left = left_f, top = top_f + 0.15, width = f_w, height = f_h)) %>%
+  ph_with(
+    block_list(
+      fpar(
+        ftext(fig_number_title, prop = fp_text(bold = TRUE, font.size = 20, color = "black")),
+        ftext(fig_title, prop = fp_text(font.size = 20, color = "black")),
+        fp_p = fp_par(text.align = "justify")
+      )
+    ),
+    location = ph_location_type(type = "title")
+  ) %>%
   ph_with(
     block_list(
       fpar(
@@ -397,11 +566,201 @@ ppt <- ppt %>%
     ),
     location = ph_location(left = left_cap, top = top_cap, width = cap_w, height = cap_h))
 
-# Print PPT
 try(unlink(paste0("ppt/f",fig_number,"_",fig_short_name,".pptx")))
 base::print(ppt, target = paste0("ppt/f",fig_number,"_",fig_short_name,".pptx"))
 #### END ####
 
+#### 12 REMOTE WORK ACROSS SELECTED FIRMS - SPACE/AERO MANAGEMENT OCCS - BAR PLOT ####
+load(file = "./ppt/ggplots/top_us_firms_soc2_11_naics4_3364_airspace_management.RData")
+fig_number <- 12
+fig_number_title <- paste0("Figure ", fig_number, ": ")
+fig_short_name <- "selected_firms_aerospace_man_bar"
+fig_title <- "Share of Online Job Vacancy Postings which Advertise Remote Work, by Selected Employers in Aerospace Manufacturing Industries (NAICS 3364) (Management Occupations Only, SOC 11) "
+fig_footnote <- "We calculate the share of all job vacancy postings which explicitly advertise remote working arrangements, by selected employers in the US.  We compare calendar year 2019 to the period 2021 Q3 to 2022 Q2, inclusive.  We subset these data to consider only `Management Occupations` (i.e. the SOC 2-digit code 11).  Note that we add a small amount of jitter to help with visualisations, for example in both periods SpaceX had exactly zero job ads advertising remote work.  All companies posted at least 20 job ads in each period, with the lowest being 21 posts (United Technologies Corporation in 2021-22) and the highest being 8,130 (The Boeing Company in 2021-22)."
+p
+p_dml <- rvg::dml(ggobj = p, pointsize = 10, editable = TRUE)
+p_dml
+ppt <- officer::read_pptx() %>%
+  officer::add_slide(layout = "Title and Content", master = "Office Theme")
+s_s <- slide_size(ppt)
+(s_w <- s_s$width) # width of slides
+(s_h <- s_s$height) # height of slides
+f_w <- 9 # width of figure
+f_h <- 5 # height of figure
+left_f <- (s_w/2) - (f_w/2) 
+top_f <- (s_h/2) - (f_h/2)
+cap_w <- 9
+cap_h <- 3
+left_cap <-  (s_w/2) - (cap_w/2) 
+top_cap <- (s_h/2) + (f_h/2) - 1
+ppt <- ppt %>%
+  ph_with(p_dml, ph_location(left = left_f, top = top_f + 0.15, width = f_w, height = f_h)) %>%
+  ph_with(
+    block_list(
+      fpar(
+        ftext(fig_number_title, prop = fp_text(bold = TRUE, font.size = 20, color = "black")),
+        ftext(fig_title, prop = fp_text(font.size = 20, color = "black")),
+        fp_p = fp_par(text.align = "justify")
+      )
+    ),
+    location = ph_location_type(type = "title")
+  ) %>%
+  ph_with(
+    block_list(
+      fpar(
+        ftext("Note: ", prop = fp_text(bold = TRUE, font.size = 12, color = "black")),
+        ftext(fig_footnote, prop = fp_text(font.size = 12, color = "black")),
+        fp_p = fp_par(text.align = "justify")
+      )
+    ),
+    location = ph_location(left = left_cap, top = top_cap, width = cap_w, height = cap_h))
+try(unlink(paste0("ppt/f",fig_number,"_",fig_short_name,".pptx")))
+base::print(ppt, target = paste0("ppt/f",fig_number,"_",fig_short_name,".pptx"))
+#### END ####
+
+#### 13 REMOTE WORK ACROSS SELECTED FIRMS - INSURANCE - MATHEMATICAL SCIENCE OCCUPATIONS - BAR PLOT ####
+load(file = "./ppt/ggplots/top_us_firms_soc2_15-20_naics4_5241_insurance_math_occs.RData")
+fig_number <- 13
+fig_number_title <- paste0("Figure ", fig_number, ": ")
+fig_short_name <- "selected_firms_insurance_math_bar"
+fig_title <- "Share of Online Job Vacancy Postings which Advertise Remote Work, by Selected Employers in Insurance Industry (NAICS 5241) (Mathematical Science Occupations Only, SOC 15-20) "
+fig_footnote <- "We calculate the share of all job vacancy postings which explicitly advertise remote working arrangements, by selected employers in the US.  We compare calendar year 2019 to the period 2021 Q3 to 2022 Q2, inclusive.  We subset these data to consider only `Mathematical Science Occupations` (i.e. the SOC 4-digit code 15-20).  All companies posted at least 20 job ads in each period, with the lowest being 71 posts (Mutual of Omaha Company in 2019) and the highest being 7,302 (Anthem Blue Cross in 2019)."
+p
+p_dml <- rvg::dml(ggobj = p, pointsize = 10, editable = TRUE)
+p_dml
+ppt <- officer::read_pptx() %>%
+  officer::add_slide(layout = "Title and Content", master = "Office Theme")
+s_s <- slide_size(ppt)
+(s_w <- s_s$width) # width of slides
+(s_h <- s_s$height) # height of slides
+f_w <- 9 # width of figure
+f_h <- 5 # height of figure
+left_f <- (s_w/2) - (f_w/2) 
+top_f <- (s_h/2) - (f_h/2)
+cap_w <- 9
+cap_h <- 3
+left_cap <-  (s_w/2) - (cap_w/2) 
+top_cap <- (s_h/2) + (f_h/2) - 1
+ppt <- ppt %>%
+  ph_with(p_dml, ph_location(left = left_f, top = top_f + 0.15, width = f_w, height = f_h)) %>%
+  ph_with(
+    block_list(
+      fpar(
+        ftext(fig_number_title, prop = fp_text(bold = TRUE, font.size = 20, color = "black")),
+        ftext(fig_title, prop = fp_text(font.size = 20, color = "black")),
+        fp_p = fp_par(text.align = "justify")
+      )
+    ),
+    location = ph_location_type(type = "title")
+  ) %>%
+  ph_with(
+    block_list(
+      fpar(
+        ftext("Note: ", prop = fp_text(bold = TRUE, font.size = 12, color = "black")),
+        ftext(fig_footnote, prop = fp_text(font.size = 12, color = "black")),
+        fp_p = fp_par(text.align = "justify")
+      )
+    ),
+    location = ph_location(left = left_cap, top = top_cap, width = cap_w, height = cap_h))
+try(unlink(paste0("ppt/f",fig_number,"_",fig_short_name,".pptx")))
+base::print(ppt, target = paste0("ppt/f",fig_number,"_",fig_short_name,".pptx"))
+#### END ####
+
+#### 14 REMOTE WORK ACROSS SELECTED FIRMS - UNIVERSITIES - SECRETARIES AND ADMIN ASSISTANT OCCUPATIONS - BAR PLOT ####
+load(file = "./ppt/ggplots/top_us_firms_soc2_43-60_naics4_6113_universities_sec_and_admin_assistant_occs.RData")
+fig_number <- 14
+fig_number_title <- paste0("Figure ", fig_number, ": ")
+fig_short_name <- "selected_firms_unis_sec_and_admin_bar"
+fig_title <- "Share of Online Job Vacancy Postings which Advertise Remote Work, by Selected Employers in Colleges and Universities Industry (NAICS 6113) (Secretaries and Admin Assistants Only, SOC 43-60) "
+fig_footnote <- "We calculate the share of all job vacancy postings which explicitly advertise remote working arrangements, by selected employers in the US.  We compare calendar year 2019 to the period 2021 Q3 to 2022 Q2, inclusive.  We subset these data to consider only `Secretaries and Admin Assistants` occupations (i.e. the SOC 4-digit code 43-60).  Each group has a subtantial number of vacancy postings, with the lowest being 187 posts (University of Wisconsin in 2019) and the highest being 887 (Pennsylvania State University in 2021-22)."
+p
+p_dml <- rvg::dml(ggobj = p, pointsize = 10, editable = TRUE)
+p_dml
+ppt <- officer::read_pptx() %>%
+  officer::add_slide(layout = "Title and Content", master = "Office Theme")
+s_s <- slide_size(ppt)
+(s_w <- s_s$width) # width of slides
+(s_h <- s_s$height) # height of slides
+f_w <- 9 # width of figure
+f_h <- 5 # height of figure
+left_f <- (s_w/2) - (f_w/2) 
+top_f <- (s_h/2) - (f_h/2)
+cap_w <- 9
+cap_h <- 3
+left_cap <-  (s_w/2) - (cap_w/2) 
+top_cap <- (s_h/2) + (f_h/2) - 1
+ppt <- ppt %>%
+  ph_with(p_dml, ph_location(left = left_f, top = top_f + 0.15, width = f_w, height = f_h)) %>%
+  ph_with(
+    block_list(
+      fpar(
+        ftext(fig_number_title, prop = fp_text(bold = TRUE, font.size = 20, color = "black")),
+        ftext(fig_title, prop = fp_text(font.size = 20, color = "black")),
+        fp_p = fp_par(text.align = "justify")
+      )
+    ),
+    location = ph_location_type(type = "title")
+  ) %>%
+  ph_with(
+    block_list(
+      fpar(
+        ftext("Note: ", prop = fp_text(bold = TRUE, font.size = 12, color = "black")),
+        ftext(fig_footnote, prop = fp_text(font.size = 12, color = "black")),
+        fp_p = fp_par(text.align = "justify")
+      )
+    ),
+    location = ph_location(left = left_cap, top = top_cap, width = cap_w, height = cap_h))
+try(unlink(paste0("ppt/f",fig_number,"_",fig_short_name,".pptx")))
+base::print(ppt, target = paste0("ppt/f",fig_number,"_",fig_short_name,".pptx"))
+#### END ####
+
+#### 15 REMOTE WORK ACROSS SELECTED FIRMS - ACCOUNTING SERVICES - FINANCIAL SPECIALIST OCCUPATIONS - BAR PLOT ####
+load(file = "./ppt/ggplots/top_us_firms_soc2_13-20_naics4_5412_accounting_services_ind_fin_spec_occs.RData")
+fig_number <- 15
+fig_number_title <- paste0("Figure ", fig_number, ": ")
+fig_short_name <- "selected_firms_accounting_serv_ind_fin_spec_occ_bar"
+fig_title <- "Share of Online Job Vacancy Postings which Advertise Remote Work, by Selected Employers in Accounting Services industry (NAICS 5412) (Financial Specialist occupations only, SOC 13-20) "
+fig_footnote <- "We calculate the share of all job vacancy postings which explicitly advertise remote working arrangements, by selected employers in the US.  We compare calendar year 2019 to the period 2021 Q3 to 2022 Q2, inclusive.  We subset these data to consider only `Financial Specialists` occupations (i.e. the SOC 4-digit code 13-20).  Each group has a subtantial number of vacancy postings, with the lowest being 203 posts (Eide Bailly in 2019) and the highest being 28,726 (KPMG in 2021-22)."
+p
+p_dml <- rvg::dml(ggobj = p, pointsize = 10, editable = TRUE)
+p_dml
+ppt <- officer::read_pptx() %>%
+  officer::add_slide(layout = "Title and Content", master = "Office Theme")
+s_s <- slide_size(ppt)
+(s_w <- s_s$width) # width of slides
+(s_h <- s_s$height) # height of slides
+f_w <- 9 # width of figure
+f_h <- 5 # height of figure
+left_f <- (s_w/2) - (f_w/2) 
+top_f <- (s_h/2) - (f_h/2)
+cap_w <- 9
+cap_h <- 3
+left_cap <-  (s_w/2) - (cap_w/2) 
+top_cap <- (s_h/2) + (f_h/2) - 1
+ppt <- ppt %>%
+  ph_with(p_dml, ph_location(left = left_f, top = top_f + 0.15, width = f_w, height = f_h)) %>%
+  ph_with(
+    block_list(
+      fpar(
+        ftext(fig_number_title, prop = fp_text(bold = TRUE, font.size = 20, color = "black")),
+        ftext(fig_title, prop = fp_text(font.size = 20, color = "black")),
+        fp_p = fp_par(text.align = "justify")
+      )
+    ),
+    location = ph_location_type(type = "title")
+  ) %>%
+  ph_with(
+    block_list(
+      fpar(
+        ftext("Note: ", prop = fp_text(bold = TRUE, font.size = 12, color = "black")),
+        ftext(fig_footnote, prop = fp_text(font.size = 12, color = "black")),
+        fp_p = fp_par(text.align = "justify")
+      )
+    ),
+    location = ph_location(left = left_cap, top = top_cap, width = cap_w, height = cap_h))
+try(unlink(paste0("ppt/f",fig_number,"_",fig_short_name,".pptx")))
+base::print(ppt, target = paste0("ppt/f",fig_number,"_",fig_short_name,".pptx"))
+#### END ####
 
 
 

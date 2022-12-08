@@ -249,7 +249,7 @@ p_in <- df_cit_scat %>%
   filter(n_post_2019 > 1000 & n_post_2022 > 1000) %>%
   mutate(pos = ifelse(log(wfh_share_2022) < 1.86 + 0.387*log(wfh_share_2019), "below", "above"))
 
-scaleFUN <- function(x) {paste0(sprintf('%.2f',round(x, 2)), "%")}
+scaleFUN <- function(x) {paste0(sprintf('%.2f',round(x, 2)))}
 
 log(32)
 
@@ -300,59 +300,6 @@ p = p_in %>%
   theme(aspect.ratio=3/5)
 p
 save(p, file = "./ppt/ggplots/wfh_pre_post_by_city.RData")
-
-# 
-# # Scatter Plot (Levels)
-# p = df_cit_scat %>%
-#   ggplot(., aes(x = 100*wfh_share_2019, y = 100*wfh_share_2022,
-#                 color = `country`, shape = `country`)) +
-#   scale_color_manual(values = cbbPalette) +
-#   #geom_abline(intercept = 0, slope = 1, size = 0.5, colour = "grey", linetype = "dashed") +
-#   geom_smooth(method=lm, se=FALSE, aes(group=1, weight = n_post_2019 + n_post_2022), fullrange=TRUE, colour = "blue", size = 0.8) +
-#   geom_point(data = df_cit_scat[df_cit_scat$title_keep == ""], size = 2, stroke = 1, alpha = 0.3)  +
-#   geom_point(data = df_cit_scat[df_cit_scat$title_keep != ""], size = 3, stroke = 2) +
-#   stat_poly_eq(aes(group=1, label=paste(..eq.label.., sep = "~~~")),geom="label",
-#                alpha=1,method = lm, label.y = 8, label.x = 12,
-#                eq.with.lhs = "y~`=`~",
-#                eq.x.rhs = "~italic(x)", colour = "blue", size = 4.5) +
-#   stat_poly_eq(aes(group=1, label=paste(..rr.label.., sep = "~~~")),geom="label",
-#                alpha=1,method = lm, label.y = 5, label.x = 12,
-#                eq.with.lhs = "y~`=`~",
-#                eq.x.rhs = "~italic(x)", colour = "blue", size = 4.5) +
-#   ylab("Share (%) (2021-22)") +
-#   xlab("Share (%) (2019)") +
-#   scale_y_continuous(breaks = seq(0, 100, 5)) +
-#   scale_x_continuous(breaks = seq(0, 100, 5)) +
-#   labs(title = "Pre- and Post-Pandemic WFH Share by City") +
-#   coord_cartesian(xlim = c(0, 15),
-#                   ylim = c(0, 30)) +
-#   theme(
-#     legend.position = c(.5, .02),
-#     legend.justification = c("centre", "bottom"),
-#     legend.box.just = "right",
-#     legend.margin = margin(1, 1, 1, 1)) +
-#   theme(text = element_text(size=15, family="serif", colour = "black"),
-#         axis.text = element_text(size=14, family="serif", colour = "black"),
-#         axis.title = element_text(size=15, family="serif", colour = "black"),
-#         legend.text = element_text(size=14, family="serif", colour = "black"),
-#         panel.background = element_rect(fill = "white"),
-#         legend.key.width = unit(1,"cm"),
-#         legend.title = element_blank()) +
-#   scale_shape_manual(values=c(1, 3, 4, 5, 6)) +
-#   guides(colour = guide_legend(nrow = 1)) +
-#   geom_text_repel(aes(label = title_keep), 
-#                   fontface = "bold", size = 4, max.overlaps = 1000, force_pull = 1, force = 1, box.padding = 1,
-#                   bg.color = "white",
-#                   bg.r = 0.15, seed = 1234, show.legend = FALSE)
-# 
-# p
-# p_egg <- set_panel_size(p = p,
-#                         width = unit(6, "in"),
-#                         height = unit(4, "in"))
-# ggsave(p_egg, filename = "./plots/level_wfh_pre_post_by_city.pdf", width = 8, height = 6)
-# 
-# remove(list = c("p", "p_egg"))
-
 #### END ####
 
 
@@ -429,11 +376,11 @@ p = ts_for_plot_cit %>%
   geom_line(size = 1.5, alpha = 0.5) +
   ylab("Share (%)") +
   xlab("Date") +
-  labs(title = "Share of Postings Advertising Remote Work (%)", subtitle = paste0("Unweighted, Outliers Removed. Removed ")) +
+  #labs(title = "Share of Postings Advertising Remote Work (%)", subtitle = paste0("Unweighted, Outliers Removed. Removed ")) +
   scale_x_date(breaks = as.Date(c("2019-01-01", "2019-04-01", "2019-07-01", "2019-10-01","2020-01-01", "2020-04-01", "2020-07-01", "2020-10-01",
                                   "2021-01-01", "2021-04-01", "2021-07-01", "2021-10-01", "2022-01-01", "2022-04-01", "2022-07-01")),
                date_labels = '%Y-%m',
-               limits = as.Date(c("2019-01-01", "2023-01-01"))) +
+               limits = as.Date(c("2019-01-01", "2022-07-01"))) +
   scale_y_continuous(labels = scales::number_format(accuracy = 1),  breaks = seq(0,100,2)) +
   #coord_cartesian(ylim = c(0, 20)) +
   scale_shape_manual(values=c(15,16,17,18,19,15,16,17,18,19)) +
@@ -444,22 +391,19 @@ p = ts_for_plot_cit %>%
     legend.title = element_blank(),
     axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
   theme(text = element_text(size=15, family="serif", colour = "black"),
-        axis.text = element_text(size=14, family="serif", colour = "black"),
+        axis.text = element_text(size=15, family="serif", colour = "black"),
         axis.title = element_text(size=15, family="serif", colour = "black"),
-        legend.text = element_text(size=14, family="serif", colour = "black"),
+        legend.text = element_text(size=15, family="serif", colour = "black"),
         panel.background = element_rect(fill = "white"),
         legend.key.width = unit(1,"cm")) +
   guides(col = guide_legend(ncol = 3), shape = guide_legend(ncol = 3)) +
   labs(color  = "Guide name", shape = "Guide name") +
-  geom_label_repel(aes(family = c("serif"), label = lab, x = as.Date(as.yearmon(year_month)) %m+% months(1),
-                       y = 100*value), force = 0.25, force_pull = 4, hjust = "left", vjust = "top", direction = "y", parse=TRUE,
-                   label.padding = 0, label.size = NA, size = 5, show.legend = FALSE, segment.color = "transparent")
-  
+  # geom_label_repel(aes(family = c("serif"), label = lab, x = as.Date(as.yearmon(year_month)) %m+% months(1),
+  #                      y = 100*value), force = 0.25, force_pull = 4, hjust = "left", vjust = "top", direction = "y", parse=TRUE,
+  #                  label.padding = 0, label.size = NA, size = 5, show.legend = FALSE, segment.color = "transparent") +
+  theme(aspect.ratio=3/5)
 p
-p_egg <- set_panel_size(p = p,
-                        width = unit(7, "in"),
-                        height = unit(4, "in"))
-ggsave(p_egg, filename = "./plots/ts_cities_mw.pdf", width = 10, height = 7)
+save(p, file = "./ppt/ggplots/ts_cities_mw.RData")
 
 remove(list = c("p", "p_egg"))
 
@@ -474,11 +418,11 @@ p = ts_for_plot_cit %>%
   geom_line(size = 1.5, alpha = 0.5) +
   ylab("Share (%)") +
   xlab("Date") +
-  labs(title = "Share of Postings Advertising Remote Work (%)", subtitle = paste0("Unweighted, Outliers Removed. Removed ")) +
+  #labs(title = "Share of Postings Advertising Remote Work (%)", subtitle = paste0("Unweighted, Outliers Removed. Removed ")) +
   scale_x_date(breaks = as.Date(c("2019-01-01", "2019-04-01", "2019-07-01", "2019-10-01","2020-01-01", "2020-04-01", "2020-07-01", "2020-10-01",
                                   "2021-01-01", "2021-04-01", "2021-07-01", "2021-10-01", "2022-01-01", "2022-04-01", "2022-07-01")),
                date_labels = '%Y-%m',
-               limits = as.Date(c("2019-01-01", "2023-01-01"))) +
+               limits = as.Date(c("2019-01-01", "2022-07-01"))) +
   scale_y_continuous(labels = scales::number_format(accuracy = 1),  breaks = seq(0,100,2)) +
   #coord_cartesian(ylim = c(0, 20)) +
   scale_shape_manual(values=c(15,16,17,18,19,15,16,17,18,19)) +
@@ -494,16 +438,14 @@ p = ts_for_plot_cit %>%
         legend.text = element_text(size=14, family="serif", colour = "black"),
         panel.background = element_rect(fill = "white"),
         legend.key.width = unit(1,"cm")) +
-  guides(col = guide_legend(ncol = 3), shape = guide_legend(ncol = 3)) +
+  guides(col = guide_legend(ncol = 3), shape = guide_legend(ncol = 2)) +
   labs(color  = "Guide name", shape = "Guide name") +
-  geom_label_repel(aes(family = c("serif"), label = lab, x = as.Date(as.yearmon(year_month)) %m+% months(1),
-                       y = 100*value), force = 0.25, force_pull = 4, hjust = "left", vjust = "top", direction = "y", parse=TRUE,
-                   label.padding = 0, label.size = NA, size = 5, show.legend = FALSE, segment.color = "transparent")
+  # geom_label_repel(aes(family = c("serif"), label = lab, x = as.Date(as.yearmon(year_month)) %m+% months(1),
+  #                      y = 100*value), force = 0.25, force_pull = 4, hjust = "left", vjust = "top", direction = "y", parse=TRUE,
+  #                  label.padding = 0, label.size = NA, size = 5, show.legend = FALSE, segment.color = "transparent") +
+  theme(aspect.ratio=3/5)
 p
-p_egg <- set_panel_size(p = p,
-                        width = unit(7, "in"),
-                        height = unit(4, "in"))
-ggsave(p_egg, filename = "./plots/ts_cities_ne_w.pdf", width = 10, height = 7)
+save(p, file = "./ppt/ggplots/ts_cities_ne_w.RData")
 
 remove(list = c("p", "p_egg"))
 
@@ -518,11 +460,11 @@ p = ts_for_plot_cit %>%
   geom_line(size = 1.5, alpha = 0.5) +
   ylab("Share (%)") +
   xlab("Date") +
-  labs(title = "Share of Postings Advertising Remote Work (%)", subtitle = paste0("Unweighted, Outliers Removed. Removed ")) +
+  #labs(title = "Share of Postings Advertising Remote Work (%)", subtitle = paste0("Unweighted, Outliers Removed. Removed ")) +
   scale_x_date(breaks = as.Date(c("2019-01-01", "2019-04-01", "2019-07-01", "2019-10-01","2020-01-01", "2020-04-01", "2020-07-01", "2020-10-01",
                                   "2021-01-01", "2021-04-01", "2021-07-01", "2021-10-01", "2022-01-01", "2022-04-01", "2022-07-01")),
                date_labels = '%Y-%m',
-               limits = as.Date(c("2019-01-01", "2023-01-01"))) +
+               limits = as.Date(c("2019-01-01", "2022-07-01"))) +
   scale_y_continuous(labels = scales::number_format(accuracy = 1),  breaks = seq(0,100,2)) +
   #coord_cartesian(ylim = c(0, 20)) +
   scale_shape_manual(values=c(15,16,17,18,19,15,16,17,18,19)) +
@@ -540,16 +482,12 @@ p = ts_for_plot_cit %>%
         legend.key.width = unit(1,"cm")) +
   guides(col = guide_legend(ncol = 3), shape = guide_legend(ncol = 3)) +
   labs(color  = "Guide name", shape = "Guide name") +
-  geom_label_repel(aes(family = c("serif"), label = lab, x = as.Date(as.yearmon(year_month)) %m+% months(1),
-                       y = 100*value), force = 0.25, force_pull = 4, hjust = "left", vjust = "top", direction = "y", parse=TRUE,
-                   label.padding = 0, label.size = NA, size = 5, show.legend = FALSE, segment.color = "transparent")
+  # geom_label_repel(aes(family = c("serif"), label = lab, x = as.Date(as.yearmon(year_month)) %m+% months(1),
+  #                      y = 100*value), force = 0.25, force_pull = 4, hjust = "left", vjust = "top", direction = "y", parse=TRUE,
+  #                  label.padding = 0, label.size = NA, size = 5, show.legend = FALSE, segment.color = "transparent") +
+  theme(aspect.ratio=3/5)
 p
-p_egg <- set_panel_size(p = p,
-                        width = unit(7, "in"),
-                        height = unit(4, "in"))
-ggsave(p_egg, filename = "./plots/ts_cities_s.pdf", width = 10, height = 7)
-
-remove(list = c("p", "p_egg"))
+save(p, file = "./ppt/ggplots/ts_cities_s.RData")
 
 #### END ####
 
@@ -603,12 +541,12 @@ p = ts_for_plot_cit %>%
   geom_line(size = 1.5, alpha = 0.5) +
   ylab("Share (%)") +
   xlab("Date") +
-  labs(title = "Share of Postings Advertising Remote Work (%)", subtitle = paste0("Unweighted, Outliers Removed. Removed ")) +
+  #labs(title = "Share of Postings Advertising Remote Work (%)", subtitle = paste0("Unweighted, Outliers Removed. Removed ")) +
   scale_x_date(breaks = as.Date(c("2019-01-01", "2019-04-01", "2019-07-01", "2019-10-01","2020-01-01", "2020-04-01", "2020-07-01", "2020-10-01",
                                   "2021-01-01", "2021-04-01", "2021-07-01", "2021-10-01", "2022-01-01", "2022-04-01", "2022-07-01")),
                date_labels = '%Y-%m',
-               limits = as.Date(c("2019-01-01", "2023-01-01"))) +
-  scale_y_continuous(labels = scales::number_format(accuracy = 1),  breaks = seq(0,100,2)) +
+               limits = as.Date(c("2019-01-01", "2022-07-01"))) +
+  scale_y_continuous(labels = scales::number_format(accuracy = 1),  breaks = seq(0,100,5)) +
   #coord_cartesian(ylim = c(0, 20)) +
   scale_shape_manual(values=c(15,16,17,18,19,15,16,17,18,19)) +
   scale_color_manual(values = pal) +
@@ -625,17 +563,9 @@ p = ts_for_plot_cit %>%
         legend.key.width = unit(1,"cm")) +
   guides(col = guide_legend(ncol = 3), shape = guide_legend(ncol = 3)) +
   labs(color  = "Guide name", shape = "Guide name") +
-  geom_label_repel(aes(family = c("serif"), label = lab, x = as.Date(as.yearmon(year_month)) %m+% months(1),
-                       y = 100*value), force = 0.25, force_pull = 4, hjust = "left", vjust = "top", direction = "y", parse=TRUE,
-                   label.padding = 0, label.size = NA, size = 5, show.legend = FALSE, segment.color = "transparent")
-
+  theme(aspect.ratio=3/5)
 p
-p_egg <- set_panel_size(p = p,
-                        width = unit(7, "in"),
-                        height = unit(4, "in"))
-ggsave(p_egg, filename = "./plots/ts_cities_uk.pdf", width = 10, height = 7)
-
-remove(list = c("p", "p_egg"))
+save(p, file = "./ppt/ggplots/ts_cities_uk.RData")
 
 #### END ####
 

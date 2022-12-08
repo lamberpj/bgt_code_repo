@@ -252,9 +252,9 @@ p = ts_for_plot %>%
     legend.title = element_blank(),
     axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
   guides(col = guide_legend(nrow = 1, reverse = T)) +
-  theme(text = element_text(size=10, family="serif", colour = "black"),
-        axis.text = element_text(size=10, family="serif", colour = "black"),
-        axis.title = element_text(size=10, family="serif", colour = "black"),
+  theme(text = element_text(size=15, family="serif", colour = "black"),
+        axis.text = element_text(size=15, family="serif", colour = "black"),
+        axis.title = element_text(size=15, family="serif", colour = "black"),
         legend.text = element_text(size=15, family="serif", colour = "black"),
         panel.background = element_rect(fill = "white")) +
   theme(aspect.ratio=3/5)
