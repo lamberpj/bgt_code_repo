@@ -39,6 +39,7 @@ remove(list = ls())
 #### PREPARE DATA ####
 
 #system("gsutil -m cp -r gs://for_transfer/data_ingest/bgt_upload/CAN_raw /mnt/disks/pdisk/bg-can/raw_data/text/")
+system("gsutil -m cp -r gs://for_transfer/data_ingest/bgt_upload/CAN_raw/CAN_XML_Postings_AddFeed_20221101_20221130.zip /mnt/disks/pdisk/bg-can/raw_data/text/")
 #system("gsutil -m cp -r gs://for_transfer/data_ingest/bgt_upload/CAN_stru /mnt/disks/pdisk/bg-can/raw_data/main")
 #system("gsutil -m cp -r gs://for_transfer/wham/CAN /mnt/disks/pdisk/bg-can/int_data/wham_pred")
 
@@ -61,7 +62,8 @@ remove(list = ls())
 #system("zip -r /mnt/disks/pdisk/bg-can/int_data/us_sequences.zip /mnt/disks/pdisk/bg-can/int_data/sequences/")
 
 # Upload Sequences
-#system("gsutil -m cp -r /mnt/disks/pdisk/bg-can/int_data/sequences/ gs://for_transfer/sequences_can")
+# system("gsutil -m cp -r /mnt/disks/pdisk/bg-can/int_data/sequences/ gs://for_transfer/sequences_can")
+# system("gsutil -m cp -r /mnt/disks/pdisk/bg-can/int_data/sequences/sequences_20221101_20221130.rds gs://for_transfer/sequences_can/")
 
 #### END ####
 
@@ -83,7 +85,7 @@ paths
 
 #### READ XML NAD MAKE SEQUENCES ####
 paths
-source("/mnt/disks/pdisk/code/safe_mclapply.R")
+source("/mnt/disks/pdisk/bgt_code_repo/old/safe_mclapply.R")
 
 safe_mclapply(1:length(paths), function(i) {
   

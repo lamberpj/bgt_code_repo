@@ -219,7 +219,7 @@ wfh_monthly_bgt_occ_share <- wfh_monthly_bgt_occ_share %>%
 
 ts_for_plot_us_weight <- wfh_monthly_bgt_occ_share
 fwrite(ts_for_plot_us_weight, file = "./int_data/ts_for_plot_us_weight")
-
+1+1
 # Filter vacancy-weighted
 remove(list = setdiff(ls(), c("ts_for_plot", "ts_for_plot_us_weight", "df_all_list")))
 
@@ -286,9 +286,9 @@ p = ts_for_plot_us_weight %>%
     axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
   guides(col = guide_legend(nrow = 1, reverse = T)) +
   theme(text = element_text(size=15, family="serif", colour = "black"),
-        axis.text = element_text(size=14, family="serif", colour = "black"),
+        axis.text = element_text(size=15, family="serif", colour = "black"),
         axis.title = element_text(size=15, family="serif", colour = "black"),
-        legend.text = element_text(size=14, family="serif", colour = "black"),
+        legend.text = element_text(size=15, family="serif", colour = "black"),
         panel.background = element_rect(fill = "white")) +
   theme(aspect.ratio=3/5)
 p

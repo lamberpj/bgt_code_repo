@@ -42,8 +42,6 @@ remove(list = ls())
 #system("gsutil -m cp -r gs://for_transfer/data_ingest/bgt_upload/UK_raw /mnt/disks/pdisk/bg-uk/raw_data/text/")
 #system("gsutil -m cp -r gs://for_transfer/wham/UK /mnt/disks/pdisk/bg-uk/int_data/wham_pred/")
 
-
-
 #
 #library(filesstrings)
 #paths <- list.files("/mnt/disks/pdisk/bg-uk/raw_data/main/", full.names = T, pattern = ".zip", recursive = T)
@@ -53,6 +51,10 @@ remove(list = ls())
 #  system(paste0("unzip -n ",paths[i]," -d ./raw_data/main"))
 #  unlink(paths[i])
 #})
+
+# system("gsutil -m cp -r /mnt/disks/pdisk/bg-uk/int_data/sequences/sequences_20221112_20221118.rds gs://for_transfer/sequences_uk/")
+# system("gsutil -m cp -r /mnt/disks/pdisk/bg-uk/int_data/sequences/sequences_20221126_20221202.rds gs://for_transfer/sequences_uk/")
+# system("gsutil -m cp -r /mnt/disks/pdisk/bg-uk/int_data/sequences/sequences_20221119_20221125.rds gs://for_transfer/sequences_uk/")
 
 #### END ####
 
@@ -78,7 +80,7 @@ paths
 
 #### READ XML NAD MAKE SEQUENCES ####
 paths
-source("/mnt/disks/pdisk/code/safe_mclapply.R")
+source("/mnt/disks/pdisk/bgt_code_repo/old/safe_mclapply.R")
 
 safe_mclapply(1:length(paths), function(i) {
   name <- str_sub(paths[i], -21, -5)

@@ -531,6 +531,8 @@ library("RColorBrewer")
 
 pal[1] <- "black"
 
+pal
+
 p = ts_for_plot_cit %>%
   mutate(lab = ifelse(year_month == max(year_month), paste0("bold(",gsub(" ","",city),")"), NA_character_)) %>%
   .[year(as.Date(as.yearmon(year_month)))>= 2019] %>%

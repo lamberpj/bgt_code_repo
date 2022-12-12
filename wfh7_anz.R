@@ -41,6 +41,7 @@ remove(list = ls())
 #system("gsutil -m cp -r gs://for_transfer/data_ingest/bgt_upload/ANZ_raw /mnt/disks/pdisk/bg-anz/raw_data/text/")
 #system("gsutil -m cp -r gs://for_transfer/data_ingest/bgt_upload/ANZ_stru /mnt/disks/pdisk/bg-anz/raw_data/main")
 #system("gsutil -m cp -r gs://for_transfer/data_ingest/bgt_upload/ANZ_raw /mnt/disks/pdisk/bg-anz/raw_data/text")
+#system("gsutil -m cp -r gs://for_transfer/data_ingest/bgt_upload/ANZ_raw/ANZ_XML_Postings_AddFeed_20221101_20221130.zip /mnt/disks/pdisk/bg-anz/raw_data/text")
 #system("gsutil -m cp -r gs://for_transfer/data_ingest/bgt_upload/ANZ_stru /mnt/disks/pdisk/bg-anz/raw_data/main")
 #system("gsutil -m cp -r gs://for_transfer/wham/ANZ /mnt/disks/pdisk/bg-anz/int_data/wham_pred")
 
@@ -65,6 +66,9 @@ remove(list = ls())
 # Upload Sequences
 #system("gsutil -m cp -r /mnt/disks/pdisk/bg-anz/int_data/sequences/ gs://for_transfer/sequences_anz/")
 
+# system("gsutil -m cp -r /mnt/disks/pdisk/bg-anz/int_data/sequences/sequences_20221101_20221130.rds gs://for_transfer/sequences_anz/")
+
+
 #### END ####
 
 #### IMPORT RAW TEXT ####
@@ -88,7 +92,7 @@ paths
 
 #### READ XML NAD MAKE SEQUENCES ####
 paths
-source("/mnt/disks/pdisk/code/safe_mclapply.R")
+source("/mnt/disks/pdisk/bgt_code_repo/old/safe_mclapply.R")
 
 safe_mclapply(1:length(paths), function(i) {
   
