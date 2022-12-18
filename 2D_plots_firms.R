@@ -70,6 +70,7 @@ df_us <- df_us %>%
 nrow(df_us) # 65,938,081
 ls()
 
+# Boeing, Lockheed Martin, Northrop Grumman, SpaceX.
 #### SPECIFIC EXAMPLES - AEROSPACE MANUF SECTOR MANAGEMENT OCCS ####
 df_air_man <- df_us %>%
   .[, naics4 := str_sub(naics5, 1, 4)] %>%
@@ -79,24 +80,25 @@ df_air_man <- df_us %>%
   .[, .(.N, wfh_share = round(100*mean(wfh_wham, na.rm = T),2)), by = .(employer, period)] %>%
   .[, sumsqrt_N := sum(N^0.5), by = employer] %>%
   .[order(-sumsqrt_N)] %>%
-  .[employer %in% c("Northrop Grumman", "Lockheed Martin Corporation", "The Boeing Company", "United Technologies Corporation", "Textron", "Sierra Nevada Corporation", "Pratt & Whitney", "Spacex")] %>%
+  .[employer %in% c("Northrop Grumman", "Lockheed Martin Corporation", "The Boeing Company", "Spacex")] %>%
   .[, employer_ord :=
       factor(employer,
-             levels = rev(c("The Boeing Company","Pratt & Whitney","Lockheed Martin Corporation","Northrop Grumman","United Technologies Corporation","Sierra Nevada Corporation","Textron", "Spacex")))]
+             levels = rev(c("The Boeing Company","Lockheed Martin Corporation","Northrop Grumman","Spacex")))]
 
 p = df_air_man %>%
   ggplot(aes(x = employer_ord, y = wfh_share+0.2, fill = as.factor(period)), group = employer_ord) +
   geom_bar(stat = "identity", width=0.7, position = position_dodge(width=0.7))  +
   ylab("Share (%)") +
-  scale_y_continuous(breaks = seq(0,100,5)) +
+  scale_y_continuous(breaks = seq(0,100,25)) +
   scale_fill_manual(values = c("#000000", "#CC6600")) +
   theme(
     axis.title.y=element_blank(),
     legend.position="bottom",
     legend.title = element_blank(),
     axis.text.x = element_text(angle = 0),
-    panel.grid.major = element_blank(),
-    panel.grid.minor = element_blank()) +
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.y = element_blank()
+    ) +
   theme(text = element_text(size=15, family="serif", colour = "black"),
         axis.text = element_text(size=14, family="serif", colour = "black"),
         axis.title = element_text(size=15, family="serif", colour = "black"),
@@ -107,11 +109,12 @@ p = df_air_man %>%
   guides(fill = guide_legend(ncol = 1)) +
   coord_flip() +
   scale_x_discrete(labels = function(x) str_wrap(x, width = 60)) +
-  theme(aspect.ratio=3/5)
+  theme(aspect.ratio=3/1)
 p
 save(p, file = "./ppt/ggplots/top_us_firms_soc2_11_naics4_3364_airspace_management.RData")
 #### END ####
 
+#Mutual of Omaha, UnitedHealth Group, Humana.
 #### SPECIFIC EXAMPLES - INSURANCE SECTOR MATH OCCS ####
 df_ins_math <- df_us %>%
   .[, naics4 := str_sub(naics5, 1, 4)] %>%
@@ -121,27 +124,26 @@ df_ins_math <- df_us %>%
   .[, .(.N, wfh_share = round(100*mean(wfh_wham, na.rm = T),2)), by = .(employer, period)] %>%
   .[, sumsqrt_N := sum(N^0.5), by = employer] %>%
   .[order(-sumsqrt_N)] %>%
-  .[employer %in% c("Mutual of Omaha Company","UnitedHealth Group","Zurich Insurance","Centene Corporation","Highmark Health","Liberty Mutual","Anthem Blue Cross","Humana","American International Group Incorporated")] %>%
+  .[employer %in% c("Mutual of Omaha Company","UnitedHealth Group","Humana")] %>%
   .[, employer := ifelse(employer == "American International Group Incorporated", "AIG", employer)] %>%
   .[, employer_ord :=
       factor(employer,
-             levels = rev(c("Mutual of Omaha Company","UnitedHealth Group","Zurich Insurance","Centene Corporation","Highmark Health","Liberty Mutual","Anthem Blue Cross","Humana","AIG")))]
-
-View(df_ins_math)
+             levels = rev(c("Mutual of Omaha Company","UnitedHealth Group","Humana")))]
 
 p = df_ins_math %>%
   ggplot(aes(x = employer_ord, y = wfh_share+0.2, fill = as.factor(period)), group = employer_ord) +
   geom_bar(stat = "identity", width=0.7, position = position_dodge(width=0.7))  +
   ylab("Share (%)") +
-  scale_y_continuous(breaks = seq(0,100,10)) +
+  scale_y_continuous(breaks = seq(0,100,25)) +
   scale_fill_manual(values = c("#000000", "#FFCC33")) +
   theme(
     axis.title.y=element_blank(),
     legend.position="bottom",
     legend.title = element_blank(),
     axis.text.x = element_text(angle = 0),
-    panel.grid.major = element_blank(),
-    panel.grid.minor = element_blank()) +
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.y = element_blank()
+    ) +
   theme(text = element_text(size=15, family="serif", colour = "black"),
         axis.text = element_text(size=14, family="serif", colour = "black"),
         axis.title = element_text(size=15, family="serif", colour = "black"),
@@ -152,11 +154,102 @@ p = df_ins_math %>%
   guides(fill = guide_legend(ncol = 1)) +
   coord_flip() +
   scale_x_discrete(labels = function(x) str_wrap(x, width = 60)) +
-  theme(aspect.ratio=3/5)
+  theme(aspect.ratio=3/1)
 p
 save(p, file = "./ppt/ggplots/top_us_firms_soc2_15-20_naics4_5241_insurance_math_occs.RData")
 #### END ####
 
+# Auto manufacturers
+
+#### SPECIFIC EXAMPLES - AUTO MANUF ####
+df_auto <- df_us %>%
+  .[, naics4 := str_sub(naics5, 1, 4)] %>%
+  .[, soc3 := str_sub(soc, 1, 4)] %>%
+  .[soc3 == "17-2"] %>%
+  setDT(.) %>%
+  .[employer %in% c("General Motors", "Honda", "Ford Motor Company", "Tesla Motors", "Tesla")] %>%
+  .[, employer := ifelse(employer %in% c("Tesla Motors", "Tesla"), "Tesla", employer)] %>%
+  .[, .(.N, wfh_share = round(100*mean(wfh_wham, na.rm = T),2)), by = .(employer, period, soc3)] %>%
+  .[, sumsqrt_N := sum(N^0.5), by = employer] %>%
+  .[order(-sumsqrt_N)] %>%
+  .[, employer_ord :=
+       factor(employer,
+              levels = rev(c("Honda","General Motors","Ford Motor Company","Tesla")))]
+
+p = df_auto %>%
+  ggplot(aes(x = employer_ord, y = wfh_share+0.2, fill = as.factor(period)), group = employer_ord) +
+  geom_bar(stat = "identity", width=0.7, position = position_dodge(width=0.7))  +
+  ylab("Share (%)") +
+  scale_y_continuous(breaks = seq(0,100,20)) +
+  scale_fill_manual(values = c("#000000", "#33CC33")) +
+  theme(
+    axis.title.y=element_blank(),
+    legend.position="bottom",
+    legend.title = element_blank(),
+    axis.text.x = element_text(angle = 0),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.y = element_blank()
+  ) +
+  theme(text = element_text(size=15, family="serif", colour = "black"),
+        axis.text = element_text(size=14, family="serif", colour = "black"),
+        axis.title = element_text(size=15, family="serif", colour = "black"),
+        legend.text = element_text(size=14, family="serif", colour = "black"),
+        panel.background = element_rect(fill = "white"),
+        legend.key.width = unit(1,"cm"),
+        legend.position = c(.7, .2)) +
+  guides(fill = guide_legend(ncol = 1)) +
+  coord_flip() +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 60)) +
+  theme(aspect.ratio=3/1)
+p
+save(p, file = "./ppt/ggplots/top_us_firms_soc2_17-21_auto_naics4_3361_eng.RData")
+#### END ####
+
+# PriceWaterhousCoopers, GrantThornton, H&R Block
+#### SPECIFIC EXAMPLES - ACCOUNTING SERVICES INDUSTRY, FINANCIAL SPECIALIST OCCUPATIONS  ####
+df_accounting_fin_spec_occs <- df_us %>%
+  .[, naics4 := str_sub(naics5, 1, 4)] %>%
+  .[, soc4 := str_sub(soc, 1, 5)] %>%
+  .[naics4 == "5412" & soc4 == "13-20"] %>%
+  setDT(.) %>%
+  .[, .(.N, wfh_share = round(100*mean(wfh_wham, na.rm = T),2)), by = .(employer, period)] %>%
+  .[, sumsqrt_N := sum(N^0.5), by = employer] %>%
+  .[order(-sumsqrt_N)] %>%
+  .[employer %in% c("PricewaterhouseCoopers","Grant Thornton","H&R Block")] %>%
+  .[, employer_ord :=
+      factor(employer,
+             levels = rev(c("PricewaterhouseCoopers","Grant Thornton","H&R Block")))]
+
+p = df_accounting_fin_spec_occs %>%
+  ggplot(aes(x = employer_ord, y = wfh_share+0.2, fill = as.factor(period)), group = employer_ord) +
+  geom_bar(stat = "identity", width=0.7, position = position_dodge(width=0.7))  +
+  ylab("Share (%)") +
+  scale_y_continuous(breaks = seq(0,100,25)) +
+  scale_fill_manual(values = c("#000000", "#33CC33")) +
+  theme(
+    axis.title.y=element_blank(),
+    legend.position="bottom",
+    legend.title = element_blank(),
+    axis.text.x = element_text(angle = 0),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.y = element_blank()
+    ) +
+  theme(text = element_text(size=15, family="serif", colour = "black"),
+        axis.text = element_text(size=14, family="serif", colour = "black"),
+        axis.title = element_text(size=15, family="serif", colour = "black"),
+        legend.text = element_text(size=14, family="serif", colour = "black"),
+        panel.background = element_rect(fill = "white"),
+        legend.key.width = unit(1,"cm"),
+        legend.position = c(.7, .2)) +
+  guides(fill = guide_legend(ncol = 1)) +
+  coord_flip() +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 60)) +
+  theme(aspect.ratio=3/1)
+p
+save(p, file = "./ppt/ggplots/top_us_firms_soc2_13-20_naics4_5412_accounting_services_ind_fin_spec_occs.RData")
+#### END ####
+
+# Not included
 #### SPECIFIC EXAMPLES - UNIVERSITIES ADMIN STAFF ####
 df_sunis_admin <- df_us %>%
   .[, naics4 := str_sub(naics5, 1, 4)] %>%
@@ -199,50 +292,6 @@ p = df_sunis_admin %>%
   theme(aspect.ratio=3/5)
 p
 save(p, file = "./ppt/ggplots/top_us_firms_soc2_43-60_naics4_6113_universities_sec_and_admin_assistant_occs.RData")
-#### END ####
-
-#### SPECIFIC EXAMPLES - ACCOUNTING SERVICES INDUSTRY, FINANCIAL SPECIALIST OCCUPATIONS  ####
-df_accounting_fin_spec_occs <- df_us %>%
-  .[, naics4 := str_sub(naics5, 1, 4)] %>%
-  .[, soc4 := str_sub(soc, 1, 5)] %>%
-  .[naics4 == "5412" & soc4 == "13-20"] %>%
-  setDT(.) %>%
-  .[, .(.N, wfh_share = round(100*mean(wfh_wham, na.rm = T),2)), by = .(employer, period)] %>%
-  .[, sumsqrt_N := sum(N^0.5), by = employer] %>%
-  .[order(-sumsqrt_N)] %>%
-  .[employer %in% c("PricewaterhouseCoopers","Grant Thornton","Eide Bailly","BDO International","KPMG","H&R Block","Jackson Hewitt Tax Service","Moss Adams Llp")] %>%
-  .[, employer_ord :=
-      factor(employer,
-             levels = rev(c("PricewaterhouseCoopers","Grant Thornton","Eide Bailly","BDO International","KPMG","H&R Block","Jackson Hewitt Tax Service","Moss Adams Llp")))]
-
-View(df_accounting_fin_spec_occs)
-
-p = df_accounting_fin_spec_occs %>%
-  ggplot(aes(x = employer_ord, y = wfh_share+0.2, fill = as.factor(period)), group = employer_ord) +
-  geom_bar(stat = "identity", width=0.7, position = position_dodge(width=0.7))  +
-  ylab("Share (%)") +
-  scale_y_continuous(breaks = seq(0,100,10)) +
-  scale_fill_manual(values = c("#000000", "#33CC33")) +
-  theme(
-    axis.title.y=element_blank(),
-    legend.position="bottom",
-    legend.title = element_blank(),
-    axis.text.x = element_text(angle = 0),
-    panel.grid.major = element_blank(),
-    panel.grid.minor = element_blank()) +
-  theme(text = element_text(size=15, family="serif", colour = "black"),
-        axis.text = element_text(size=14, family="serif", colour = "black"),
-        axis.title = element_text(size=15, family="serif", colour = "black"),
-        legend.text = element_text(size=14, family="serif", colour = "black"),
-        panel.background = element_rect(fill = "white"),
-        legend.key.width = unit(1,"cm"),
-        legend.position = c(.7, .2)) +
-  guides(fill = guide_legend(ncol = 1)) +
-  coord_flip() +
-  scale_x_discrete(labels = function(x) str_wrap(x, width = 60)) +
-  theme(aspect.ratio=3/5)
-p
-save(p, file = "./ppt/ggplots/top_us_firms_soc2_13-20_naics4_5412_accounting_services_ind_fin_spec_occs.RData")
 #### END ####
 
 #### SPECIFIC EXAMPLES - CONSULTANCIES, COMPUTER OCCUPATIONS  ####
@@ -346,27 +395,40 @@ df_us_top_employers_cells <- df_us %>%
   .[!is.na(wfh_share)] %>%
   .[order(employer, period)] %>%
   .[, Np := .N, by = employer] %>%
-  .[, abs_change_wfh := wfh_share - shift(wfh_share), by = employer] %>%
-  .[, abs_change_N := N - shift(N), by = employer]
+  .[, dhs_change_wfh := (wfh_share - shift(wfh_share))/(0.5*(wfh_share + shift(wfh_share))), by = employer] %>%
+  .[, dhs_change_N := (N - shift(N))/(0.5*(N + shift(N))), by = employer] %>%
+  .[, pc_change_wfh := (wfh_share - shift(wfh_share))/(wfh_share), by = employer] %>%
+  .[, pc_change_N := (N - shift(N))/(N), by = employer] %>%
+  .[, obs := .N, by = employer]
 
-View(df_us_top_employers_cells)
-quantile(df_us_top_employers_cells[period == "2021-22"]$N, probs = c(0, 0.25, 0.5, 0.75, 0.9, 0.95))
-(ub_N <- quantile(df_us_top_employers_cells[period == "2021-22"]$N, probs = c(0.95), na.rm = T))
+nrow(df_us_top_employers_cells) # 449,399 unbalanced, 198,248 balanced
+
+View(df_us_top_employers_cells[!is.na(dhs_change_N)])
+quantile(df_us_top_employers_cells[period == "2021-22"]$N, probs = c(0.25, 0.5, 0.75, 0.9, 0.95, 0.98, 0.99))
+quantile(df_us_top_employers_cells[period == "2019"]$N, probs = c(0.05, 0.25, 0.5, 0.75, 0.95))
+quantile(df_us_top_employers_cells[period == "2019"]$N, probs = c(0.25, 0.5, 0.75, 0.9, 0.95, 0.98, 0.99))
+
+(ub_N <- quantile(df_us_top_employers_cells[period == "2019"]$N, probs = c(0.97), na.rm = T))
 
 head(df_us_top_employers_cells)
 
+scaleFUN <- function(x) {paste0(round(x, 0))}
+
 p = df_us_top_employers_cells %>%
-  filter(period == "2021-22") %>%
-  filter(N < 301) %>%
+  filter(period == "2019") %>%
+  filter(N <= 750) %>%
   ggplot(., aes(y = wfh_share, x = N)) +
-  stat_summary_bin(bins=150,
-                   color='grey', size=2, geom='point', alpha = 0.5) +
-  stat_summary_bin(bins=10,
-                   color='orange', size=4, geom='point') +
-  ylab("Share (%)") +
-  xlab('Number of Postings in 2021-22') +
+  scale_x_continuous(trans = log_trans(), 
+                     labels=scaleFUN,
+                     breaks = c(8, 16, 32, 64, 128, 256, 512)) +
+  # stat_summary_bin(bins=150,
+  #                  color='grey', size=2, geom='point', alpha = 0.5) +
+  stat_summary_bin(bins=50,
+                   color='black', size=4, geom='point') +
+  ylab("Percent") +
+  xlab('Number of Postings') +
   #labs(title = "Binscatter WFH vs Posting Counts", subtitle = "No reweighting, no residualising") +
-  coord_cartesian(xlim = c(0, 300), ylim = c(5, 15)) +
+  coord_cartesian(ylim = c(2, 4)) +
   theme(
     #axis.title.x=element_blank(),
     legend.position="bottom",
@@ -381,27 +443,62 @@ p = df_us_top_employers_cells %>%
   guides(colour = guide_legend(ncol = 3)) +
   theme(aspect.ratio=3/5)
 p
-save(p, file = "./ppt/ggplots/wfh_share_vs_firm_size_bs1.RData")
-
-lb_diff_N <- quantile(df_us_top_employers_cells[period == "2021-22" & N < 300]$abs_change_N, probs = c(0.05), na.rm = T)
-ub_diff_N <- quantile(df_us_top_employers_cells[period == "2021-22" & N < 300]$abs_change_N, probs = c(0.95), na.rm = T)
-lb_diff_wfh <- quantile(df_us_top_employers_cells[period == "2021-22" & N < 300]$abs_change_wfh, probs = c(0.05), na.rm = T)
-ub_diff_wfh <- quantile(df_us_top_employers_cells[period == "2021-22" & N < 300]$abs_change_wfh, probs = c(0.95), na.rm = T)
+save(p, file = "./ppt/ggplots/wfh_share_vs_firm_size_bs1_2019.RData")
 
 p = df_us_top_employers_cells %>%
   filter(period == "2021-22") %>%
-  filter(N < 301 & abs_change_wfh > lb_diff_wfh & abs_change_wfh < ub_diff_wfh & abs_change_N > lb_diff_N & abs_change_N < ub_diff_N) %>%
-  ggplot(., aes(y = abs_change_wfh, x = abs_change_N)) +
-  stat_summary_bin(bins=150,
-                   color='grey', size=2, geom='point', alpha = 0.5) +
-  stat_summary_bin(bins=10,
-                   color='orange', size=4, geom='point') +
-  scale_y_continuous(breaks = seq(0,20,2)) +
-  scale_x_continuous(breaks = seq(-100,100,25)) +
-  ylab('Absolute Difference in Share (%)') +
-  xlab('Absolute Difference in Number of Postings') +
+  filter(N <= 750) %>%
+  ggplot(., aes(y = wfh_share, x = N)) +
+  scale_x_continuous(trans = log_trans(), 
+                     labels=scaleFUN,
+                     breaks = c(8, 16, 32, 64, 128, 256, 512)) +
+  # stat_summary_bin(bins=150,
+  #                  color='grey', size=2, geom='point', alpha = 0.5) +
+  stat_summary_bin(bins=50,
+                   color='black', size=4, geom='point') +
+  ylab("Percent") +
+  xlab('Number of Postings') +
   #labs(title = "Binscatter WFH vs Posting Counts", subtitle = "No reweighting, no residualising") +
-  coord_cartesian(xlim = c(-110, 110), ylim = c(2, 14)) +
+  coord_cartesian(ylim = c(7, 12.5)) +
+  theme(
+    #axis.title.x=element_blank(),
+    legend.position="bottom",
+    legend.title = element_blank(),
+    axis.text.x = element_text(angle = 0)) +
+  theme(text = element_text(size=15, family="serif", colour = "black"),
+        axis.text = element_text(size=14, family="serif", colour = "black"),
+        axis.title = element_text(size=15, family="serif", colour = "black"),
+        legend.text = element_text(size=14, family="serif", colour = "black"),
+        panel.background = element_rect(fill = "white"),
+        legend.key.width = unit(1,"cm")) +
+  guides(colour = guide_legend(ncol = 3)) +
+  theme(aspect.ratio=3/5)
+p
+save(p, file = "./ppt/ggplots/wfh_share_vs_firm_size_bs1_202122.RData")
+
+lb_diff_N <- quantile(df_us_top_employers_cells[period == "2021-22" & N < 300]$dhs_change_N, probs = c(0.01), na.rm = T)
+ub_diff_N <- quantile(df_us_top_employers_cells[period == "2021-22" & N < 300]$dhs_change_N, probs = c(0.99), na.rm = T)
+
+for_p = df_us_top_employers_cells %>%
+  filter(period == "2021-22") %>%
+  filter(N < 750) %>%
+  filter(dhs_change_N > lb_diff_N & dhs_change_N < ub_diff_N)
+
+p = ggplot(data = for_p, aes(y = dhs_change_wfh, x = dhs_change_N)) +
+  # geom_point(data=for_p %>% 
+  #              group_by(bins=cut(dhs_change_N,breaks=seq(min(dhs_change_N, na.rm = T),max(dhs_change_N, na.rm = T),length.out=150), include.lowest=FALSE)) %>%
+  #              summarise(x=mean(dhs_change_N, na.rm = T), y=mean(dhs_change_wfh, na.rm = T)),
+  #            aes(x,y), color='grey', size=2, alpha = 0.5) +
+  geom_point(data=for_p %>% 
+               group_by(bins=cut(dhs_change_N,breaks=seq(min(dhs_change_N, na.rm = T),max(dhs_change_N, na.rm = T),length.out=51), include.lowest=FALSE)) %>%
+               summarise(x=mean(dhs_change_N, na.rm = T), y=mean(dhs_change_wfh, na.rm = T)),
+             aes(x,y), size=4, color="black") +
+  scale_y_continuous(breaks = seq(-2,2,0.25)) +
+  scale_x_continuous(breaks = seq(-2,2,1)) +
+  ylab('DHS Difference in Share (%)') +
+  xlab('DHS Difference in Number of Postings') +
+  #labs(title = "Binscatter WFH vs Posting Counts", subtitle = "No reweighting, no residualising") +
+  coord_cartesian(clip = "on", ylim = c(0.7, 1.6), xlim = c(-2, 2)) +
   theme(
     #axis.title.x=element_blank(),
     legend.position="bottom",
@@ -419,8 +516,9 @@ p
 save(p, file = "./ppt/ggplots/wfh_share_vs_firm_size_bs2.RData")
 
 
+#### END ####
 
-
+#### OLD ####
 
 
 df_us_top_employers_cells <- df_us %>%

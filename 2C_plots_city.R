@@ -49,14 +49,13 @@ setwd("/mnt/disks/pdisk/bg_combined/")
 
 
 #### LOAD DATA ####
-# 
-# df_nz <- fread("./int_data/df_nz_standardised.csv", nThread = 8, integer64 = "numeric") %>% select(job_id_weight, country, state, city, year, job_date, wfh_wham, job_url)
-# df_aus <- fread("./int_data/df_aus_standardised.csv", nThread = 8, integer64 = "numeric") %>% select(job_id_weight, country, state, city, year, job_date, wfh_wham, job_url)
-# df_can <- fread("./int_data/df_can_standardised.csv", nThread = 8, integer64 = "numeric") %>% select(job_id_weight, country, state, city, year, job_date, wfh_wham, job_url)
-# df_uk <- fread("./int_data/df_uk_standardised.csv", nThread = 8, integer64 = "numeric") %>% select(job_id_weight, country, state, city, year, job_date, wfh_wham, job_url)
-# df_us_2019 <- fread("./int_data/df_us_2019_standardised.csv", nThread = 8, integer64 = "numeric") %>% select(job_id_weight, country, state, city, year, job_date, wfh_wham, job_url)
-# df_us_2021 <- fread("./int_data/df_us_2021_standardised.csv", nThread = 8, integer64 = "numeric") %>% select(job_id_weight, country, state, city, year, job_date, wfh_wham, job_url)
-# df_us_2022 <- fread("./int_data/df_us_2022_standardised.csv", nThread = 8, integer64 = "numeric") %>% select(job_id_weight, country, state, city, year, job_date, wfh_wham, job_url)
+# df_nz <- fread("./int_data/df_nz_standardised.csv", nThread = 8, integer64 = "numeric") %>% select(job_id_weight, country, state, city, year, bgt_occ, job_date, wfh_wham, job_url)
+# df_aus <- fread("./int_data/df_aus_standardised.csv", nThread = 8, integer64 = "numeric") %>% select(job_id_weight, country, state, city, year, bgt_occ, job_date, wfh_wham, job_url)
+# df_can <- fread("./int_data/df_can_standardised.csv", nThread = 8, integer64 = "numeric") %>% select(job_id_weight, country, state, city, year, bgt_occ, job_date, wfh_wham, job_url)
+# df_uk <- fread("./int_data/df_uk_standardised.csv", nThread = 8, integer64 = "numeric") %>% select(job_id_weight, country, state, city, year, bgt_occ, job_date, wfh_wham, job_url)
+# df_us_2019 <- fread("./int_data/df_us_2019_standardised.csv", nThread = 8, integer64 = "numeric") %>% select(job_id_weight, country, state, city, year, bgt_occ, job_date, wfh_wham, job_url)
+# df_us_2021 <- fread("./int_data/df_us_2021_standardised.csv", nThread = 8, integer64 = "numeric") %>% select(job_id_weight, country, state, city, year, bgt_occ, job_date, wfh_wham, job_url)
+# df_us_2022 <- fread("./int_data/df_us_2022_standardised.csv", nThread = 8, integer64 = "numeric") %>% select(job_id_weight, country, state, city, year, bgt_occ, job_date, wfh_wham, job_url)
 # 
 # df_nz <- df_nz %>% .[!grepl("mercadojobs", job_url)]
 # df_can <- df_can %>% .[!grepl("workopolis", job_url)]
@@ -65,6 +64,17 @@ setwd("/mnt/disks/pdisk/bg_combined/")
 # df_us_2019 <- df_us_2019 %>% .[!grepl("careerbuilder", job_url)]
 # df_us_2021 <- df_us_2021 %>% .[!grepl("careerbuilder", job_url)]
 # df_us_2022 <- df_us_2022 %>% .[!grepl("careerbuilder", job_url)]
+# 
+# # Make weights
+# us_2019_weights <- df_us_2019 %>%
+#   .[year == 2019] %>%
+#   .[, bgt_occ5 := str_sub(bgt_occ, 1, 6)] %>%
+#   .[!is.na(bgt_occ5) & bgt_occ5 != ""] %>%
+#   .[, .(N = sum(job_id_weight)), by = bgt_occ5] %>%
+#   .[, share_us := N/sum(N)] %>%
+#   select(-N)
+# 
+# View(all_weights)
 # 
 # df_nz <- df_nz %>% .[, city_state := paste0(city,"_",state)]
 # df_aus <- df_aus %>% .[, city_state := paste0(city,"_",state)]
@@ -78,22 +88,55 @@ setwd("/mnt/disks/pdisk/bg_combined/")
 # ls()
 # remove(list = setdiff(ls(), "df"))
 # 
-# df <- df %>% .[, year_quarter := as.yearqtr(job_date)]
+# df <- df %>% .[, year_quarter := as.yearqtr(job_date)] %>% .[year_quarter %in% as.yearqtr(c("2019 Q1", "2019 Q2", "2019 Q3", "2019 Q4", "2021 Q3", "2021 Q4", "2022 Q1", "2022 Q2"))]
 # 
-# table(df[year >= 2021]$country, df[year >= 2021]$year_quarter)
+# remove(list = setdiff(ls(), "df"))
+# 
+# df_weights <- df %>%
+#   .[, period := ifelse(year == 2019, "2019", "2021-22")] %>%
+#   .[, bgt_occ5 := str_sub(bgt_occ, 1, 6)] %>%
+#   .[!is.na(bgt_occ5) & bgt_occ5 != ""] %>%
+#   .[, .(N = sum(job_id_weight)), by = .(period, country, bgt_occ5)] %>%
+#   .[, occ_weight := N/sum(N), by = .(period, country)] %>%
+#   select(-N)
+# 
+# df_weights_us_2019 <- df_weights %>%
+#   .[period == "2019" & country == "US"] %>%
+#   select(bgt_occ5, occ_weight) %>%
+#   rename(occ_weight_us = occ_weight)
+# 
+# df_weights <- df_weights %>%
+#   left_join(df_weights_us_2019, by = "bgt_occ5") %>%
+#   setDT() %>%
+#   .[, occ_adj_weight := occ_weight/occ_weight_us]
+# 
+# df_weights <- df_weights %>%
+#   .[, occ_adj_weight := ifelse(!is.na(occ_adj_weight), occ_adj_weight, 1)] %>%
+#   select(country, period, bgt_occ5, occ_adj_weight)
+#       
+# rm(df_weights_us_2019)
+# 
+# View(df_weights)
+# 
+# nrow(df) # 123,018,750
+# df <- df %>%
+#   .[, period := ifelse(year == 2019, "2019", "2021-22")] %>%
+#   .[, bgt_occ5 := str_sub(bgt_occ, 1, 6)] %>%
+#   .[!is.na(bgt_occ5) & bgt_occ5 != ""] %>%
+#   left_join(df_weights) %>%
+#   setDT(.)
+# nrow(df) # 116,268,127
 # 
 # df_cit <- df %>%
-#   .[year_quarter %in% as.yearqtr(c("2019 Q1", "2019 Q2", "2019 Q3", "2019 Q4", "2021 Q3", "2021 Q4", "2022 Q1", "2022 Q2"))] %>%
 #   .[!is.na(city) & city != ""] %>%
 #   .[!is.na(wfh_wham) & wfh_wham != ""] %>%
-#   .[, year := year(job_date)] %>%
-#   .[, year := ifelse(year == 2021, 2022, year)] %>%
 #   setDT(.) %>%
-#   select(year, wfh_wham, city, state, country, job_id_weight) %>%
+#   select(period, wfh_wham, city, state, country, job_id_weight, occ_adj_weight) %>%
 #   setDT(.) %>%
 #   .[, .(N = sum(job_id_weight),
-#         wfh_share = sum(wfh_wham*job_id_weight)/sum(job_id_weight)),
-#     by = .(year, city, state, country)] %>%
+#         wfh_share = sum(wfh_wham*job_id_weight*occ_adj_weight)/sum(job_id_weight*occ_adj_weight),
+#         wfh_share_old = sum(wfh_wham*job_id_weight)/sum(job_id_weight)),
+#     by = .(period, city, state, country)] %>%
 #   setDT(.)
 # 
 # fwrite(df_cit, file = "./int_data/df_cit_2019_2022.csv")
@@ -105,7 +148,7 @@ df_cit$city[df_cit$city == "Washington" & df_cit$state == "District of Columbia"
 
 df_cit <- df_cit %>%
   .[!is.na(country) & !is.na(state) & !is.na(city)] %>%
-  .[order(country, state, city, year)] %>%
+  .[order(country, state, city, period)] %>%
   .[, prop_growth := paste0(round(wfh_share/shift(wfh_share),1),"X"), by = .(country, state, city)] %>%
   .[, prop_growth := ifelse(prop_growth == "NAX", "", prop_growth)] %>%
   setDT(.)
@@ -130,8 +173,7 @@ df_cit_large <- df_cit %>%
       (city == "Houston" & country == "US") |
       (city == "Philadelphia" & country == "US") |
       (city == "London" & country == "UK") |
-      (city == "Manchester" & country == "UK") |
-      (city == "Birmingham" & country == "UK") |
+      #(city == "Birmingham" & country == "UK") |
       (city == "Glasgow" & country == "UK") |
       (city == "Sydney" & country == "Australia") |
       (city == "Melbourne" & country == "Australia") |
@@ -141,7 +183,7 @@ df_cit_large <- df_cit %>%
       (city == "Toronto" & country == "Canada") |
       (city == "Montreal" & country == "Canada") |
       (city == "Ottowa" & country == "Canada")] %>%
-  .[order(country, state, city, year)]
+  .[order(country, state, city, period)]
   
 #cbbPalette <- c("#E69F00", "#009E73", "#CC79A7", "#0072B2", "#D55E00")
 #cbbPalette_oc <- c("#000000", "#56B4E9")
@@ -156,13 +198,11 @@ df_cit_large <- df_cit_large %>% mutate(city_country_fac = fct_reorder(city_coun
 
 a <- ifelse(grepl("(AUS)", as.vector(levels(df_cit_large$city_country_fac))), "red", "black")
 
-df_cit_large <- df_cit_large %>%
-  mutate(year = ifelse(year == 2019, "2019", "2021-22"))
 df_cit_large
-p = ggplot(df_cit_large, aes(x = city_country_fac, y = wfh_share, fill = as.factor(year))) +
+p = ggplot(df_cit_large, aes(x = city_country_fac, y = wfh_share, fill = period)) +
   geom_bar(stat = "identity", width=1, position = position_dodge(width=0.8))  +
   geom_text(aes(label = prop_growth, family = "serif"), size = 5, vjust = 0, colour = "black", hjust = -0.5) +
-  ylab("Share (%)") +
+  ylab("Percent") +
   scale_y_continuous(breaks = seq(0,100,5), limits = c(0, 32)) +
   scale_fill_manual(values = cbbPalette_cit) +
   #scale_shape_manual(values=rep(0:4, 3)) +
@@ -203,15 +243,22 @@ df_cit_scat <- df_cit %>%
   select(-size_keep) %>%
   .[,  title_keep := ifelse((city == "Auckland" & country == "NZ") | 
                               (city == "New York" & country == "US") | 
-                              (city == "Los Angeles" & country == "US") | 
+                              #(city == "Los Angeles" & country == "US") | 
                               (city == "San Francisco" & country == "US" & state == "California") | 
                               #(city == "Atlanta" & country == "US" & state == "Georgia") | 
                               (city == "Washington, D.C." & country == "US") | 
+                              (city == "Boston" & country == "US" & state == "Massachusetts") | 
+                              (city == "Phoenix" & country == "US" & state == "Arizona") | 
+                              #(city == "Denver" & country == "US" & state == "Colorado") | 
+                              (city == "Jacksonville" & country == "US" & state == "Florida") | 
+                              (city == "Houston" & country == "US" & state == "Kentucky") | 
+                              (city == "Louisville" & country == "US" & state == "Texas") | 
                               (city == "Memphis" & country == "US" & state == "Tennessee") | 
-                              (city == "New Orleans" & country == "US" & state == "Louisiana") | 
-                              (city == "Birmingham" & country == "US" & state == "Alabama") | 
-                              (city == "Baton Rouge" & country == "US" & state == "Louisiana") | 
                               (city == "Savannah" & country == "US" & state == "Georgia") | 
+                              #(city == "New Orleans" & country == "US" & state == "Louisiana") | 
+                              #(city == "Birmingham" & country == "US" & state == "Alabama") | 
+                              #(city == "Baton Rouge" & country == "US" & state == "Louisiana") | 
+                              #(city == "Savannah" & country == "US" & state == "Georgia") | 
                               #(city == "Miami" & country == "US") | 
                               #(city == "Dallas" & country == "US") | 
                               (city == "Chicago" & country == "US") | 
@@ -219,7 +266,7 @@ df_cit_scat <- df_cit %>%
                               #(city == "Houston" & country == "US") | 
                               #(city == "Philadelphia" & country == "US") | 
                               (city == "London" & country == "UK") | 
-                              (city == "Manchester" & country == "UK") |
+                              #(city == "Birmingham" & country == "UK") |
                               #(city == "Birmingham" & country == "UK") | 
                               #(city == "Glasgow" & country == "UK") | 
                               (city == "Sydney" & country == "Australia") | 
@@ -231,10 +278,13 @@ df_cit_scat <- df_cit %>%
                               (city == "Montreal" & country == "Canada"),
                             city, NA)] %>%
   group_by(city, state, country) %>%
-  pivot_wider(., names_from = year, values_from = c("wfh_share", "N")) %>%
+  pivot_wider(., names_from = period, values_from = c("wfh_share", "wfh_share_old", "N")) %>%
   rename(n_post_2019 = N_2019,
-         n_post_2022 = N_2022) %>%
+         n_post_2022 = `N_2021-22`,
+         wfh_share_2022 = `wfh_share_2021-22`) %>%
   setDT(.)
+
+df_cit_scat
 
 df_cit_scat[title_keep != ""]
 
@@ -244,6 +294,8 @@ cbbPalette <- c("#E69F00", "#009E73", "#CC79A7", "#0072B2", "#D55E00")
 summary(feols(data = df_cit_scat %>%
                 filter(n_post_2019 > 250 & n_post_2022 > 250),
               fml = log(wfh_share_2022) ~ 1 + log(wfh_share_2019)))
+
+head(df_cit_scat)
 
 p_in <- df_cit_scat %>%
   filter(n_post_2019 > 1000 & n_post_2022 > 1000) %>%
@@ -271,8 +323,8 @@ p = p_in %>%
                eq.x.rhs = "~plain(log)(italic(x))", colour = "blue", size = 4.5) +
   stat_poly_eq(aes(group=1, label=paste(..rr.label.., sep = "~~~")),geom="label",alpha=1,method = lm,label.y = log(2.2), label.x = log(14),
                colour = "blue", size = 4.5) +
-  ylab("Share (%) (2021-22) (Logscale)") +
-  xlab("Share (%) (2019)  (Logscale)") +
+  ylab("Percent (2021-22) (Logscale)") +
+  xlab("Percent (2019)  (Logscale)") +
   #scale_y_continuous(breaks = c(0,1,2,3,4,5)) +
   #scale_x_continuous(breaks = c(0,1,2,3,4,5)) +
   coord_cartesian(ylim = c(2, 32), xlim = c(0.5, 26)) +
@@ -291,11 +343,11 @@ p = p_in %>%
   guides(colour = guide_legend(nrow = 1)) +
   geom_text_repel(data = p_in[pos == "above"], aes(label = title_keep), 
                   fontface = "bold", size = 4, max.overlaps = 1000, force_pull = 1, force = 1, box.padding = 0.5,
-                  bg.color = "white", nudge_y = 0.2, nudge_x = -0.2,
+                  nudge_y = 0.2, nudge_x = -0.2,
                   bg.r = 0.15, seed = 1234, show.legend = FALSE) +
   geom_text_repel(data = p_in[pos == "below"], aes(label = title_keep[pos == "below"]), 
                   fontface = "bold", size = 4, max.overlaps = 1000, force_pull = 1, force = 1, box.padding = 0.5,
-                  bg.color = "white", nudge_y = -0.2, nudge_x = -0.2,
+                  nudge_y = -0.2, nudge_x = -0.2,
                   bg.r = 0.15, seed = 1234, show.legend = FALSE) +
   theme(aspect.ratio=3/5)
 p
@@ -308,13 +360,8 @@ save(p, file = "./ppt/ggplots/wfh_pre_post_by_city.RData")
 
 # load city plots
 remove(list = ls())
-
 ts_for_plot <- fread(file = "./aux_data/city_level_ts.csv")
-
-us_monthly_series <- fread(file = "./aux_data/us_monthly_ts.csv")
-
-head(ts_for_plot)
-
+us_monthly_series <- ts_for_plot %>% .[city_state == "US"] %>% .[name == "monthly_mean_3ma_l1o"] %>% .[country == "US"]
 ts_for_plot_cit <- ts_for_plot %>%
   #.[city_state %in% us_city_list] %>%
   .[name == "monthly_mean_3ma_l1o"] %>%
@@ -369,103 +416,97 @@ p = ts_for_plot_cit %>%
   mutate(lab = ifelse(year_month == max(year_month), paste0("bold(",gsub(" ","",city),")"), NA_character_)) %>%
   .[year(as.Date(as.yearmon(year_month)))>= 2019] %>%
   filter(region %in% c("Midwest") | city_state == " US National") %>%
-  ggplot(., aes(x = as.Date(as.yearmon(year_month)), y = 100*value, colour = city_state, shape = city_state)) +
+  ggplot(., aes(x = as.Date(as.yearmon(year_month)), y = 100*value, colour = city_state)) +
   #stat_smooth (geom="line", alpha=0.8, size=2, span=0.2) +
   #stat_smooth(span = 0.1, alpha=0.5, se=FALSE, size = 2) +
-  geom_point(size = 4) +
-  geom_line(size = 1.5, alpha = 0.5) +
-  ylab("Share (%)") +
+  geom_point(size = 2) +
+  geom_line(size = 1, alpha = 0.5) +
+  ylab("Percentage") +
   xlab("Date") +
   #labs(title = "Share of Postings Advertising Remote Work (%)", subtitle = paste0("Unweighted, Outliers Removed. Removed ")) +
   scale_x_date(breaks = as.Date(c("2019-01-01", "2019-04-01", "2019-07-01", "2019-10-01","2020-01-01", "2020-04-01", "2020-07-01", "2020-10-01",
                                   "2021-01-01", "2021-04-01", "2021-07-01", "2021-10-01", "2022-01-01", "2022-04-01", "2022-07-01")),
                date_labels = '%Y-%m',
                limits = as.Date(c("2019-01-01", "2022-07-01"))) +
-  scale_y_continuous(labels = scales::number_format(accuracy = 1),  breaks = seq(0,100,2)) +
+  scale_y_continuous(labels = scales::number_format(accuracy = 1),  breaks = seq(0,100,5)) +
   #coord_cartesian(ylim = c(0, 20)) +
-  scale_shape_manual(values=c(15,16,17,18,19,15,16,17,18,19)) +
   scale_color_manual(values = pal) +
   theme(
     axis.title.x=element_blank(),
     legend.position="bottom",
     legend.title = element_blank(),
-    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+    axis.text.x = element_text(angle = 45, vjust = 1, hjust=0.9)) +
   theme(text = element_text(size=15, family="serif", colour = "black"),
         axis.text = element_text(size=15, family="serif", colour = "black"),
         axis.title = element_text(size=15, family="serif", colour = "black"),
         legend.text = element_text(size=15, family="serif", colour = "black"),
         panel.background = element_rect(fill = "white"),
         legend.key.width = unit(1,"cm")) +
-  guides(col = guide_legend(ncol = 3), shape = guide_legend(ncol = 3)) +
+  guides(col = guide_legend(ncol = 2)) +
   labs(color  = "Guide name", shape = "Guide name") +
   # geom_label_repel(aes(family = c("serif"), label = lab, x = as.Date(as.yearmon(year_month)) %m+% months(1),
   #                      y = 100*value), force = 0.25, force_pull = 4, hjust = "left", vjust = "top", direction = "y", parse=TRUE,
   #                  label.padding = 0, label.size = NA, size = 5, show.legend = FALSE, segment.color = "transparent") +
-  theme(aspect.ratio=3/5)
+  theme(aspect.ratio=1.5/5)
 p
 save(p, file = "./ppt/ggplots/ts_cities_mw.RData")
-
-remove(list = c("p", "p_egg"))
 
 p = ts_for_plot_cit %>%
   mutate(lab = ifelse(year_month == max(year_month), paste0("bold(",gsub(" ","",city),")"), NA_character_)) %>%
   .[year(as.Date(as.yearmon(year_month)))>= 2019] %>%
   filter(region %in% c("Northeast", "West") | city_state == " US National") %>%
-  ggplot(., aes(x = as.Date(as.yearmon(year_month)), y = 100*value, colour = city_state, shape = city_state)) +
+  ggplot(., aes(x = as.Date(as.yearmon(year_month)), y = 100*value, colour = city_state)) +
   #stat_smooth (geom="line", alpha=0.8, size=2, span=0.2) +
   #stat_smooth(span = 0.1, alpha=0.5, se=FALSE, size = 2) +
-  geom_point(size = 4) +
-  geom_line(size = 1.5, alpha = 0.5) +
-  ylab("Share (%)") +
+  geom_point(size = 2) +
+  geom_line(size = 1, alpha = 0.5) +
+  ylab("Percentage") +
   xlab("Date") +
   #labs(title = "Share of Postings Advertising Remote Work (%)", subtitle = paste0("Unweighted, Outliers Removed. Removed ")) +
   scale_x_date(breaks = as.Date(c("2019-01-01", "2019-04-01", "2019-07-01", "2019-10-01","2020-01-01", "2020-04-01", "2020-07-01", "2020-10-01",
                                   "2021-01-01", "2021-04-01", "2021-07-01", "2021-10-01", "2022-01-01", "2022-04-01", "2022-07-01")),
                date_labels = '%Y-%m',
                limits = as.Date(c("2019-01-01", "2022-07-01"))) +
-  scale_y_continuous(labels = scales::number_format(accuracy = 1),  breaks = seq(0,100,2)) +
+  scale_y_continuous(labels = scales::number_format(accuracy = 1),  breaks = seq(0,100,5)) +
   #coord_cartesian(ylim = c(0, 20)) +
-  scale_shape_manual(values=c(15,16,17,18,19,15,16,17,18,19)) +
   scale_color_manual(values = pal) +
   theme(
     axis.title.x=element_blank(),
     legend.position="bottom",
     legend.title = element_blank(),
-    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+    axis.text.x = element_text(angle = 45, vjust = 1, hjust=0.9)) +
   theme(text = element_text(size=15, family="serif", colour = "black"),
         axis.text = element_text(size=14, family="serif", colour = "black"),
         axis.title = element_text(size=15, family="serif", colour = "black"),
         legend.text = element_text(size=14, family="serif", colour = "black"),
         panel.background = element_rect(fill = "white"),
         legend.key.width = unit(1,"cm")) +
-  guides(col = guide_legend(ncol = 3), shape = guide_legend(ncol = 2)) +
+  guides(col = guide_legend(ncol = 2)) +
   labs(color  = "Guide name", shape = "Guide name") +
   # geom_label_repel(aes(family = c("serif"), label = lab, x = as.Date(as.yearmon(year_month)) %m+% months(1),
   #                      y = 100*value), force = 0.25, force_pull = 4, hjust = "left", vjust = "top", direction = "y", parse=TRUE,
   #                  label.padding = 0, label.size = NA, size = 5, show.legend = FALSE, segment.color = "transparent") +
-  theme(aspect.ratio=3/5)
+  theme(aspect.ratio=1.5/5)
 p
 save(p, file = "./ppt/ggplots/ts_cities_ne_w.RData")
-
-remove(list = c("p", "p_egg"))
 
 p = ts_for_plot_cit %>%
   mutate(lab = ifelse(year_month == max(year_month), paste0("bold(",gsub(" ","",city),")"), NA_character_)) %>%
   .[year(as.Date(as.yearmon(year_month)))>= 2019] %>%
   filter(region %in% c("South") | city_state == " US National") %>%
-  ggplot(., aes(x = as.Date(as.yearmon(year_month)), y = 100*value, colour = city_state, shape = city_state)) +
+  ggplot(., aes(x = as.Date(as.yearmon(year_month)), y = 100*value, colour = city_state)) +
   #stat_smooth (geom="line", alpha=0.8, size=2, span=0.2) +
   #stat_smooth(span = 0.1, alpha=0.5, se=FALSE, size = 2) +
-  geom_point(size = 4) +
-  geom_line(size = 1.5, alpha = 0.5) +
-  ylab("Share (%)") +
+  geom_point(size = 2) +
+  geom_line(size = 1, alpha = 0.5) +
+  ylab("Percent") +
   xlab("Date") +
   #labs(title = "Share of Postings Advertising Remote Work (%)", subtitle = paste0("Unweighted, Outliers Removed. Removed ")) +
   scale_x_date(breaks = as.Date(c("2019-01-01", "2019-04-01", "2019-07-01", "2019-10-01","2020-01-01", "2020-04-01", "2020-07-01", "2020-10-01",
                                   "2021-01-01", "2021-04-01", "2021-07-01", "2021-10-01", "2022-01-01", "2022-04-01", "2022-07-01")),
                date_labels = '%Y-%m',
                limits = as.Date(c("2019-01-01", "2022-07-01"))) +
-  scale_y_continuous(labels = scales::number_format(accuracy = 1),  breaks = seq(0,100,2)) +
+  scale_y_continuous(labels = scales::number_format(accuracy = 1),  breaks = seq(0,100,5)) +
   #coord_cartesian(ylim = c(0, 20)) +
   scale_shape_manual(values=c(15,16,17,18,19,15,16,17,18,19)) +
   scale_color_manual(values = pal) +
@@ -473,19 +514,19 @@ p = ts_for_plot_cit %>%
     axis.title.x=element_blank(),
     legend.position="bottom",
     legend.title = element_blank(),
-    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+    axis.text.x = element_text(angle = 45, vjust = 1, hjust=0.9)) +
   theme(text = element_text(size=15, family="serif", colour = "black"),
         axis.text = element_text(size=14, family="serif", colour = "black"),
         axis.title = element_text(size=15, family="serif", colour = "black"),
         legend.text = element_text(size=14, family="serif", colour = "black"),
         panel.background = element_rect(fill = "white"),
         legend.key.width = unit(1,"cm")) +
-  guides(col = guide_legend(ncol = 3), shape = guide_legend(ncol = 3)) +
+  guides(col = guide_legend(ncol = 2)) +
   labs(color  = "Guide name", shape = "Guide name") +
   # geom_label_repel(aes(family = c("serif"), label = lab, x = as.Date(as.yearmon(year_month)) %m+% months(1),
   #                      y = 100*value), force = 0.25, force_pull = 4, hjust = "left", vjust = "top", direction = "y", parse=TRUE,
   #                  label.padding = 0, label.size = NA, size = 5, show.legend = FALSE, segment.color = "transparent") +
-  theme(aspect.ratio=3/5)
+  theme(aspect.ratio=1.5/5)
 p
 save(p, file = "./ppt/ggplots/ts_cities_s.RData")
 
@@ -499,7 +540,7 @@ library(ggrepel)
 remove(list = ls())
 
 ts_for_plot <- fread(file = "./aux_data/city_level_ts.csv")
-uk_monthly_series <- fread(file = "./aux_data/uk_monthly_ts.csv")
+uk_monthly_series <- ts_for_plot %>% .[city_state == "UK"] %>% .[name == "monthly_mean_3ma_l1o"] %>% .[country == "UK"]
 head(ts_for_plot)
 
 ts_for_plot_cit <- ts_for_plot %>%
@@ -536,12 +577,12 @@ pal
 p = ts_for_plot_cit %>%
   mutate(lab = ifelse(year_month == max(year_month), paste0("bold(",gsub(" ","",city),")"), NA_character_)) %>%
   .[year(as.Date(as.yearmon(year_month)))>= 2019] %>%
-  ggplot(., aes(x = as.Date(as.yearmon(year_month)), y = 100*value, colour = city_state, shape = city_state)) +
+  ggplot(., aes(x = as.Date(as.yearmon(year_month)), y = 100*value, colour = city_state)) +
   #stat_smooth (geom="line", alpha=0.8, size=2, span=0.2) +
   #stat_smooth(span = 0.1, alpha=0.5, se=FALSE, size = 2) +
   geom_point(size = 4) +
   geom_line(size = 1.5, alpha = 0.5) +
-  ylab("Share (%)") +
+  ylab("Percent") +
   xlab("Date") +
   #labs(title = "Share of Postings Advertising Remote Work (%)", subtitle = paste0("Unweighted, Outliers Removed. Removed ")) +
   scale_x_date(breaks = as.Date(c("2019-01-01", "2019-04-01", "2019-07-01", "2019-10-01","2020-01-01", "2020-04-01", "2020-07-01", "2020-10-01",
@@ -556,16 +597,16 @@ p = ts_for_plot_cit %>%
     axis.title.x=element_blank(),
     legend.position="bottom",
     legend.title = element_blank(),
-    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+    axis.text.x = element_text(angle = 45, vjust = 1, hjust=0.9)) +
   theme(text = element_text(size=15, family="serif", colour = "black"),
         axis.text = element_text(size=14, family="serif", colour = "black"),
         axis.title = element_text(size=15, family="serif", colour = "black"),
         legend.text = element_text(size=14, family="serif", colour = "black"),
         panel.background = element_rect(fill = "white"),
         legend.key.width = unit(1,"cm")) +
-  guides(col = guide_legend(ncol = 3), shape = guide_legend(ncol = 3)) +
+  guides(col = guide_legend(ncol = 2)) +
   labs(color  = "Guide name", shape = "Guide name") +
-  theme(aspect.ratio=3/5)
+  theme(aspect.ratio=1.5/5)
 p
 save(p, file = "./ppt/ggplots/ts_cities_uk.RData")
 
