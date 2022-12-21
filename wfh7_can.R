@@ -39,7 +39,7 @@ remove(list = ls())
 #### PREPARE DATA ####
 
 #system("gsutil -m cp -r gs://for_transfer/data_ingest/bgt_upload/CAN_raw /mnt/disks/pdisk/bg-can/raw_data/text/")
-system("gsutil -m cp -r gs://for_transfer/data_ingest/bgt_upload/CAN_raw/CAN_XML_Postings_AddFeed_20221101_20221130.zip /mnt/disks/pdisk/bg-can/raw_data/text/")
+#system("gsutil -m cp -r gs://for_transfer/data_ingest/bgt_upload/CAN_raw/CAN_XML_Postings_AddFeed_20221101_20221130.zip /mnt/disks/pdisk/bg-can/raw_data/text/")
 #system("gsutil -m cp -r gs://for_transfer/data_ingest/bgt_upload/CAN_stru /mnt/disks/pdisk/bg-can/raw_data/main")
 #system("gsutil -m cp -r gs://for_transfer/wham/CAN /mnt/disks/pdisk/bg-can/int_data/wham_pred")
 
@@ -63,7 +63,7 @@ system("gsutil -m cp -r gs://for_transfer/data_ingest/bgt_upload/CAN_raw/CAN_XML
 
 # Upload Sequences
 # system("gsutil -m cp -r /mnt/disks/pdisk/bg-can/int_data/sequences/ gs://for_transfer/sequences_can")
-# system("gsutil -m cp -r /mnt/disks/pdisk/bg-can/int_data/sequences/sequences_20221101_20221130.rds gs://for_transfer/sequences_can/")
+#system("gsutil -m cp -r /mnt/disks/pdisk/bg-can/int_data/sequences/sequences_20221101_20221130.rds gs://for_transfer/sequences_can/sequences/")
 
 #### END ####
 
@@ -216,143 +216,53 @@ safe_mclapply(1:length(paths), function(i) {
 system("echo sci2007! | sudo -S shutdown -h now")
 #### END ####
 
-# Transfer sequences to instance
-#system("gsutil -m cp -r /mnt/disks/pdisk/bg-can/int_data/sequences/ gs://for_transfer/sequences_can/")
-
-#### DICTIONARIES ####
-remove(list = ls())
-df_dict <- bind_rows(read_xlsx("./aux_data/wfh_v8.xlsx", sheet = 1) %>% clean_names %>% filter(source == "oecd") %>% select(glob_en) %>% mutate(source = "wfh"),
-                     read_xlsx("./aux_data/wfh_v8.xlsx", sheet = 2) %>% clean_names %>% select(glob_en) %>% mutate(source = "generic"),
-                     read_xlsx("./aux_data/wfh_v8.xlsx", sheet = 3) %>% clean_names %>% select(glob_en) %>% mutate(source = "excemptions"),
-                     read_xlsx("./aux_data/wfh_v8.xlsx", sheet = 4) %>% clean_names %>% select(glob_en) %>% mutate(source = "intensity"),
-                     read_xlsx("./aux_data/wfh_v8.xlsx", sheet = 5) %>% clean_names %>% select(glob_en) %>% mutate(source = "negation"))
-
-length(unique(df_dict$glob_en[df_dict$source == "wfh"])) # 176
-length(unique(df_dict$glob_en[df_dict$source == "generic"])) # 5
-
-df_dict$glob_en <- tolower(df_dict$glob_en)
-df_dict[df_dict == ""] <- NA
-df_dict <- df_dict %>% group_by(source) %>% distinct(glob_en, .keep_all = T) %>% ungroup
-
-length(unique(df_dict$glob_en[df_dict$source == "wfh"])) # 176
-length(unique(df_dict$glob_en[df_dict$source == "generic"])) # 5
-
-length(df_dict$glob_en) # 353
-length(unique(df_dict$glob_en)) # 350
-
-df_dict <- df_dict %>%
-  mutate(key = glob_en) %>%
-  mutate(key = gsub("\\s+", "_", key)) %>%
-  mutate(key = gsub("[*]", "_AST_", key)) %>%
-  mutate(key = gsub("[:]", "_C_", key)) %>%
-  mutate(key = gsub("^_", "", key)) %>%
-  mutate(key = gsub("_$", "", key)) %>%
-  mutate(key = gsub("__", "_", key))
-
-df_dict <- df_dict %>%
-  mutate(key = make_clean_names(key)) %>%
-  select(key, glob_en, source)
-
-wfh_dict_glob <- df_dict %>% filter(source %in% c("wfh"))
-wfh_dict_glob <- setNames(as.list(wfh_dict_glob$glob_en), wfh_dict_glob$key) %>% dictionary()
-
-neg_dict_glob <- df_dict %>% filter(source %in% c("negation"))
-neg_dict_glob <- setNames(as.list(neg_dict_glob$glob_en), neg_dict_glob$key) %>% dictionary()
-
-wfh_and_neg_dict_glob <- df_dict %>% filter(source %in% c("wfh", "negation"))
-wfh_and_neg_dict_glob <- setNames(as.list(wfh_and_neg_dict_glob$glob_en), wfh_and_neg_dict_glob$key) %>% dictionary()
-
-intensity_dict_glob <- df_dict %>% filter(source %in% c("intensity"))
-intensity_dict_glob <- setNames(as.list(intensity_dict_glob$glob_en), intensity_dict_glob$key) %>% dictionary()
-
-wfh_and_generic_dict_glob <- df_dict %>% filter(source %in% c("wfh", "generic"))
-wfh_and_generic_dict_glob <- setNames(as.list(wfh_and_generic_dict_glob$glob_en), wfh_and_generic_dict_glob$key) %>% dictionary()
-
-generic_dict_glob <- df_dict %>% filter(source %in% c("generic"))
-generic_dict_glob <- setNames(as.list(generic_dict_glob$glob_en), generic_dict_glob$key) %>% dictionary()
-
-generic_and_excemptions_dict_glob <- df_dict %>% filter(source %in% c("generic", "excemptions"))
-generic_and_excemptions_dict_glob <- setNames(as.list(generic_and_excemptions_dict_glob$glob_en), generic_and_excemptions_dict_glob$key) %>% dictionary()
-
-wfh_dict_glob <- df_dict %>% filter(source %in% c("wfh"))
-wfh_dict_glob <- setNames(as.list(wfh_dict_glob$glob_en), wfh_dict_glob$key) %>% dictionary()
-
-all_dict <- setNames(as.list(df_dict$glob_en), df_dict$key) %>% dictionary()
-
-df_dict$lu <- NA
-df_dict$lu <- gsub("*", "\\w+", df_dict$glob_en, fixed = T)
-df_dict$lu <- paste0("\\b(",gsub(" ", ")\\s(", all_dict$lu, fixed = T),")\\b")
-df_dict$rp <- NA
-df_dict$rp[df_dict$source == "wfh"] <-"<\\U\\1 \\U\\2 \\U\\3 \\U\\4>"
-df_dict$rp[df_dict$source == "generic"] <-"[\\U\\1 \\U\\2 \\U\\3 \\U\\4]"
-df_dict$lu[!(df_dict$source %in% c("wfh", "generic"))] <- paste0("\\b([",df_dict$glob_en[!(df_dict$source %in% c("wfh", "generic"))],"])\\b")
-df_dict$rp[!(df_dict$source %in% c("wfh", "generic"))] <- " \\U\\1 "
-rm(list = setdiff(ls(),c("df_dict", "all_dict", "wfh_dict_glob", "neg_dict_glob", "wfh_and_neg_dict_glob", "intensity_dict_glob", "wfh_and_generic_dict_glob", "generic_dict_glob", "generic_and_excemptions_dict_glob")))
-#### end ####
-
-#### GET PATH NAMES TO MAKE DFM ####
-paths <- list.files("./int_data/sequences/", pattern = "*.rds", full.names = T) %>% sort(decreasing = T)
-paths
-paths_check <- paths %>% gsub("./int_data/sequences/sequences_","",., fixed = T) %>% gsub(".rds", "", ., fixed = T) %>% str_sub(., -8, -1)
-paths_done <- list.files("./int_data/wfh_v8/", pattern = "*.rds" , full.names = F) %>% gsub(".rds", "", ., fixed = T) %>% str_sub(., -8, -1) %>% unique()
-paths_done
-paths <- paths[!(paths_check %in% paths_done)]
-paths
-rm(list = setdiff(ls(),c("paths", "df_dict", "all_dict", "wfh_dict_glob", "neg_dict_glob", "wfh_and_neg_dict_glob", "intensity_dict_glob", "wfh_and_generic_dict_glob", "generic_dict_glob", "generic_and_excemptions_dict_glob")))
+#### EXTRACT SOURCE AND URL AND SAVE ####
+# remove(list = ls())
+# paths <- list.files("./raw_data/text/", pattern = "*.zip", full.names = T)
+# source("/mnt/disks/pdisk/bgt_code_repo/old/safe_mclapply.R")
+# 
+# lapply(2014:2022, function(year) {
+#   paths <- paths[grepl(paste0(year), paths)]
+#   df <- safe_mclapply(1:length(paths), function(i) {
+#     name <- str_sub(paths[i], -21, -5)
+#     name
+#     warning(paste0("\nBEGIN: ",i,"  '",name,"'"))
+#     cat(paste0("\nBEGIN: ",i,"  '",name,"'"))
+#     system(paste0("unzip -o ",paths[i]," -d ./raw_data/text/"))
+#     xml_path = gsub(".zip", ".xml", paths[i])
+#     xml_path
+#     #try( {
+#     df_xml <- read_xml(xml_path) %>%
+#       xml_find_all(., ".//Job")
+# 
+#     df_job_id <- xml_find_all(df_xml, ".//JobID") %>% xml_text
+#     df_job_url <- xml_find_all(df_xml, ".//JobURL") %>% xml_text
+#     df_job_domain <- xml_find_all(df_xml, ".//JobDomain") %>% xml_text
+# 
+#     remove("df_xml")
+# 
+#     df <- data.table(job_id = df_job_id, job_domain = df_job_domain, job_url = df_job_url, stringsAsFactors = FALSE)
+#     head(df)
+#     unlink(xml_path)
+# 
+#     warning(paste0("SUCCESS: ",i))
+#     cat(paste0("\nSUCCESS: ",i,"\n"))
+#     return(df)
+#   }, mc.cores = 16)
+#   df <- rbindlist(df)
+#   fwrite(df, file = paste0("./int_data/sources/can_src_",year,"_wfh.csv"))
+# })
+# 
+# #sink()
+# system("echo sci2007! | sudo -S shutdown -h now")
 #### /END ####
-
-#### MAKE DFM ####
-source("/mnt/disks/pdisk/code/safe_mclapply.R")
-safe_mclapply(1:length(paths), function(i) {
-  
-  warning(paste0("BEGIN FILE: ",i))
-  name <- gsub("./int_data/sequences//sequences_","", paths[i], fixed = T) %>% gsub(".rds", "", ., fixed = T) %>% gsub("_AddFeed_", "", ., fixed = T)
-  df_ss_sequence <- readRDS(paths[i]) %>%
-    setDT(.)
-  
-  %>%
-    .[, sequence := str_trim(gsub("[^[:alnum:][:space:]]"," ",sequence))]
-  
-  # WFH without Negation or Intensity
-  x <- df_ss_sequence %>%
-    quanteda::corpus(., text_field = "sequence", docid_field = "seq_id", unique_docnames = TRUE) %>%
-    quanteda::tokens(., what = "word", remove_punct = T,  remove_symbols = T, remove_url = T, remove_separators = T, split_hyphens = T, verbose = T, padding = FALSE)
-  
-  rm(df_ss_sequence)
-  
-  # WFH and negation
-  x_wfh_neg_window <- tokens_select(x, pattern = wfh_dict_glob, selection = "keep", valuetype = "glob", case_insensitive = TRUE, padding = FALSE, window = c(3,2), verbose = T)
-  x_dfm_wfh_w_neg <- quanteda::dfm(tokens_lookup(x_wfh_neg_window,  wfh_and_neg_dict_glob, valuetype = "glob", case_insensitive = T, verbose = TRUE))
-  remove(x_wfh_neg_window)
-  
-  x_dfm <- x_dfm_wfh_w_neg
-  
-  length(df_ss_sequence$sequence[grepl("remote", df_ss_sequence$sequence, ignore.case = T)])
-  length(df_ss_sequence$sequence[as.data.table(x_dfm)$remote>0])
-  check <- df_ss_sequence$sequence[grepl("remote", df_ss_sequence$sequence) & as.data.table(x_dfm)$remote==0]
-  
-  sum(grepl("remote", df_ss_sequence$sequence))
-  
-  remove(list = c("x_dfm_wfh_w_neg"))
-  
-  x_dfm <- x_dfm[rowSums(x_dfm)>0,]
-  
-  saveRDS(x_dfm, file = paste0("./int_data/wfh_v8/wfh_v8_dfm_",name,".rds"))
-  
-  warning(paste0("\nSUCCESS: ",i,"\n"))
-  #cat(paste0("\nDID: ",i," IN  ",difference," minutes\n"))
-  return("")
-}, mc.cores = 32)
-
-sink()
-system("echo sci2007! | sudo -S shutdown -h now")
-#### END ####
 
 #### AGGREGATE WHAM TO JOB AD LEVEL ####
 remove(list = ls())
 paths <- list.files("./int_data/wham_pred", pattern = "*.txt", full.names = T)
-paths <- paths[grepl("2019|2020|2021|2022", paths)]
-source("/mnt/disks/pdisk/code/safe_mclapply.R")
+paths <- paths[grepl("2014|2015|2016|2017|2018|2019|2020|2021|2022", paths)]
+paths
+source("/mnt/disks/pdisk/bgt_code_repo/old/safe_mclapply.R")
 
 df_wham <- safe_mclapply(1:length(paths), function(i) {
   df <- fread(paths[i])  %>%
@@ -360,79 +270,66 @@ df_wham <- safe_mclapply(1:length(paths), function(i) {
     .[, .(wfh_prob = max(wfh_prob)), by = job_id]
   warning(paste0("\nDONE: ",i/length(paths)))
   return(df)
-}, mc.cores = 8)
+}, mc.cores = 16)
 
 df_wham <- rbindlist(df_wham)
+
+df_wham_old <- fread("/mnt/disks/pdisk/bg_combined/int_data/subsample_wham/df_ss_wham.csv") %>%
+  .[country == "Canada"] %>%
+  .[year %in% c(2014:2018)]
+
+df_wham <- df_wham %>%
+  .[, job_id := as.numeric(job_id)]
+
+df_wham_old <- df_wham_old %>%
+  .[, job_id := as.numeric(job_id)]
+
+df_wham <- bind_rows(df_wham_old, df_wham) %>% setDT(.)
+
+rm(df_wham_old)
 
 df_wham <- df_wham %>%
   .[, wfh := as.numeric(wfh_prob>0.5)] %>%
   .[, wfh_prob := round(wfh_prob, 3)]
 
 df_wham <- df_wham %>%
-  .[, job_id := as.numeric(job_id)]
-
-df_wham <- df_wham %>%
   rename(wfh_wham_prob = wfh_prob,
          wfh_wham = wfh)
+
+df_wham <- df_wham %>%
+  unique(., by = "job_id")
+
 #### /END ####
 
-# #### AGGREGATE DICTIONARY TO JOB AD LEVEL ####
-# paths <- list.files("./int_data/wfh_v8", pattern = "*.rds", full.names = T)
-# paths <- paths[grepl("2019|2020|2021|2022", paths)]
-# 
-# source("/mnt/disks/pdisk/code/safe_mclapply.R")
-# 
-# df_oecd <- safe_mclapply(1:length(paths), function(i) {
-#   df <- readRDS(paths[i]) %>%
-#     convert(., to = "data.frame") %>%
-#     rename(seq_id = doc_id) %>%
-#     mutate(wfh = rowSums(.[c(2, 17)], na.rm = TRUE)) %>%
-#     mutate(neg = rowSums(.[c(19, 29)], na.rm = TRUE)) %>%
-#     select(seq_id, wfh, neg) %>%
-#     mutate(wfh_nn = wfh*(1-neg))
-#   
-#   df <- df %>%
-#     setDT(.) %>%
-#     .[, job_id := str_sub(seq_id,1, -6)] %>%
-#     .[, .(wfh = as.numeric(max(wfh)>0), wfh_nn = as.numeric(max(wfh_nn)>0)), by = job_id]
-#   warning(paste0("\nDONE: ",i/length(paths)))
-#   return(df)
-# }, mc.cores = 8)
-# 
-# df_oecd <- rbindlist(df_oecd)
-# df_oecd$job_id <- as.numeric(df_oecd$job_id)
-# df_oecd <- df_oecd %>%
-#   rename(wfh_oecd = wfh,
-#          wfh_oecd_nn = wfh_nn)
-# #### /END ####
+#### LOAD SRC ####
+paths <- list.files("./int_data/sources/", pattern = "*.csv", full.names = T)
+paths <- paths[grepl("2014|2015|2016|2017|2018|2019|2020|2021|2022", paths)]
+source("/mnt/disks/pdisk/bgt_code_repo/old/safe_mclapply.R")
 
+df_src <- safe_mclapply(1:length(paths), function(i) {
+  df <- fread(paths[i])
+  warning(paste0("\nDONE: ",i/length(paths)))
+  return(df)
+}, mc.cores = 2) %>%
+  rbindlist(.)
+
+nrow(df_src) # 31,597,306
+df_src <- df_src %>%
+  unique(., by = "job_id")
+nrow(df_src) # 31,234,415
+
+#### END ####
+ls()
 #### MERGE WHAM PREDICTIONS INTO THE STRUCTURED DATA AND RESAVE ####
-remove(list = setdiff(ls(), c("df_wham", "df_oecd")))
-
-# df_wham <- df_wham %>%
-#   merge(x = ., y = df_oecd, all.x = TRUE, by = "job_id")
-
-# rm(df_oecd)
-
-# df_wham <- df_wham %>%
-#   .[, wfh_oecd := ifelse(is.na(wfh_oecd),0,wfh_oecd)] %>%
-#   .[, wfh_oecd_nn := ifelse(is.na(wfh_oecd_nn),0,wfh_oecd_nn)]
-
-colnames(df_wham)
-mean(df_wham$wfh_wham)
-mean(df_wham$wfh_oecd)
-
+remove(list = setdiff(ls(), c("df_wham", "df_src")))
 paths <- list.files("/mnt/disks/pdisk/bg-can/raw_data/main", pattern = ".zip", full.names = T)
 paths
-source("/mnt/disks/pdisk/code/safe_mclapply.R")
+source("/mnt/disks/pdisk/bgt_code_repo/old/safe_mclapply.R")
 
+#colnames(fread(cmd = paste0('unzip -p ', paths[102]), nThread = 8, colClasses = "character", stringsAsFactors = FALSE, nrow = 100))
 
-colnames(fread(cmd = paste0('unzip -p ', paths[102]), nThread = 8, colClasses = "character", stringsAsFactors = FALSE, nrow = 100))
-
-safe_mclapply(2019:2022, function(x) {
-  x = 2022
+safe_mclapply(2014:2022, function(x) {
   paths_year <- paths[grepl(x, paths)]
-  
   df_stru <- safe_mclapply(1:length(paths_year), function(i) {
     
     warning(paste0("\nSTART: ",i,"\n"))
@@ -460,10 +357,13 @@ safe_mclapply(2019:2022, function(x) {
     df <- df %>%
       merge(x = ., y = df_wham, by = "job_id", all.x = TRUE, all.y = FALSE)
     
+    df <- df %>%
+      merge(x = ., y = df_src, by = "job_id", all.x = TRUE, all.y = FALSE)
+    
     warning(paste0("\nDONE: ",x,"   ",i))
     return(df)
   }, mc.cores = 1)
-  
+  ls()
   df_stru <- rbindlist(df_stru)
   df_stru <- setDT(df_stru)
   
@@ -477,17 +377,24 @@ safe_mclapply(2019:2022, function(x) {
 
 #### EXTRACT QUARTERLY DATA ####
 remove(list = ls())
+df_can_stru_2014 <- fread("../bg-can/int_data/can_stru_2014_wfh.csv", nThread = 4)
+df_can_stru_2015 <- fread("../bg-can/int_data/can_stru_2015_wfh.csv", nThread = 4)
+df_can_stru_2016 <- fread("../bg-can/int_data/can_stru_2016_wfh.csv", nThread = 4)
+df_can_stru_2017 <- fread("../bg-can/int_data/can_stru_2017_wfh.csv", nThread = 4)
+df_can_stru_2018 <- fread("../bg-can/int_data/can_stru_2018_wfh.csv", nThread = 4)
 df_can_stru_2019 <- fread("../bg-can/int_data/can_stru_2019_wfh.csv", nThread = 4)
 df_can_stru_2020 <- fread("../bg-can/int_data/can_stru_2020_wfh.csv", nThread = 4)
 df_can_stru_2021 <- fread("../bg-can/int_data/can_stru_2021_wfh.csv", nThread = 4)
 df_can_stru_2022 <- fread("../bg-can/int_data/can_stru_2022_wfh.csv", nThread = 4)
 
-df_all_can <- rbindlist(list(df_can_stru_2019,df_can_stru_2020,df_can_stru_2021,df_can_stru_2022))
+df_all_can <- rbindlist(list(df_can_stru_2014,df_can_stru_2015,df_can_stru_2016,df_can_stru_2017,df_can_stru_2018,df_can_stru_2019,df_can_stru_2020,df_can_stru_2021,df_can_stru_2022))
 remove(list = setdiff(ls(),"df_all_can"))
 
 df_all_can <- df_all_can %>%
   .[, year_quarter := as.yearqtr(job_ymd)] %>%
   .[, year_month := as.yearmon(job_ymd)]
+
+View(as.data.table(table(df_all_can[!is.na(wfh_wham) & wfh_wham != ""]$year_month)))
 
 # load weights
 w_can_2019 <- fread("../bg_combined/aux_data/emp_weights/w_can_2019.csv") %>%
@@ -525,7 +432,7 @@ df_all_can <- df_all_can %>%
 df_all_can <- df_all_can %>%
   select(job_id,country,year_month,job_date,wfh_wham_prob,wfh_wham,canon_state,canon_city,
          canon_employer,min_experience,max_experience,canon_minimum_degree,min_degree_level,min_annual_salary,canon_job_hours,bgt_occ,consolidated_inferred_naics,industry_name,
-         industry_group_name,sub_sector_name,sector_name,tot_emp_ad,job_id_weight)
+         industry_group_name,sub_sector_name,sector_name,tot_emp_ad,job_id_weight, job_url,job_domain)
 
 # Remove Cannon
 colnames(df_all_can) <- gsub("canon_","", colnames(df_all_can))
@@ -546,7 +453,7 @@ df_all_can <- df_all_can %>% rename(disjoint_sector = sector_name)
 df_all_can <- df_all_can %>% rename(disjoint_salary = min_annual_salary)
 
 # Final Subset
-df_all_can <- df_all_can %>% select(job_id, country, state, city, year_month, job_date, wfh_wham_prob, wfh_wham, employer, bgt_occ, disjoint_exp_max, disjoint_exp_min, job_hours, disjoint_sector, disjoint_degree_level, disjoint_degree_name, disjoint_salary, tot_emp_ad, job_id_weight)
+df_all_can <- df_all_can %>% select(job_id, country, state, city, year_month, job_date, wfh_wham_prob, wfh_wham, employer, bgt_occ, disjoint_exp_max, disjoint_exp_min, job_hours, disjoint_sector, disjoint_degree_level, disjoint_degree_name, disjoint_salary, tot_emp_ad, job_id_weight, job_url,job_domain)
 df_all_can$year <- year(df_all_can$year_month)
 df_all_can$month <- str_sub(as.character(df_all_can$year_month), 1, 3)
 df_all_can$month <- factor(df_all_can$month, levels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"))

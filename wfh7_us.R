@@ -58,12 +58,8 @@ remove(list = ls())
 
 #system("zip -r /mnt/disks/pdisk/bg-us/int_data/us_sequences.zip /mnt/disks/pdisk/bg-us/int_data/sequences/")
 
-# Upload Sequences
-# system("gsutil -m cp -r /mnt/disks/pdisk/bg-us/int_data/sequences/sequences_20221201_20221207.rds gs://for_transfer/sequences_us/")
-# system("gsutil -m cp -r /mnt/disks/pdisk/bg-us/int_data/sequences/sequences_20221124_20221130.rds gs://for_transfer/sequences_us/")
-# system("gsutil -m cp -r /mnt/disks/pdisk/bg-us/int_data/sequences/sequences_20221117_20221123.rds gs://for_transfer/sequences_us/")
-# system("gsutil -m cp -r /mnt/disks/pdisk/bg-us/int_data/sequences/sequences_20221110_20221116.rds gs://for_transfer/sequences_us/")
-# system("gsutil -m cp -r /mnt/disks/pdisk/bg-us/int_data/sequences/sequences_20221103_20221109.rds gs://for_transfer/sequences_us/")
+# Download WHAM Predictions
+#system("gsutil -m cp -r gs://for_transfer/wham/US /mnt/disks/pdisk/bg-us/int_data/wham_pred")
 
 #### END ####
 
@@ -233,13 +229,12 @@ system("echo sci2007! | sudo -S shutdown -h now")
 
 #### EXTRACT SOURCE AND URL AND SAVE ####
 # remove(list = ls())
-# year <- 2022
 # paths <- list.files("./raw_data/text/", pattern = "*.zip", full.names = T)
-# paths <- paths[grepl(paste0(year), paths)]
-# 
 # source("/mnt/disks/pdisk/bgt_code_repo/old/safe_mclapply.R")
 # 
-# df <- safe_mclapply(1:length(paths), function(i) {
+# lapply(2014:2022, function(year) {
+#   paths <- paths[grepl(paste0(year), paths)]
+#   df <- safe_mclapply(1:length(paths), function(i) {
 #     name <- str_sub(paths[i], -21, -5)
 #     name
 #     warning(paste0("\nBEGIN: ",i,"  '",name,"'"))
@@ -250,25 +245,24 @@ system("echo sci2007! | sudo -S shutdown -h now")
 #     #try( {
 #     df_xml <- read_xml(xml_path) %>%
 #       xml_find_all(., ".//Job")
-# 
+#     
 #     df_job_id <- xml_find_all(df_xml, ".//JobID") %>% xml_text
-#     df_job_url <- xml_find_all(df_xml, ".//JobDomain") %>% xml_text
+#     df_job_url <- xml_find_all(df_xml, ".//JobURL") %>% xml_text
 #     df_job_domain <- xml_find_all(df_xml, ".//JobDomain") %>% xml_text
-# 
+#     
 #     remove("df_xml")
-# 
-#     df <- data.table(job_id = df_job_id, job_domain = df_job_domain, job_url = df_job_domain, stringsAsFactors = FALSE)
-# 
+#     
+#     df <- data.table(job_id = df_job_id, job_domain = df_job_domain, job_url = df_job_url, stringsAsFactors = FALSE)
+#     head(df)
 #     unlink(xml_path)
-# 
+#     
 #     warning(paste0("SUCCESS: ",i))
 #     cat(paste0("\nSUCCESS: ",i,"\n"))
 #     return(df)
-# }, mc.cores = 4)
-# 
-# df <- rbindlist(df)
-# 
-# fwrite(df, file = paste0("./int_data/sources/us_src_",year,"_wfh.csv"))
+#   }, mc.cores = 4)
+#   df <- rbindlist(df)
+#   fwrite(df, file = paste0("./int_data/sources/us_src_",year,"_wfh.csv"))
+# })
 # 
 # #sink()
 # system("echo sci2007! | sudo -S shutdown -h now")
@@ -277,7 +271,8 @@ system("echo sci2007! | sudo -S shutdown -h now")
 #### AGGREGATE WHAM TO JOB AD LEVEL ####
 remove(list = ls())
 paths <- list.files("./int_data/wham_pred", pattern = "*.txt", full.names = T)
-paths <- paths[grepl("2019|2020|2021|2022", paths)]
+paths <- paths[grepl("2014|2015|2016|2017|2018|2019|2020|2021|2022", paths)]
+paths
 source("/mnt/disks/pdisk/bgt_code_repo/old/safe_mclapply.R")
 
 df_wham <- safe_mclapply(1:length(paths), function(i) {
@@ -290,21 +285,35 @@ df_wham <- safe_mclapply(1:length(paths), function(i) {
 
 df_wham <- rbindlist(df_wham)
 
+df_wham_old <- fread("/mnt/disks/pdisk/bg_combined/int_data/subsample_wham/df_ss_wham.csv") %>%
+  .[country == "US"] %>%
+  .[year %in% c(2014:2018)]
+
+df_wham <- df_wham %>%
+  .[, job_id := as.numeric(job_id)]
+
+df_wham_old <- df_wham_old %>%
+  .[, job_id := as.numeric(job_id)]
+
+df_wham <- bind_rows(df_wham_old, df_wham) %>% setDT(.)
+
+rm(df_wham_old)
+
 df_wham <- df_wham %>%
   .[, wfh := as.numeric(wfh_prob>0.5)] %>%
   .[, wfh_prob := round(wfh_prob, 3)]
 
 df_wham <- df_wham %>%
-  .[, job_id := as.numeric(job_id)]
-
-df_wham <- df_wham %>%
   rename(wfh_wham_prob = wfh_prob,
          wfh_wham = wfh)
+
+df_wham <- df_wham %>%
+  unique(., by = "job_id")
 #### /END ####
 
 #### LOAD SRC ####
 paths <- list.files("./int_data/sources/", pattern = "*.csv", full.names = T)
-paths <- paths[grepl("2019|2020|2021|2022", paths)]
+paths <- paths[grepl("2014|2015|2016|2017|2018|2019|2020|2021|2022", paths)]
 source("/mnt/disks/pdisk/bgt_code_repo/old/safe_mclapply.R")
 
 df_src <- safe_mclapply(1:length(paths), function(i) {
@@ -313,59 +322,30 @@ df_src <- safe_mclapply(1:length(paths), function(i) {
   return(df)
 }, mc.cores = 1) %>%
   rbindlist(.)
+
+df_src <- df_src %>%
+  .[, job_id := as.numeric(job_id)]
+
+nrow(df_src) # 265,912,726
+df_src <- df_src %>%
+  unique(., by = "job_id")
+nrow(df_src) # 263,438,320
+
 #### END ####
-
-#### AGGREGATE DICTIONARY TO JOB AD LEVEL ####
-# paths <- list.files("./int_data/wfh_v8", pattern = "*.rds", full.names = T)
-# paths <- paths[grepl("2019|2020|2021|2022", paths)]
-# 
-# source("/mnt/disks/pdisk/code/safe_mclapply.R")
-# 
-# df_oecd <- safe_mclapply(1:length(paths), function(i) {
-#   df <- readRDS(paths[i]) %>%
-#     convert(., to = "data.frame") %>%
-#     rename(seq_id = doc_id) %>%
-#     mutate(wfh = rowSums(.[c(2, 17)], na.rm = TRUE)) %>%
-#     mutate(neg = rowSums(.[c(19, 29)], na.rm = TRUE)) %>%
-#     select(seq_id, wfh, neg) %>%
-#     mutate(wfh_nn = wfh*(1-neg))
-#   
-#   df <- df %>%
-#     setDT(.) %>%
-#     .[, job_id := str_sub(seq_id,1, -6)] %>%
-#     .[, .(wfh = as.numeric(max(wfh)>0), wfh_nn = as.numeric(max(wfh_nn)>0)), by = job_id]
-#   warning(paste0("\nDONE: ",i/length(paths)))
-#   return(df)
-# }, mc.cores = 8)
-# 
-# df_oecd <- rbindlist(df_oecd)
-# df_oecd$job_id <- as.numeric(df_oecd$job_id)
-# df_oecd <- df_oecd %>%
-#   rename(wfh_oecd = wfh,
-#          wfh_oecd_nn = wfh_nn)
-#### /END ####
-
+ls()
 #### MERGE WHAM PREDICTIONS INTO THE STRUCTURED DATA AND RESAVE ####
 remove(list = setdiff(ls(), c("df_wham", "df_src")))
 paths <- list.files("/mnt/disks/pdisk/bg-us/raw_data/main", pattern = ".zip", full.names = T)
 paths
 source("/mnt/disks/pdisk/bgt_code_repo/old/safe_mclapply.R")
 
-paths_year <- paths[grepl(2022, paths)]
-
-colnames(fread(cmd = paste0('unzip -p ', paths_year[1]), nrows = 100, nThread = 8, colClasses = "character", stringsAsFactors = FALSE))
-
-colnames(fread("./int_data/us_stru_2022_wfh.csv", nrows = 100, nThread = 8, colClasses = "character", stringsAsFactors = FALSE))
-
 df_wham$job_id <- as.numeric(df_wham$job_id)
 df_src$job_id <- as.numeric(df_src$job_id)
 
-safe_mclapply(2022:2022, function(x) {
-  
+safe_mclapply(2014:2022, function(x) {
+
   paths_year <- paths[grepl(x, paths)]
-  
   df_stru <- safe_mclapply(1:length(paths_year), function(i) {
-    
     warning(paste0("\nSTART: ",i,"\n"))
     warning(paste0(paths_year[i]))
     df <- fread(cmd = paste0('unzip -p ', paths_year[i]), nThread = 8, colClasses = "character", stringsAsFactors = FALSE,
@@ -378,33 +358,25 @@ safe_mclapply(2022:2022, function(x) {
       rename(job_id = bgt_job_id) %>%
       .[, job_id := as.numeric(job_id)] %>%
       .[, job_id := as.numeric(job_id)]
-    
     df[df == "na"] <- NA
     df[df == "-999"] <- NA
     df[df == "-999.00"] <- NA
     df[df == ""] <- NA
-    
     df <- df %>%
       .[, job_ymd := ymd(job_date)] %>%
       .[, year_quarter := as.yearqtr(job_ymd)]
-    
     df <- df %>%
       merge(x = ., y = df_wham, by = "job_id", all.x = TRUE, all.y = FALSE)
-    
     df <- df %>%
       merge(x = ., y = df_src, by = "job_id", all.x = TRUE, all.y = FALSE)
-    
     warning(paste0("\nDONE: ",x,"   ",i))
     return(df)
   }, mc.cores = 1)
-  
+  ls()
   df_stru <- rbindlist(df_stru)
   df_stru <- setDT(df_stru)
-  
   fwrite(df_stru, file = paste0("./int_data/us_stru_",x,"_wfh.csv"), nThread = 8)
-  
   return("")
-  
 }, mc.cores = 1)
 
 #### END ####
@@ -418,9 +390,11 @@ df_us_stru_2022 <- fread("../bg-us/int_data/us_stru_2022_wfh.csv", nThread = 8)
 
 df_all_us <- df_us_stru_2022
 
-#df_all_us
-
 remove(list = setdiff(ls(),"df_all_us"))
+
+colnames(df_all_us)
+
+View(as.data.table(table(as.yearmon(df_all_us[!is.na(wfh_wham) & wfh_wham != ""]$job_ymd))))
 
 df_all_us <- df_all_us %>%
   .[, year_quarter := as.yearqtr(job_ymd)] %>%
@@ -463,7 +437,7 @@ df_all_us <- df_all_us %>%
 df_all_us <- df_all_us %>%
   select(job_id,country,year_month,job_date,wfh_wham_prob,wfh_wham,state,city,msa,fips,county,
          employer,exp, max_exp,degree,min_salary,job_hours,bgt_occ,
-         onet,sector_name,tot_emp_ad,job_id_weight)
+         onet,sector_name,tot_emp_ad,job_id_weight, job_url, job_domain)
 
 # Remove Cannon
 colnames(df_all_us) <- gsub("canon_","", colnames(df_all_us))
@@ -481,7 +455,7 @@ df_all_us <- df_all_us %>% rename(disjoint_sector = sector_name)
 df_all_us <- df_all_us %>% rename(disjoint_salary = min_salary)
 
 # Final Subset
-df_all_us <- df_all_us %>% select(job_id, country, state, msa, county, fips, city, year_month, job_date, wfh_wham_prob,wfh_wham,employer, bgt_occ, onet,  disjoint_exp_max, disjoint_exp_min, job_hours, disjoint_sector, disjoint_degree_name, disjoint_salary, tot_emp_ad, job_id_weight)
+df_all_us <- df_all_us %>% select(job_id, country, state, msa, county, fips, city, year_month, job_date, wfh_wham_prob,wfh_wham,employer, bgt_occ, onet,  disjoint_exp_max, disjoint_exp_min, job_hours, disjoint_sector, disjoint_degree_name, disjoint_salary, tot_emp_ad, job_id_weight, job_url, job_domain)
 df_all_us$year <- year(df_all_us$year_month)
 df_all_us$month <- str_sub(as.character(df_all_us$year_month), 1, 3)
 df_all_us$month <- factor(df_all_us$month, levels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"))
