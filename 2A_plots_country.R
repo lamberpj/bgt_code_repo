@@ -51,95 +51,104 @@ getDTthreads()
 setwd("/mnt/disks/pdisk/bg_combined/")
 
 #### LOAD "ALL" ####
-# df_nz <- fread("./int_data/df_nz_standardised.csv", nThread = 8, integer64 = "numeric")
-# df_aus <- fread("./int_data/df_aus_standardised.csv", nThread = 8, integer64 = "numeric")
-# df_can <- fread("./int_data/df_can_standardised.csv", nThread = 8, integer64 = "numeric")
-# df_uk <- fread("./int_data/df_uk_standardised.csv", nThread = 8, integer64 = "numeric")
-# df_us_2019 <- fread("./int_data/df_us_2019_standardised.csv", nThread = 8, integer64 = "numeric")
-# df_us_2020 <- fread("./int_data/df_us_2020_standardised.csv", nThread = 8, integer64 = "numeric")
-# df_us_2021 <- fread("./int_data/df_us_2021_standardised.csv", nThread = 8, integer64 = "numeric")
-# df_us_2022 <- fread("./int_data/df_us_2022_standardised.csv", nThread = 8, integer64 = "numeric")
-# 
-# df_us <- rbindlist(list(df_us_2014, df_us_2015, df_us_2016, df_us_2017, df_us_2018,df_us_2019,df_us_2020,df_us_2021,df_us_2022))
-# remove(list = c("df_us_2014", "df_us_2015", "df_us_2016", "df_us_2017", "df_us_2018","df_us_2019","df_us_2020","df_us_2021","df_us_2022"))
-# 
-# uniqueN(df_nz$job_id) # 1297812
-# uniqueN(df_aus$job_id) # 4936765
-# uniqueN(df_can$job_id) # 7540054
-# uniqueN(df_uk$job_id) # 36914129
-# uniqueN(df_us$job_id) # 148224554
-# 
-# uniqueN(df_nz$employer) # 27,712
-# uniqueN(df_aus$employer) # 131,995
-# uniqueN(df_can$employer) # 586,165
-# uniqueN(df_uk$employer) # 619,641
-# uniqueN(df_us$employer) # 3,262,838
-# 
-# df_nz <- df_nz %>% .[, city_state := paste0(city,"_",state)]
-# df_aus <- df_aus %>% .[, city_state := paste0(city,"_",state)]
-# df_can <- df_can %>% .[, city_state := paste0(city,"_",state)]
-# df_uk <- df_uk %>% .[, city_state := paste0(city,"_",state)]
-# df_us <- df_us %>% .[, city_state := paste0(city,"_",state)]
-# 
-# uniqueN(df_nz$city_state) # 67
-# uniqueN(df_aus$city_state) # 57
-# uniqueN(df_can$city_state) # 3,653
-# uniqueN(df_uk$city_state) # 2,249
-# uniqueN(df_us$city_state) # 31,568
-# 
-# df_nz <- df_nz %>% .[!grepl("mercadojobs", job_url)]
-# df_can <- df_can %>% .[!grepl("workopolis", job_url)]
-# df_can <- df_can %>% .[!grepl("careerjet", job_url)]
-# df_uk <- df_uk %>% .[!grepl("jobisjob", job_url)]
-# df_us <- df_us %>% .[!grepl("careerbuilder", job_url)]
-# 
-# df_all_list <- list(df_nz,df_aus,df_can,df_uk,df_us)
-# remove(list = setdiff(ls(), "df_all_list"))
-# #### END ####
-# 
-# df_all_list <- lapply(df_all_list, function(x) {
-#   x <- x %>% select(country, state, wfh_wham, job_date, bgt_occ, month, narrow_result, neg_narrow_result, job_id_weight)
-#   return(x)
-# })
-# 
-# save(df_all_list, file = "./aux_data/df_all_list.RData")
+df_nz <- fread("./int_data/df_nz_standardised.csv", nThread = 8, integer64 = "numeric", select = c("country", "state", "city", "wfh_wham", "job_date", "bgt_occ", "month", "job_id_weight", "job_url")) %>% mutate(country = "NZ") %>% setDT()
+df_aus <- fread("./int_data/df_aus_standardised.csv", nThread = 8, integer64 = "numeric", select = c("country", "state", "city", "wfh_wham", "job_date", "bgt_occ", "month", "job_id_weight", "job_url")) %>% mutate(country = "Australia") %>% setDT()
+df_can <- fread("./int_data/df_can_standardised.csv", nThread = 8, integer64 = "numeric", select = c("country", "state", "city", "wfh_wham", "job_date", "bgt_occ", "month", "job_id_weight", "job_url")) %>% mutate(country = "Canada") %>% setDT()
+df_uk <- fread("./int_data/df_uk_standardised.csv", nThread = 8, integer64 = "numeric", select = c("country", "state", "city", "wfh_wham", "job_date", "bgt_occ", "month", "job_id_weight", "job_url")) %>% mutate(country = "UK") %>% setDT()
+df_us_2014 <- fread("./int_data/df_us_2014_standardised.csv", nThread = 8, integer64 = "numeric", select = c("country", "state", "city", "wfh_wham", "job_date", "bgt_occ", "month", "job_id_weight", "job_url")) %>% mutate(country = "US") %>% setDT()
+df_us_2015 <- fread("./int_data/df_us_2015_standardised.csv", nThread = 8, integer64 = "numeric", select = c("country", "state", "city", "wfh_wham", "job_date", "bgt_occ", "month", "job_id_weight", "job_url")) %>% mutate(country = "US") %>% setDT()
+df_us_2016 <- fread("./int_data/df_us_2016_standardised.csv", nThread = 8, integer64 = "numeric", select = c("country", "state", "city", "wfh_wham", "job_date", "bgt_occ", "month", "job_id_weight", "job_url")) %>% mutate(country = "US") %>% setDT()
+df_us_2017 <- fread("./int_data/df_us_2017_standardised.csv", nThread = 8, integer64 = "numeric", select = c("country", "state", "city", "wfh_wham", "job_date", "bgt_occ", "month", "job_id_weight", "job_url")) %>% mutate(country = "US") %>% setDT()
+df_us_2018 <- fread("./int_data/df_us_2018_standardised.csv", nThread = 8, integer64 = "numeric", select = c("country", "state", "city", "wfh_wham", "job_date", "bgt_occ", "month", "job_id_weight", "job_url")) %>% mutate(country = "US") %>% setDT()
+df_us_2019 <- fread("./int_data/df_us_2019_standardised.csv", nThread = 8, integer64 = "numeric", select = c("country", "state", "city", "wfh_wham", "job_date", "bgt_occ", "month", "job_id_weight", "job_url")) %>% mutate(country = "US") %>% setDT()
+df_us_2020 <- fread("./int_data/df_us_2020_standardised.csv", nThread = 8, integer64 = "numeric", select = c("country", "state", "city", "wfh_wham", "job_date", "bgt_occ", "month", "job_id_weight", "job_url")) %>% mutate(country = "US") %>% setDT()
+df_us_2021 <- fread("./int_data/df_us_2021_standardised.csv", nThread = 8, integer64 = "numeric", select = c("country", "state", "city", "wfh_wham", "job_date", "bgt_occ", "month", "job_id_weight", "job_url")) %>% mutate(country = "US") %>% setDT()
+df_us_2022 <- fread("./int_data/df_us_2022_standardised.csv", nThread = 8, integer64 = "numeric", select = c("country", "state", "city", "wfh_wham", "job_date", "bgt_occ", "month", "job_id_weight", "job_url")) %>% mutate(country = "US") %>% setDT()
+
+df_us <- rbindlist(list(df_us_2014, df_us_2015, df_us_2016, df_us_2017, df_us_2018,df_us_2019,df_us_2020,df_us_2021,df_us_2022))
+remove(list = c("df_us_2014", "df_us_2015", "df_us_2016", "df_us_2017", "df_us_2018","df_us_2019","df_us_2020","df_us_2021","df_us_2022"))
+
+uniqueN(df_nz$job_id) # 1297812
+uniqueN(df_aus$job_id) # 4936765
+uniqueN(df_can$job_id) # 7540054
+uniqueN(df_uk$job_id) # 36914129
+uniqueN(df_us$job_id) # 148224554
+
+uniqueN(df_nz$employer) # 27,712
+uniqueN(df_aus$employer) # 131,995
+uniqueN(df_can$employer) # 586,165
+uniqueN(df_uk$employer) # 619,641
+uniqueN(df_us$employer) # 3,262,838
+
+df_nz <- df_nz %>% .[, city_state := paste0(city,"_",state)]
+df_aus <- df_aus %>% .[, city_state := paste0(city,"_",state)]
+df_can <- df_can %>% .[, city_state := paste0(city,"_",state)]
+df_uk <- df_uk %>% .[, city_state := paste0(city,"_",state)]
+df_us <- df_us %>% .[, city_state := paste0(city,"_",state)]
+
+uniqueN(df_nz$city_state) # 67
+uniqueN(df_aus$city_state) # 57
+uniqueN(df_can$city_state) # 3,653
+uniqueN(df_uk$city_state) # 2,249
+uniqueN(df_us$city_state) # 31,568
+
+df_nz <- df_nz %>% .[!grepl("mercadojobs", job_url)]
+df_can <- df_can %>% .[!grepl("workopolis", job_url)]
+df_can <- df_can %>% .[!grepl("careerjet", job_url)]
+df_uk <- df_uk %>% .[!grepl("jobisjob", job_url)]
+df_us <- df_us %>% .[!grepl("careerbuilder", job_url)]
+
+df_all_list <- list(df_nz,df_aus,df_can,df_uk,df_us)
+remove(list = setdiff(ls(), "df_all_list"))
+#### END ####
+
+df_all_list <- lapply(df_all_list, function(x) {
+  x <- x %>% select(country, state, wfh_wham, job_date, bgt_occ, month, job_id_weight)
+  return(x)
+})
+
+save(df_all_list, file = "./aux_data/df_all_list.RData")
 load(file = "./aux_data/df_all_list.RData")
 
 #### PREPARE DATA ####
 # Make Unweighted daily shares
-wfh_daily_share_list <- lapply(df_all_list, function(x) {
-  x <- x %>% select(country, wfh_wham, job_date, bgt_occ, month, narrow_result, neg_narrow_result, job_id_weight)
-  x <- x[!is.na(wfh_wham)]
-  x <- x[!is.na(bgt_occ)]
-  x <- x[, month := factor(month, levels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"))]
-  x <- x[, job_ymd := ymd(job_date)]
-  x <- x[, year_month := as.yearmon(job_ymd)]
-  x <- x[, year := year(job_ymd)]
-  x <- setDT(x)
-  x <- x %>%
-    select(country, job_date, year_month, year, wfh_wham, job_id_weight) %>%
-    setDT(.) %>%
-    .[, .(wfh_sum = sum(job_id_weight*wfh_wham, na.rm = T), job_ads_sum = sum(job_id_weight, na.rm = T)), by = .(country, job_date, year_month, year)] %>%
-    .[, wfh_share := wfh_sum / job_ads_sum] %>%
-    setDT(.)
-  return(x)
-})
-wfh_daily_share <- rbindlist(wfh_daily_share_list)
-rm("wfh_daily_share_list")
-wfh_daily_share <- wfh_daily_share %>% rename(daily_share = wfh_share, N = job_ads_sum)
-fwrite(wfh_daily_share, file = "./int_data/country_daily_wfh.csv")
+# wfh_daily_share_list <- lapply(df_all_list, function(x) {
+#   x <- x %>% select(country, wfh_wham, job_date, bgt_occ, month, job_id_weight)
+#   x <- x[!is.na(wfh_wham)]
+#   x <- x[!is.na(bgt_occ)]
+#   x <- x[, month := factor(month, levels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"))]
+#   x <- x[, job_ymd := ymd(job_date)]
+#   x <- x[, year_month := as.yearmon(job_ymd)]
+#   x <- x[, year := year(job_ymd)]
+#   x <- setDT(x)
+#   x <- x %>%
+#     select(country, job_date, year_month, year, wfh_wham, job_id_weight) %>%
+#     setDT(.) %>%
+#     .[, .(wfh_sum = sum(job_id_weight*wfh_wham, na.rm = T), job_ads_sum = sum(job_id_weight, na.rm = T)), by = .(country, job_date, year_month, year)] %>%
+#     .[, wfh_share := wfh_sum / job_ads_sum] %>%
+#     setDT(.)
+#   return(x)
+# })
+# 
+# wfh_daily_share <- rbindlist(wfh_daily_share_list)
+# rm("wfh_daily_share_list")
+# table(wfh_daily_share$country)
+# wfh_daily_share <- wfh_daily_share %>% rename(daily_share = wfh_share, N = job_ads_sum)
+# saveRDS(wfh_daily_share, file = "./int_data/country_daily_wfh.rds")
 
 # Filter Unweighted daily shares
-wfh_daily_share <- fread(file = "./int_data/country_daily_wfh.csv")
-
+wfh_daily_share <- readRDS(file = "./int_data/country_daily_wfh.rds")
+table(wfh_daily_share$country)
 ts_for_plot <- wfh_daily_share %>%
   .[, job_date := ymd(job_date)] %>%
-  .[as.yearmon(year_month) <= as.yearmon(ymd("20220601"))] %>%
+  .[as.yearmon(year_month) <= as.yearmon(ymd("20221101"))] %>%
   .[, l1o_monthly_mean := (sum(daily_share*N)-daily_share*N)/(sum(N) - N), by = .(country, year_month)] %>%
   .[, monthly_mean := sum(daily_share*N)/(sum(N)), by = .(country, year_month)] %>%
   .[, l1o_keep := ifelse(abs(monthly_mean - l1o_monthly_mean) > 0.02 | abs(log(monthly_mean/l1o_monthly_mean)) > 0.10, 0, 1)] %>%
   .[, l1o_keep := ifelse(as.yearmon(year_month) %in% as.yearmon(ymd(c("20200301", "20200401", "20200501", "20200601"))), 1, l1o_keep)] %>%
   .[, l1o_daily_with_nas := ifelse(l1o_keep == 1, daily_share, NA)]
+
+table(ts_for_plot$country)
 
 dropped_days <- ts_for_plot %>%
   .[l1o_keep == 0] %>%
@@ -171,9 +180,11 @@ ts_for_plot <- ts_for_plot %>%
   pivot_longer(cols = c(monthly_mean:monthly_mean_3ma_l1o)) %>%
   setDT(.)
 
+table(ts_for_plot$country)
+
 # Make Vacancy Weighted Monthly Shares (Using Filters from above)
 wfh_monthly_bgt_occ_share_list <- lapply(df_all_list, function(x) {
-  x <- x %>% select(country, wfh_wham, job_date, bgt_occ, month, narrow_result, neg_narrow_result, job_id_weight)
+  x <- x %>% select(country, wfh_wham, job_date, bgt_occ, month, job_id_weight)
   x <- x[!is.na(wfh_wham)]
   x <- x[!is.na(bgt_occ)]
   x <- x[, bgt_occ5 := str_sub(bgt_occ, 1, 6)]
@@ -195,6 +206,7 @@ wfh_monthly_bgt_occ_share_list <- lapply(df_all_list, function(x) {
     setDT(.)
   return(x)
 })
+
 wfh_monthly_bgt_occ_share <- rbindlist(wfh_monthly_bgt_occ_share_list)
 rm("wfh_monthly_bgt_occ_share_list")
 wfh_monthly_bgt_occ_share <- wfh_monthly_bgt_occ_share %>%
@@ -218,16 +230,17 @@ wfh_monthly_bgt_occ_share <- wfh_monthly_bgt_occ_share %>%
   .[, .(monthly_mean = sum(monthly_share*(share/sum(share, na.rm = T)), na.rm = T)), by = .(country, year_month)]
 
 ts_for_plot_us_weight <- wfh_monthly_bgt_occ_share
-fwrite(ts_for_plot_us_weight, file = "./int_data/ts_for_plot_us_weight")
-1+1
+saveRDS(ts_for_plot_us_weight, file = "./int_data/ts_for_plot_us_weight.rds")
+
 # Filter vacancy-weighted
+ts_for_plot_us_weight <- readRDS(file = "./int_data/ts_for_plot_us_weight.rds")
 remove(list = setdiff(ls(), c("ts_for_plot", "ts_for_plot_us_weight", "df_all_list")))
 
 # Plot unweighted
 cbbPalette <- c("#E69F00", "#009E73", "#CC79A7", "#0072B2", "#D55E00")
 (country_list <- unique(ts_for_plot$country))
 
-ts_for_plot
+head(ts_for_plot)
 
 # Unweighted
 p = ts_for_plot %>%
@@ -241,10 +254,10 @@ p = ts_for_plot %>%
   xlab("Date") +
   scale_x_date(breaks = as.Date(c("2014-01-01", "2015-01-01", "2016-01-01",
                                   "2017-01-01", "2018-01-01", "2019-01-01",
-                                  "2020-01-01", "2021-01-01", "2022-01-01")),
+                                  "2020-01-01", "2021-01-01", "2022-01-01", "2023-01-01")),
                date_labels = '%Y') +
   scale_y_continuous(labels = scales::number_format(accuracy = 1),  breaks = seq(0,30,2)) +
-  coord_cartesian(ylim = c(0, 20)) +
+  coord_cartesian(ylim = c(0, 22)) +
   scale_colour_manual(values=cbbPalette) +
   theme(
     axis.title.x=element_blank(),
@@ -277,7 +290,7 @@ p = ts_for_plot_us_weight %>%
                                   "2020-01-01", "2021-01-01", "2022-01-01")),
                date_labels = '%Y') +
   scale_y_continuous(labels = scales::number_format(accuracy = 1),  breaks = seq(0,30,2)) +
-  coord_cartesian(ylim = c(0, 20)) +
+  coord_cartesian(ylim = c(0, 18)) +
   scale_colour_manual(values=cbbPalette) +
   theme(
     axis.title.x=element_blank(),
@@ -297,7 +310,7 @@ remove(p)
 #### END ####
 
 
-# OLD CODE - OTHER TYPES OF AGGREGATION #
+#### OLD CODE - OTHER TYPES OF AGGREGATION ####
 
 # Aggregate by occupation
 wfh_monthly_share_list <- lapply(df_all_list, function(x) {

@@ -670,28 +670,3 @@ fwrite(df_all_nz, file = "./int_data/df_nz_standardised.csv")
 # })
 
 #### END NEW ZEALAND ####
-
-
-
-
-
-
-
-
-
-
-
-
-
-#### ADD DATA FOR YABRA TO CHECK ####
-remove(list = ls())
-paths <- list.files(path = "/mnt/disks/pdisk/bg-us/int_data", pattern = "2022", full.names = TRUE)
-
-paths
-
-lapply(paths, function(x) {
-  #paste0("gsutil -m cp -r ",x," gs://for_transfer/for_yabra ")
-  system(paste0("gsutil -m cp -r ",x," gs://for_transfer/for_yabra "))
-})
-
-

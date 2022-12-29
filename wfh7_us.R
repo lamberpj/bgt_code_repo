@@ -228,50 +228,51 @@ system("echo sci2007! | sudo -S shutdown -h now")
 #### END ####
 
 #### EXTRACT SOURCE AND URL AND SAVE ####
-# remove(list = ls())
-# paths <- list.files("./raw_data/text/", pattern = "*.zip", full.names = T)
-# source("/mnt/disks/pdisk/bgt_code_repo/old/safe_mclapply.R")
-# 
-# lapply(2014:2022, function(year) {
-#   paths <- paths[grepl(paste0(year), paths)]
-#   df <- safe_mclapply(1:length(paths), function(i) {
-#     name <- str_sub(paths[i], -21, -5)
-#     name
-#     warning(paste0("\nBEGIN: ",i,"  '",name,"'"))
-#     cat(paste0("\nBEGIN: ",i,"  '",name,"'"))
-#     system(paste0("unzip -o ",paths[i]," -d ./raw_data/text/"))
-#     xml_path = gsub(".zip", ".xml", paths[i])
-#     xml_path
-#     #try( {
-#     df_xml <- read_xml(xml_path) %>%
-#       xml_find_all(., ".//Job")
-#     
-#     df_job_id <- xml_find_all(df_xml, ".//JobID") %>% xml_text
-#     df_job_url <- xml_find_all(df_xml, ".//JobURL") %>% xml_text
-#     df_job_domain <- xml_find_all(df_xml, ".//JobDomain") %>% xml_text
-#     
-#     remove("df_xml")
-#     
-#     df <- data.table(job_id = df_job_id, job_domain = df_job_domain, job_url = df_job_url, stringsAsFactors = FALSE)
-#     head(df)
-#     unlink(xml_path)
-#     
-#     warning(paste0("SUCCESS: ",i))
-#     cat(paste0("\nSUCCESS: ",i,"\n"))
-#     return(df)
-#   }, mc.cores = 4)
-#   df <- rbindlist(df)
-#   fwrite(df, file = paste0("./int_data/sources/us_src_",year,"_wfh.csv"))
-# })
-# 
-# #sink()
-# system("echo sci2007! | sudo -S shutdown -h now")
+remove(list = ls())
+paths <- list.files("./raw_data/text/", pattern = "*.zip", full.names = T)
+source("/mnt/disks/pdisk/bgt_code_repo/old/safe_mclapply.R")
+#paths <- paths[grepl("2019", paths)]
+lapply(2014:2018, function(year) {
+  paths <- list.files("./raw_data/text/", pattern = "*.zip", full.names = T)
+  paths <- paths[grepl(paste0(year), paths)]
+  df <- safe_mclapply(1:length(paths), function(i) {
+    name <- str_sub(paths[i], -21, -5)
+    name
+    warning(paste0("\nBEGIN: ",i,"  '",name,"'"))
+    cat(paste0("\nBEGIN: ",i,"  '",name,"'"))
+    system(paste0("unzip -o ",paths[i]," -d ./raw_data/text/"))
+    xml_path = gsub(".zip", ".xml", paths[i])
+    xml_path
+    #try( {
+    df_xml <- read_xml(xml_path) %>%
+      xml_find_all(., ".//Job")
+
+    df_job_id <- xml_find_all(df_xml, ".//JobID") %>% xml_text
+    df_job_url <- xml_find_all(df_xml, ".//JobURL") %>% xml_text
+    df_job_domain <- xml_find_all(df_xml, ".//JobDomain") %>% xml_text
+
+    remove("df_xml")
+
+    df <- data.table(job_id = df_job_id, job_domain = df_job_domain, job_url = df_job_url, stringsAsFactors = FALSE)
+    head(df)
+    unlink(xml_path)
+
+    warning(paste0("SUCCESS: ",i))
+    cat(paste0("\nSUCCESS: ",i,"\n"))
+    return(df)
+  }, mc.cores = 6)
+  df <- rbindlist(df)
+  fwrite(df, file = paste0("./int_data/sources/us_src_",year,"_wfh.csv"))
+})
+
+#sink()
+system("echo sci2007! | sudo -S shutdown -h now")
 #### /END ####
 
 #### AGGREGATE WHAM TO JOB AD LEVEL ####
 remove(list = ls())
 paths <- list.files("./int_data/wham_pred", pattern = "*.txt", full.names = T)
-paths <- paths[grepl("2014|2015|2016|2017|2018|2019|2020|2021|2022", paths)]
+paths <- paths[grepl("2017|2018|2019|2020", paths)]
 paths
 source("/mnt/disks/pdisk/bgt_code_repo/old/safe_mclapply.R")
 
@@ -313,7 +314,7 @@ df_wham <- df_wham %>%
 
 #### LOAD SRC ####
 paths <- list.files("./int_data/sources/", pattern = "*.csv", full.names = T)
-paths <- paths[grepl("2014|2015|2016|2017|2018|2019|2020|2021|2022", paths)]
+paths <- paths[grepl("2017|2018|2019|2020", paths)]
 source("/mnt/disks/pdisk/bgt_code_repo/old/safe_mclapply.R")
 
 df_src <- safe_mclapply(1:length(paths), function(i) {
@@ -342,7 +343,7 @@ source("/mnt/disks/pdisk/bgt_code_repo/old/safe_mclapply.R")
 df_wham$job_id <- as.numeric(df_wham$job_id)
 df_src$job_id <- as.numeric(df_src$job_id)
 
-safe_mclapply(2014:2022, function(x) {
+safe_mclapply(2019:2019, function(x) {
 
   paths_year <- paths[grepl(x, paths)]
   df_stru <- safe_mclapply(1:length(paths_year), function(i) {
@@ -383,18 +384,15 @@ safe_mclapply(2014:2022, function(x) {
 
 #### EXTRACT ANNUAL HARMONISED DATA, manually changing year ####
 remove(list = ls())
-#df_us_stru_2019 <- fread("../bg-us/int_data/us_stru_2019_wfh.csv", nThread = 8)
-#df_us_stru_2020 <- fread("../bg-us/int_data/us_stru_2020_wfh.csv", nThread = 8)
-#df_us_stru_2021 <- fread("../bg-us/int_data/us_stru_2021_wfh.csv", nThread = 8)
-df_us_stru_2022 <- fread("../bg-us/int_data/us_stru_2022_wfh.csv", nThread = 8)
+df_us_stru_2019 <- fread("../bg-us/int_data/us_stru_2019_wfh.csv", nThread = 8) %>% .[!is.na(wfh_wham) & wfh_wham != ""]
 
-df_all_us <- df_us_stru_2022
+df_all_us <- df_us_stru_2019
 
 remove(list = setdiff(ls(),"df_all_us"))
 
 colnames(df_all_us)
 
-View(as.data.table(table(as.yearmon(df_all_us[!is.na(wfh_wham) & wfh_wham != ""]$job_ymd))))
+#View(as.data.table(table(as.yearmon(df_all_us[!is.na(wfh_wham) & wfh_wham != ""]$job_ymd))))
 
 df_all_us <- df_all_us %>%
   .[, year_quarter := as.yearqtr(job_ymd)] %>%
@@ -511,7 +509,7 @@ df_all_us <- df_all_us %>%
   .[order(job_date, job_id)]
 
 # SAVE #
-fwrite(df_all_us, file = "./int_data/df_us_2022_standardised.csv")
+fwrite(df_all_us, file = "./int_data/df_us_2019_standardised.csv")
 
 
 
