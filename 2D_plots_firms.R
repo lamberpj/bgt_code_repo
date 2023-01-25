@@ -98,7 +98,7 @@ p = df_air_man %>%
     axis.text.x = element_text(angle = 0),
     panel.grid.major.y = element_blank(),
     panel.grid.minor.y = element_blank()
-    ) +
+  ) +
   theme(text = element_text(size=15, family="serif", colour = "black"),
         axis.text = element_text(size=14, family="serif", colour = "black"),
         axis.title = element_text(size=15, family="serif", colour = "black"),
@@ -143,7 +143,7 @@ p = df_ins_math %>%
     axis.text.x = element_text(angle = 0),
     panel.grid.major.y = element_blank(),
     panel.grid.minor.y = element_blank()
-    ) +
+  ) +
   theme(text = element_text(size=15, family="serif", colour = "black"),
         axis.text = element_text(size=14, family="serif", colour = "black"),
         axis.title = element_text(size=15, family="serif", colour = "black"),
@@ -173,8 +173,8 @@ df_auto <- df_us %>%
   .[, sumsqrt_N := sum(N^0.5), by = employer] %>%
   .[order(-sumsqrt_N)] %>%
   .[, employer_ord :=
-       factor(employer,
-              levels = rev(c("Honda","General Motors","Ford Motor Company","Tesla")))]
+      factor(employer,
+             levels = rev(c("Honda","General Motors","Ford Motor Company","Tesla")))]
 
 p = df_auto %>%
   ggplot(aes(x = employer_ord, y = wfh_share+0.2, fill = as.factor(period)), group = employer_ord) +
@@ -233,7 +233,7 @@ p = df_accounting_fin_spec_occs %>%
     axis.text.x = element_text(angle = 0),
     panel.grid.major.y = element_blank(),
     panel.grid.minor.y = element_blank()
-    ) +
+  ) +
   theme(text = element_text(size=15, family="serif", colour = "black"),
         axis.text = element_text(size=14, family="serif", colour = "black"),
         axis.title = element_text(size=15, family="serif", colour = "black"),
@@ -652,4 +652,3 @@ r_by_soc2$name <- gsub("/", "and", r_by_soc2$name)
 stargazer(r_by_soc2, summary = FALSE, title = "Spread of Advertised Remote Work Shares, across Firms within SOC2 Occupations (Residualized using NAICS5 + City + SOC Fixed Effects)", rownames = FALSE)
 
 #### END ####
-

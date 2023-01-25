@@ -60,6 +60,7 @@ df_us <- rbindlist(list(df_us_2019,df_us_2021,df_us_2022))
 ls()
 remove(list = c("df_us_2019","df_us_2021","df_us_2022"))
 df_us <- df_us %>% .[!grepl("careerbuilder", job_url)]
+df_us <- df_us[!is.na(job_url) & job_url != ""]
 nrow(df_us)
 df_us <- df_us %>% .[!(onet %in% c("19-2099.01","19-4099.03"))]
 nrow(df_us)
@@ -67,9 +68,14 @@ nrow(df_us)
 #### END ####
 remove(list = setdiff(ls(), "df_us"))
 df_us$year_quarter <- as.yearqtr(df_us$job_date)
+df_us$year_month <- as.yearmon(df_us$job_date)
+table(df_us$year_month)
+
+colnames(df_us)
 
 df_us_oc <- df_us %>%
-  .[year_quarter %in% as.yearqtr(c("2019 Q1", "2019 Q2", "2019 Q3", "2019 Q4", "2021 Q3", "2021 Q4", "2022 Q1", "2022 Q2"))] %>%
+  .[year(job_date) %in% c(2019,2022) | year_month == as.yearmon(ymd("20211201"))] %>%
+  .[year_month != as.yearmon(ymd("20221201"))] %>%
   .[!is.na(soc) & soc != ""] %>%
   .[!is.na(wfh_wham) & wfh_wham != ""] %>%
   .[, soc2 := str_sub(soc, 1, 2)] %>%
@@ -110,7 +116,7 @@ cbbPalette_oc <- c("#000000", "darkorange")
 cbbPalette_ind <- c("#000000", "#F0E442")
 df_us_oc$prop_growth[is.na(df_us_oc$prop_growth)] <- ""
 df_us_oc <- df_us_oc %>%
-  mutate(year = ifelse(year == 2019, "2019", "2021-22"))
+  mutate(year = ifelse(year == 2019, "2019", "2022"))
 
 p = df_us_oc %>%
   #filter(ussoc_2d_wn < 27) %>%
@@ -153,7 +159,8 @@ remove(p)
 remove(list = setdiff(ls(), "df_us"))
 
 df_us_oc <- df_us %>%
-  .[year_quarter %in% as.yearqtr(c("2019 Q1", "2019 Q2", "2019 Q3", "2019 Q4", "2021 Q3", "2021 Q4", "2022 Q1", "2022 Q2"))] %>%
+  .[year(job_date) %in% c(2019,2022) | year_month == as.yearmon(ymd("20211201"))] %>%
+  .[year_month != as.yearmon(ymd("20221201"))] %>%
   .[!is.na(onet) & onet != ""] %>%
   .[!is.na(wfh_wham) & wfh_wham != ""] %>%
   .[, year := year(job_date)] %>%
@@ -167,12 +174,11 @@ df_us_oc <- df_us %>%
   setDT(.)
 
 remove(list = setdiff(ls(), c("df_us", "df_us_oc")))
-
 occupations_workathome <- read_csv("./aux_data/occupations_workathome.csv") %>% rename(onet = onetsoccode)
 df_us_oc
 occupations_workathome
 sum(!(occupations_workathome$onet %in% df_us_oc$onet))
-sum(df_us_oc[year == 2022][!(df_us_oc[year == 2022]$onet %in% occupations_workathome$onet)]$share) # 5.6% of vacs not matches - who cares!
+sum(df_us_oc[year == 2022][!(df_us_oc[year == 2022]$onet %in% occupations_workathome$onet)]$share) # 5.7% of vacs not matches - who cares!
 
 df_us_oc <- df_us_oc %>%
   left_join(occupations_workathome)
@@ -214,7 +220,6 @@ df_us_oc_wide <- df_us_oc_wide %>%
   .[, title_keepA := gsub(", Except Special Education", "", title_keepA)] %>%
   .[, title_keepA := gsub(" & Substance Abuse Social", "", title_keepA)]
 
-
 df_us_oc_wide <- df_us_oc_wide %>%
   .[, title_keepB := ifelse(title %in%
                               c("Registered Nurses", "Pharmacy Technicians", "Roofers", "Travel Agents", "Kindergarten Teachers, Except Special Education",
@@ -236,35 +241,50 @@ p_in <- df_us_oc_wide %>%
 
 head(p_in)
 
-max(p_in[`D&N Classification:` != "Teleworkable"]$wfh_share_2022)
-min(p_in[`D&N Classification:` != "Teleworkable"]$wfh_share_2022)
-mean(p_in[`D&N Classification:` != "Teleworkable"]$wfh_share_2022)
-sd(p_in[`D&N Classification:` != "Teleworkable"]$wfh_share_2022)
-max(p_in[`D&N Classification:` == "Teleworkable"]$wfh_share_2022)
-min(p_in[`D&N Classification:` == "Teleworkable"]$wfh_share_2022)
-mean(p_in[`D&N Classification:` == "Teleworkable"]$wfh_share_2022)
-sd(p_in[`D&N Classification:` == "Teleworkable"]$wfh_share_2022)
+max(p_in[`D&N Classification:` != "Teleworkable"]$wfh_share_2022) # 51.14
+min(p_in[`D&N Classification:` != "Teleworkable"]$wfh_share_2022) # 0
+mean(p_in[`D&N Classification:` != "Teleworkable"]$wfh_share_2022) # 4.904097
+sd(p_in[`D&N Classification:` != "Teleworkable"]$wfh_share_2022) # 6.68691
+max(p_in[`D&N Classification:` == "Teleworkable"]$wfh_share_2022) # 73.71
+min(p_in[`D&N Classification:` == "Teleworkable"]$wfh_share_2022) # 0.3
+mean(p_in[`D&N Classification:` == "Teleworkable"]$wfh_share_2022) # 17.91092
+sd(p_in[`D&N Classification:` == "Teleworkable"]$wfh_share_2022) # 12.16225
 
 scaleFUN <- function(x) {paste0(sprintf('%.2f',round(x, 2)))}
 
-exp(-0.5)
-log(0.25)
-log(0.25)
-0.25-0.125
-p_in$wfh_share_2019
+summary(p_in[wfh_share_2019 > 0.1 & wfh_share_2022 > 0.1]$wfh_share_2019)
+#    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+# 0.110   0.710   2.030   3.730   4.822  40.050
+sd(p_in[wfh_share_2019 > 0.1 & wfh_share_2022 > 0.1]$wfh_share_2019)
+# 4.865484
+summary(p_in$wfh_share_2019)
+# Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+# 0.000   0.550   1.720   3.502   4.660  40.050 
+sd(p_in$wfh_share_2019)
+# 4.798252
+summary(p_in[wfh_share_2019 > 0.1 & wfh_share_2022 > 0.1]$wfh_share_2022)
+# Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+# 0.140   1.877   5.780  10.482  16.282  73.710 
+sd(p_in[wfh_share_2019 > 0.1 & wfh_share_2022 > 0.1]$wfh_share_2022)
+# 11.25498
+summary(p_in$wfh_share_2022)
+# Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+# 0.00    1.60    4.87    9.91   15.28   73.71 
+sd(p_in$wfh_share_2022)
+# 11.15395
 # Scatter plot - logscale
 p = ggplot(data = p_in, aes(x = wfh_share_2019, y = wfh_share_2022,
                 color = `D&N Classification:`, shape = `D&N Classification:`)) +
   scale_color_manual(values = cbbPalette_d_and_n) +
   scale_y_continuous(trans = log_trans(), 
                      labels=scaleFUN,
-                     breaks = c(0.25, 0.5, 1, 2, 4, 8, 16, 32, 64)) +
+                     breaks = c(0.125, 0.25, 0.5, 1, 2, 4, 8, 16, 32, 64)) +
   scale_x_continuous(trans = log_trans(),
                      labels=scaleFUN,
-                     breaks = c(0.25, 0.5, 1, 2, 4, 8, 16, 32, 64)) +
-  geom_point(data = p_in[is.na(title_keepA) & is.na(title_keepB) & wfh_share_2019 > 0.2 & wfh_share_2022 > 0.2], aes(x = wfh_share_2019, y = wfh_share_2022), size = 1.5, stroke = 1, alpha = 0.3)  +
+                     breaks = c(0.125, 0.25, 0.5, 1, 2, 4, 8, 16, 32, 64)) +
+  geom_point(data = p_in[is.na(title_keepA) & is.na(title_keepB) & wfh_share_2019 > 0.1 & wfh_share_2022 > 0.1], aes(x = wfh_share_2019, y = wfh_share_2022), size = 1.5, stroke = 1, alpha = 0.3)  +
   geom_smooth(method=lm, se=FALSE, aes(group=1), colour = "blue", size = 0.8) +
-  geom_point(data = p_in[!is.na(title_keepA) | !is.na(title_keepB) & wfh_share_2019 > 0.2 & wfh_share_2022 > 0.2], aes(x = wfh_share_2019, y = wfh_share_2022), size = 3, stroke = 2) +
+  geom_point(data = p_in[!is.na(title_keepA) | !is.na(title_keepB) & wfh_share_2019 > 0.1 & wfh_share_2022 > 0.1], aes(x = wfh_share_2019, y = wfh_share_2022), size = 3, stroke = 2) +
   stat_poly_eq(aes(group=1, label=paste(..eq.label.., sep = "~~~")),geom="label",alpha=1,method = lm,label.y = log(0.425), label.x = 3.5,
                eq.with.lhs = "plain(log)(y)~`=`~",
                eq.x.rhs = "~plain(log)(italic(x))", colour = "blue", size = 4.5) +
@@ -274,7 +294,7 @@ p = ggplot(data = p_in, aes(x = wfh_share_2019, y = wfh_share_2022,
   xlab("Share (%) (2019)  (Logscale)") +
   #scale_y_continuous(breaks = c(0,1,2,3,4,5)) +
   #scale_x_continuous(breaks = c(0,1,2,3,4,5)) +
-  coord_cartesian(ylim = c(exp(-1.5), exp(4.5)), xlim = c(exp(-1.5), exp(4.5))) +
+  coord_cartesian(ylim = c(exp(-2.1), exp(4.5)), xlim = c(exp(-2.1), exp(4.5))) +
   theme(
     #axis.title.x=element_blank(),
     legend.position="bottom",

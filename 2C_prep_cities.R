@@ -85,19 +85,19 @@ getDTthreads()
 setwd("/mnt/disks/pdisk/bg_combined/")
 
 #### LOAD "ALL" ####
-df_nz <- fread("./int_data/df_nz_standardised.csv", nThread = 8, integer64 = "numeric") %>% .[!is.na(bgt_occ) & bgt_occ != ""] %>% .[!is.na(wfh_wham) & wfh_wham != ""]
-df_aus <- fread("./int_data/df_aus_standardised.csv", nThread = 8, integer64 = "numeric") %>% .[!is.na(bgt_occ) & bgt_occ != ""] %>% .[!is.na(wfh_wham) & wfh_wham != ""]
-df_can <- fread("./int_data/df_can_standardised.csv", nThread = 8, integer64 = "numeric") %>% .[!is.na(bgt_occ) & bgt_occ != ""] %>% .[!is.na(wfh_wham) & wfh_wham != ""]
-df_uk <- fread("./int_data/df_uk_standardised.csv", nThread = 8, integer64 = "numeric") %>% .[!is.na(bgt_occ) & bgt_occ != ""] %>% .[!is.na(wfh_wham) & wfh_wham != ""]
-df_us_2014 <- fread("./int_data/df_us_2014_standardised.csv", nThread = 8, integer64 = "numeric") %>% .[!is.na(bgt_occ) & bgt_occ != ""] %>% .[!is.na(wfh_wham) & wfh_wham != ""]
-df_us_2015 <- fread("./int_data/df_us_2015_standardised.csv", nThread = 8, integer64 = "numeric") %>% .[!is.na(bgt_occ) & bgt_occ != ""] %>% .[!is.na(wfh_wham) & wfh_wham != ""]
-df_us_2016 <- fread("./int_data/df_us_2016_standardised.csv", nThread = 8, integer64 = "numeric") %>% .[!is.na(bgt_occ) & bgt_occ != ""] %>% .[!is.na(wfh_wham) & wfh_wham != ""]
-df_us_2017 <- fread("./int_data/df_us_2017_standardised.csv", nThread = 8, integer64 = "numeric") %>% .[!is.na(bgt_occ) & bgt_occ != ""] %>% .[!is.na(wfh_wham) & wfh_wham != ""]
-df_us_2018 <- fread("./int_data/df_us_2018_standardised.csv", nThread = 8, integer64 = "numeric") %>% .[!is.na(bgt_occ) & bgt_occ != ""] %>% .[!is.na(wfh_wham) & wfh_wham != ""]
-df_us_2019 <- fread("./int_data/df_us_2019_standardised.csv", nThread = 8, integer64 = "numeric") %>% .[!is.na(bgt_occ) & bgt_occ != ""] %>% .[!is.na(wfh_wham) & wfh_wham != ""]
-df_us_2020 <- fread("./int_data/df_us_2020_standardised.csv", nThread = 8, integer64 = "numeric") %>% .[!is.na(bgt_occ) & bgt_occ != ""] %>% .[!is.na(wfh_wham) & wfh_wham != ""]
-df_us_2021 <- fread("./int_data/df_us_2021_standardised.csv", nThread = 8, integer64 = "numeric") %>% .[!is.na(bgt_occ) & bgt_occ != ""] %>% .[!is.na(wfh_wham) & wfh_wham != ""]
-df_us_2022 <- fread("./int_data/df_us_2022_standardised.csv", nThread = 8, integer64 = "numeric") %>% .[!is.na(bgt_occ) & bgt_occ != ""] %>% .[!is.na(wfh_wham) & wfh_wham != ""]
+df_nz <- fread("./int_data/df_nz_standardised.csv", nThread = 8, integer64 = "numeric") %>% .[!is.na(bgt_occ) & bgt_occ != ""] %>% .[!is.na(wfh_wham) & wfh_wham != ""] %>% mutate(country = "NZ") %>% setDT()
+df_aus <- fread("./int_data/df_aus_standardised.csv", nThread = 8, integer64 = "numeric") %>% .[!is.na(bgt_occ) & bgt_occ != ""] %>% .[!is.na(wfh_wham) & wfh_wham != ""] %>% mutate(country = "Australia") %>% setDT()
+df_can <- fread("./int_data/df_can_standardised.csv", nThread = 8, integer64 = "numeric") %>% .[!is.na(bgt_occ) & bgt_occ != ""] %>% .[!is.na(wfh_wham) & wfh_wham != ""] %>% mutate(country = "Canada") %>% setDT()
+df_uk <- fread("./int_data/df_uk_standardised.csv", nThread = 8, integer64 = "numeric") %>% .[!is.na(bgt_occ) & bgt_occ != ""] %>% .[!is.na(wfh_wham) & wfh_wham != ""] %>% mutate(country = "UK") %>% setDT()
+df_us_2014 <- fread("./int_data/df_us_2014_standardised.csv", nThread = 8, integer64 = "numeric") %>% .[!is.na(bgt_occ) & bgt_occ != ""] %>% .[!is.na(wfh_wham) & wfh_wham != ""] %>% mutate(country = "US") %>% setDT()
+df_us_2015 <- fread("./int_data/df_us_2015_standardised.csv", nThread = 8, integer64 = "numeric") %>% .[!is.na(bgt_occ) & bgt_occ != ""] %>% .[!is.na(wfh_wham) & wfh_wham != ""] %>% mutate(country = "US") %>% setDT()
+df_us_2016 <- fread("./int_data/df_us_2016_standardised.csv", nThread = 8, integer64 = "numeric") %>% .[!is.na(bgt_occ) & bgt_occ != ""] %>% .[!is.na(wfh_wham) & wfh_wham != ""] %>% mutate(country = "US") %>% setDT()
+df_us_2017 <- fread("./int_data/df_us_2017_standardised.csv", nThread = 8, integer64 = "numeric") %>% .[!is.na(bgt_occ) & bgt_occ != ""] %>% .[!is.na(wfh_wham) & wfh_wham != ""] %>% mutate(country = "US") %>% setDT()
+df_us_2018 <- fread("./int_data/df_us_2018_standardised.csv", nThread = 8, integer64 = "numeric") %>% .[!is.na(bgt_occ) & bgt_occ != ""] %>% .[!is.na(wfh_wham) & wfh_wham != ""] %>% mutate(country = "US") %>% setDT()
+df_us_2019 <- fread("./int_data/df_us_2019_standardised.csv", nThread = 8, integer64 = "numeric") %>% .[!is.na(bgt_occ) & bgt_occ != ""] %>% .[!is.na(wfh_wham) & wfh_wham != ""] %>% mutate(country = "US") %>% setDT()
+df_us_2020 <- fread("./int_data/df_us_2020_standardised.csv", nThread = 8, integer64 = "numeric") %>% .[!is.na(bgt_occ) & bgt_occ != ""] %>% .[!is.na(wfh_wham) & wfh_wham != ""] %>% mutate(country = "US") %>% setDT()
+df_us_2021 <- fread("./int_data/df_us_2021_standardised.csv", nThread = 8, integer64 = "numeric") %>% .[!is.na(bgt_occ) & bgt_occ != ""] %>% .[!is.na(wfh_wham) & wfh_wham != ""] %>% mutate(country = "US") %>% setDT()
+df_us_2022 <- fread("./int_data/df_us_2022_standardised.csv", nThread = 8, integer64 = "numeric") %>% .[!is.na(bgt_occ) & bgt_occ != ""] %>% .[!is.na(wfh_wham) & wfh_wham != ""] %>% mutate(country = "US") %>% setDT()
 
 df_us <- rbindlist(list(df_us_2014, df_us_2015, df_us_2016, df_us_2017, df_us_2018,df_us_2019,df_us_2020,df_us_2021,df_us_2022))
 remove(list = c("df_us_2014", "df_us_2015", "df_us_2016", "df_us_2017", "df_us_2018","df_us_2019","df_us_2020","df_us_2021","df_us_2022"))
@@ -126,6 +126,12 @@ uniqueN(df_can$city_state) # 3,653
 uniqueN(df_uk$city_state) # 2,249
 uniqueN(df_us$city_state) # 31,568
 
+df_nz <- df_nz[!is.na(job_url) & job_url != ""]
+df_aus <- df_aus[!is.na(job_url) & job_url != ""]
+df_can <- df_can[!is.na(job_url) & job_url != ""]
+df_uk <- df_uk[!is.na(job_url) & job_url != ""]
+df_us <- df_us[!is.na(job_url) & job_url != ""]
+
 df_nz <- df_nz %>% .[!grepl("mercadojobs", job_url)]
 df_can <- df_can %>% .[!grepl("workopolis", job_url)]
 df_can <- df_can %>% .[!grepl("careerjet", job_url)]
@@ -140,7 +146,7 @@ daily_data <- lapply(1:length(df_all_list), function(i) {
     .[city != "" & !is.na(city)] %>%
     .[, .(daily_share = sum(job_id_weight*wfh_wham, na.rm = T)/sum(job_id_weight, na.rm = T), N = sum(job_id_weight)), by = .(country, state, city, year_month, job_date)] %>%
     .[, job_date := ymd(job_date)] %>%
-    .[as.yearmon(year_month) >= as.yearmon(ymd("20170101")) & as.yearmon(year_month) <= as.yearmon(ymd("20220601"))] %>%
+    .[as.yearmon(year_month) >= as.yearmon(ymd("20170101")) & as.yearmon(year_month) <= as.yearmon(ymd("20221101"))] %>%
     .[, city_state := paste0(city, ", ", state)]
 }) %>%
   rbindlist(.)
@@ -149,7 +155,7 @@ daily_data_national <- lapply(1:length(df_all_list), function(i) {
   df_all_list[[i]] %>%
     .[, .(daily_share = sum(job_id_weight*wfh_wham, na.rm = T)/sum(job_id_weight, na.rm = T), N = sum(job_id_weight)), by = .(country, year_month, job_date)] %>%
     .[, job_date := ymd(job_date)] %>%
-    .[as.yearmon(year_month) >= as.yearmon(ymd("20170101")) & as.yearmon(year_month) <= as.yearmon(ymd("20220601"))] %>%
+    .[as.yearmon(year_month) >= as.yearmon(ymd("20170101")) & as.yearmon(year_month) <= as.yearmon(ymd("20221101"))] %>%
     .[, city_state := country]
 }) %>%
   rbindlist(.)
@@ -159,7 +165,7 @@ daily_data_old <- daily_data
 daily_data <- bind_rows(daily_data, daily_data_national)
 
 thresh_cities <- daily_data %>%
-  .[as.yearmon(year_month) >= as.yearmon(ymd("20190101")) & as.yearmon(year_month) <= as.yearmon(ymd("20220601"))] %>%
+  .[as.yearmon(year_month) >= as.yearmon(ymd("20190101")) & as.yearmon(year_month) <= as.yearmon(ymd("20221201"))] %>%
   .[, .(count_for_thresh = sum(N)), by = .(country, city_state)] %>%
   .[order(country, desc(count_for_thresh))] %>%
   .[, rank := 1:.N, by = country] %>%
@@ -190,7 +196,7 @@ check <- daily_data %>%
 
 ts_for_plot <- daily_data %>%
   .[, job_date := ymd(job_date)] %>%
-  .[as.yearmon(year_month) >= as.yearmon(ymd("20180901")) & as.yearmon(year_month) <= as.yearmon(ymd("20220601"))] %>%
+  .[as.yearmon(year_month) >= as.yearmon(ymd("20180901")) & as.yearmon(year_month) <= as.yearmon(ymd("20221201"))] %>%
   #.[count_for_thresh >= 150000] %>%
   .[, l1o_monthly_mean := (sum(daily_share*N)-daily_share*N)/(sum(N) - N), by = .(country, city, state, city_state, year_month)] %>%
   .[, monthly_mean := sum(daily_share*N)/(sum(N)), by = .(country, city, state, city_state, year_month)] %>%
@@ -218,7 +224,7 @@ ts_for_plot <- ts_for_plot %>%
   #.[, monthly_mean_l1o := ifelse(as.yearmon(year_month) %in% as.yearmon(ymd(c("20200301", "20200401", "20200501", "20200601"))), monthly_mean, monthly_mean_l1o)] %>%
   #.[, monthly_mean_3ma := ifelse(as.yearmon(year_month) %in% as.yearmon(ymd(c("20200301", "20200401", "20200501", "20200601"))), monthly_mean, monthly_mean_3ma)] %>%
   #.[, monthly_mean_3ma_l1o := ifelse(as.yearmon(year_month) %in% as.yearmon(ymd(c("20200301", "20200401", "20200501", "20200601"))), monthly_mean, monthly_mean_3ma_l1o)] %>%
-  .[as.yearmon(year_month) >= as.yearmon(ymd("20190101")) & as.yearmon(year_month) <= as.yearmon(ymd("20220601"))]
+  .[as.yearmon(year_month) >= as.yearmon(ymd("20190101")) & as.yearmon(year_month) <= as.yearmon(ymd("20221201"))]
 
 ts_for_plot <- ts_for_plot %>%
   group_by(city, state, city_state, year_month, job_date, N) %>%
