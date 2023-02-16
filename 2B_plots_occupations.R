@@ -104,6 +104,8 @@ df_us_oc <- df_us_oc %>% filter(!is.na(df_us_oc$name))
 df_us_oc <- setDT(df_us_oc)
 df_us_oc$ussoc_2d_wn <- paste0(df_us_oc$name)
 
+saveRDS(df_us_oc)
+
 #### BAR PLOT 2021 vs 2019 ####
 df_us_oc <- df_us_oc %>%
   group_by(ussoc_2d_wn) %>%
@@ -186,6 +188,8 @@ df_us_oc <- df_us_oc %>%
 df_us_oc <- df_us_oc %>% .[!is.na(teleworkable)]
 
 remove(list = setdiff(ls(), c("df_us", "df_us_oc")))
+
+saveRDS(df_us_oc, file = "./int_data/us_onet_wham_2019_vs_2022.rds")
 
 # outliers
 

@@ -61,8 +61,8 @@ df_us <- df_us %>%
   .[employer != "" & !is.na(employer)]
 
 df_us <- df_us %>%
-  .[year(job_date) == 2019 | year(job_date) == 2021 & job_date >= ymd("2021-07-01")| year(job_date) == 2022 & job_date < ymd("2022-07-01")] %>%
-  .[, period := ifelse(year(job_date) == 2019, "2019", "2021-22")]
+  .[year(job_date) == 2019 | year(job_date) == 2022 & job_date < ymd("2022-12-01")| year(job_date) == 2021 & job_date >= ymd("2021-12-01")] %>%
+  .[, period := ifelse(year(job_date) == 2019, "2019", "2022")]
 
 nrow(df_us) # 70,405,086
 df_us <- df_us %>%
@@ -404,9 +404,8 @@ df_us_top_employers_cells <- df_us %>%
 nrow(df_us_top_employers_cells) # 449,399 unbalanced, 198,248 balanced
 
 View(df_us_top_employers_cells[!is.na(dhs_change_N)])
-quantile(df_us_top_employers_cells[period == "2021-22"]$N, probs = c(0.25, 0.5, 0.75, 0.9, 0.95, 0.98, 0.99))
-quantile(df_us_top_employers_cells[period == "2019"]$N, probs = c(0.05, 0.25, 0.5, 0.75, 0.95))
-quantile(df_us_top_employers_cells[period == "2019"]$N, probs = c(0.25, 0.5, 0.75, 0.9, 0.95, 0.98, 0.99))
+quantile(df_us_top_employers_cells[period == "2022"]$N, probs = c(0.25, 0.5, 0.75, 0.9, 0.95, 0.98, 0.99, 0.999, 0.9999, 1))
+quantile(df_us_top_employers_cells[period == "2019"]$N, probs = c(0.25, 0.5, 0.75, 0.9, 0.95, 0.98, 0.99, 0.999, 0.9999, 1))
 
 (ub_N <- quantile(df_us_top_employers_cells[period == "2019"]$N, probs = c(0.97), na.rm = T))
 
@@ -416,19 +415,19 @@ scaleFUN <- function(x) {paste0(round(x, 0))}
 
 p = df_us_top_employers_cells %>%
   filter(period == "2019") %>%
-  filter(N <= 750) %>%
+  filter(N <= 4096) %>%
   ggplot(., aes(y = wfh_share, x = N)) +
   scale_x_continuous(trans = log_trans(), 
                      labels=scaleFUN,
-                     breaks = c(8, 16, 32, 64, 128, 256, 512)) +
+                     breaks = c(8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096)) +
   # stat_summary_bin(bins=150,
   #                  color='grey', size=2, geom='point', alpha = 0.5) +
-  stat_summary_bin(bins=50,
+  stat_summary_bin(bins=30,
                    color='black', size=4, geom='point') +
   ylab("Percent") +
   xlab('Number of Postings') +
   #labs(title = "Binscatter WFH vs Posting Counts", subtitle = "No reweighting, no residualising") +
-  coord_cartesian(ylim = c(2, 4)) +
+  #coord_cartesian(ylim = c(2, 4)) +
   theme(
     #axis.title.x=element_blank(),
     legend.position="bottom",
@@ -446,20 +445,20 @@ p
 save(p, file = "./ppt/ggplots/wfh_share_vs_firm_size_bs1_2019.RData")
 
 p = df_us_top_employers_cells %>%
-  filter(period == "2021-22") %>%
-  filter(N <= 750) %>%
+  filter(period == "2022") %>%
+  filter(N <= 4056) %>%
   ggplot(., aes(y = wfh_share, x = N)) +
   scale_x_continuous(trans = log_trans(), 
                      labels=scaleFUN,
-                     breaks = c(8, 16, 32, 64, 128, 256, 512)) +
+                     breaks = c(8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096)) +
   # stat_summary_bin(bins=150,
   #                  color='grey', size=2, geom='point', alpha = 0.5) +
-  stat_summary_bin(bins=50,
+  stat_summary_bin(bins=30,
                    color='black', size=4, geom='point') +
   ylab("Percent") +
   xlab('Number of Postings') +
   #labs(title = "Binscatter WFH vs Posting Counts", subtitle = "No reweighting, no residualising") +
-  coord_cartesian(ylim = c(7, 12.5)) +
+  #coord_cartesian(ylim = c(2, 4)) +
   theme(
     #axis.title.x=element_blank(),
     legend.position="bottom",
@@ -474,13 +473,13 @@ p = df_us_top_employers_cells %>%
   guides(colour = guide_legend(ncol = 3)) +
   theme(aspect.ratio=3/5)
 p
-save(p, file = "./ppt/ggplots/wfh_share_vs_firm_size_bs1_202122.RData")
+save(p, file = "./ppt/ggplots/wfh_share_vs_firm_size_bs1_2022.RData")
 
-lb_diff_N <- quantile(df_us_top_employers_cells[period == "2021-22" & N < 300]$dhs_change_N, probs = c(0.01), na.rm = T)
-ub_diff_N <- quantile(df_us_top_employers_cells[period == "2021-22" & N < 300]$dhs_change_N, probs = c(0.99), na.rm = T)
+lb_diff_N <- quantile(df_us_top_employers_cells[period == "2022" & N < 300]$dhs_change_N, probs = c(0.01), na.rm = T)
+ub_diff_N <- quantile(df_us_top_employers_cells[period == "2022" & N < 300]$dhs_change_N, probs = c(0.99), na.rm = T)
 
 for_p = df_us_top_employers_cells %>%
-  filter(period == "2021-22") %>%
+  filter(period == "2022") %>%
   filter(N < 750) %>%
   filter(dhs_change_N > lb_diff_N & dhs_change_N < ub_diff_N)
 
@@ -522,7 +521,7 @@ save(p, file = "./ppt/ggplots/wfh_share_vs_firm_size_bs2.RData")
 
 
 df_us_top_employers_cells <- df_us %>%
-  .[period == "2021-22"] %>%
+  .[period == "2022"] %>%
   .[city != "" & !is.na(city) & soc != "" & !is.na(soc) & naics5 != "" & !is.na(naics5)] %>%
   .[, keep := .N > 20, by = employer] %>%
   .[keep == TRUE] %>%
@@ -585,7 +584,7 @@ p = df_us_top_employers_cells_expanded %>%
   stat_summary_bin(bins=500,
                    color='grey', size=2, geom='point', alpha = 0.5) +
   ylab("Share (2022)") +
-  xlab('Number of Postings in 2021-22') +
+  xlab('Number of Postings in 2022') +
   labs(title = "Binscatter WFH vs Posting Counts", subtitle = "No reweighting, residualising wfh share on NAICS5, city and SOC") +
   coord_cartesian(xlim = c(0, 500), ylim = c(30, 70)) +
   theme(

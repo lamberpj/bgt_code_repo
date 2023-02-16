@@ -50,57 +50,6 @@ getDTthreads()
 #quanteda_options(threads = 1)
 setwd("/mnt/disks/pdisk/bg_combined/")
 
-##################################################
-# RESULT
-##################################################
-
-#### 0 REMOTE WORK ACROSS COUNTRIES - UNWEIGHTED ####
-remove(list = ls())
-load(file = "./ppt/ggplots/dict_vs_wham_ts_2019_vac_weights.RData")
-fig_number <- 0
-fig_number_title <- paste0("Figure ", fig_number, ": ")
-fig_short_name <- "wham_vs_dict"
-fig_title <- "Simple Measurement using Dictionary of Keywords is highly biased"
-fig_footnote <- "BLah Blah Blah BLah Blah Blah BLah Blah Blah BLah Blah Blah BLah Blah Blah BLah Blah Blah"
-p_dml <- rvg::dml(ggobj = p)
-ppt <- officer::read_pptx() %>%
-  officer::add_slide(layout = "Title and Content", master = "Office Theme")
-s_s <- slide_size(ppt)
-(s_w <- s_s$width) # width of slides
-(s_h <- s_s$height) # height of slides
-f_w <- 7 # width of figure
-f_h <- 5 # height of figure
-left_f <- (s_w/2) - (f_w/2) 
-top_f <- (s_h/2) - (f_h/2)
-cap_w <- 9
-cap_h <- 3
-left_cap <-  (s_w/2) - (cap_w/2) 
-top_cap <- (s_h/2) + (f_h/2) - 1
-ppt <- ppt %>%
-  ph_with(p_dml, ph_location(left = left_f, top = top_f + 0.15, width = f_w, height = f_h)) %>%
-  ph_with(
-    block_list(
-      fpar(
-        ftext(fig_number_title, prop = fp_text(bold = TRUE, font.size = 20, color = "black")),
-        ftext(fig_title, prop = fp_text(font.size = 20, color = "black")),
-        fp_p = fp_par(text.align = "justify")
-      )
-    ),
-    location = ph_location_type(type = "title")
-  ) %>%
-  ph_with(
-    block_list(
-      fpar(
-        ftext("Note: ", prop = fp_text(bold = TRUE, font.size = 12, color = "black")),
-        ftext(fig_footnote, prop = fp_text(font.size = 12, color = "black")),
-        fp_p = fp_par(text.align = "justify")
-      )
-    ),
-    location = ph_location(left = left_cap, top = top_cap, width = cap_w, height = cap_h))
-try(unlink(paste0("ppt/f",fig_number,"_",fig_short_name,".pptx")))
-base::print(ppt, target = paste0("ppt/f",fig_number,"_",fig_short_name,".pptx"))
-#### END ####
-
 #### 1 REMOTE WORK ACROSS COUNTRIES - UNWEIGHTED ####
 remove(list = ls())
 load(file = "./ppt/ggplots/rwa_country_ts_w_unweighted_month.RData")
@@ -930,7 +879,103 @@ base::print(ppt, target = paste0("ppt/f",fig_number,"_",fig_short_name,".pptx"))
 #### END ####
 
 
+##################################################
+# APPENDIX
+##################################################
 
+#### REMOTE WORK ACROSS COUNTRIES - UNWEIGHTED ####
+remove(list = ls())
+load(file = "./ppt/ggplots/rwa_country_ts_w_unweighted_month.RData")
+fig_number <- "A1"
+fig_number_title <- paste0("Figure ", fig_number, ": ")
+fig_short_name <- "wham_by_country_unweighted"
+fig_title <- "Appendix: Raw Share of Remote Work Vacancies across Countries"
+fig_footnote <- "BLah Blah Blah BLah Blah Blah BLah Blah Blah BLah Blah Blah BLah Blah Blah BLah Blah Blah"
+p_dml <- rvg::dml(ggobj = p)
+ppt <- officer::read_pptx() %>%
+  officer::add_slide(layout = "Title and Content", master = "Office Theme")
+s_s <- slide_size(ppt)
+(s_w <- s_s$width) # width of slides
+(s_h <- s_s$height) # height of slides
+f_w <- 7 # width of figure
+f_h <- 5 # height of figure
+left_f <- (s_w/2) - (f_w/2) 
+top_f <- (s_h/2) - (f_h/2)
+cap_w <- 9
+cap_h <- 3
+left_cap <-  (s_w/2) - (cap_w/2) 
+top_cap <- (s_h/2) + (f_h/2) - 1
+ppt <- ppt %>%
+  ph_with(p_dml, ph_location(left = left_f, top = top_f + 0.15, width = f_w, height = f_h)) %>%
+  ph_with(
+    block_list(
+      fpar(
+        ftext(fig_number_title, prop = fp_text(bold = TRUE, font.size = 20, color = "black")),
+        ftext(fig_title, prop = fp_text(font.size = 20, color = "black")),
+        fp_p = fp_par(text.align = "justify")
+      )
+    ),
+    location = ph_location_type(type = "title")
+  ) %>%
+  ph_with(
+    block_list(
+      fpar(
+        ftext("Note: ", prop = fp_text(bold = TRUE, font.size = 12, color = "black")),
+        ftext(fig_footnote, prop = fp_text(font.size = 12, color = "black")),
+        fp_p = fp_par(text.align = "justify")
+      )
+    ),
+    location = ph_location(left = left_cap, top = top_cap, width = cap_w, height = cap_h))
+try(unlink(paste0("ppt/f",fig_number,"_",fig_short_name,".pptx")))
+base::print(ppt, target = paste0("ppt/f",fig_number,"_",fig_short_name,".pptx"))
+#### END ####
+
+#### REMOTE WORK ACROSS COUNTRIES - JOB WEIGHTED ####
+remove(list = ls())
+load(file = "./ppt/ggplots/rwa_country_ts_w_us_emp_month.RData")
+fig_number <- "A2"
+fig_number_title <- paste0("Figure ", fig_number, ": ")
+fig_short_name <- "wham_by_country_us_emp_weight"
+fig_title <- "Appendix: Share of Remote Work Vacancies across Countries, Reweighted to Match US Employment Occ Dist"
+fig_footnote <- "BLah Blah Blah BLah Blah Blah BLah Blah Blah BLah Blah Blah BLah Blah Blah BLah Blah Blah"
+p_dml <- rvg::dml(ggobj = p)
+ppt <- officer::read_pptx() %>%
+  officer::add_slide(layout = "Title and Content", master = "Office Theme")
+s_s <- slide_size(ppt)
+(s_w <- s_s$width) # width of slides
+(s_h <- s_s$height) # height of slides
+f_w <- 7 # width of figure
+f_h <- 5 # height of figure
+left_f <- (s_w/2) - (f_w/2) 
+top_f <- (s_h/2) - (f_h/2)
+cap_w <- 9
+cap_h <- 3
+left_cap <-  (s_w/2) - (cap_w/2) 
+top_cap <- (s_h/2) + (f_h/2) - 1
+ppt <- ppt %>%
+  ph_with(p_dml, ph_location(left = left_f, top = top_f + 0.15, width = f_w, height = f_h)) %>%
+  ph_with(
+    block_list(
+      fpar(
+        ftext(fig_number_title, prop = fp_text(bold = TRUE, font.size = 20, color = "black")),
+        ftext(fig_title, prop = fp_text(font.size = 20, color = "black")),
+        fp_p = fp_par(text.align = "justify")
+      )
+    ),
+    location = ph_location_type(type = "title")
+  ) %>%
+  ph_with(
+    block_list(
+      fpar(
+        ftext("Note: ", prop = fp_text(bold = TRUE, font.size = 12, color = "black")),
+        ftext(fig_footnote, prop = fp_text(font.size = 12, color = "black")),
+        fp_p = fp_par(text.align = "justify")
+      )
+    ),
+    location = ph_location(left = left_cap, top = top_cap, width = cap_w, height = cap_h))
+try(unlink(paste0("ppt/f",fig_number,"_",fig_short_name,".pptx")))
+base::print(ppt, target = paste0("ppt/f",fig_number,"_",fig_short_name,".pptx"))
+#### END ####
 
 
 

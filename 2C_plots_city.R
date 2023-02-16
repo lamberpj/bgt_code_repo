@@ -391,6 +391,57 @@ p = p_in %>%
   theme(aspect.ratio=3/5)
 p
 save(p, file = "./ppt/ggplots/wfh_pre_post_by_city.RData")
+
+
+# FOR RAF
+p = p_in %>%
+  ggplot(., aes(x = wfh_share_2019, y = wfh_share_2022,
+                color = `country`, shape = `country`)) +
+  scale_color_manual(values = cbbPalette) +
+  scale_y_continuous(trans = log_trans(), 
+                     labels=scaleFUN,
+                     breaks = c(0.25, 0.5, 1, 2, 4, 8, 16, 32, 64)) +
+  scale_x_continuous(trans = log_trans(), 
+                     labels=scaleFUN,
+                     breaks = c(0.25, 0.5, 1, 2, 4, 8, 16, 32, 64)) +
+  geom_point(data = p_in[is.na(title_keep) & wfh_share_2019 > 0.3 & wfh_share_2022 > 2], aes(x = wfh_share_2019, y = wfh_share_2022), size = 1.5, stroke = 1, alpha = 0.3)  +
+  geom_smooth(method=lm, se=FALSE, aes(group=1), colour = "blue", size = 0.8) +
+  geom_point(data = p_in[!is.na(title_keep) & wfh_share_2019 > 0.3 & wfh_share_2022 > 2], aes(x = wfh_share_2019, y = wfh_share_2022), size = 3, stroke = 2) +
+  stat_poly_eq(aes(group=1, label=paste(..eq.label.., sep = "~~~")),geom="label",alpha=1,method = lm,label.y = log(3), label.x = log(14),
+               eq.with.lhs = "plain(log)(y)~`=`~",
+               eq.x.rhs = "~plain(log)(italic(x))", colour = "blue", size = 4.5) +
+  stat_poly_eq(aes(group=1, label=paste(..rr.label.., sep = "~~~")),geom="label",alpha=1,method = lm,label.y = log(2.2), label.x = log(14),
+               colour = "blue", size = 4.5) +
+  ylab("Percent (2022)") +
+  xlab("Percent (2019)") +
+  #scale_y_continuous(breaks = c(0,1,2,3,4,5)) +
+  #scale_x_continuous(breaks = c(0,1,2,3,4,5)) +
+  coord_cartesian(ylim = c(1, 32), xlim = c(1, 32)) +
+  guides(size = "none") +
+  theme(
+    legend.position="bottom"
+  ) +
+  theme(text = element_text(size=15, family="serif", colour = "black"),
+        axis.text = element_text(size=14, family="serif", colour = "black"),
+        axis.title = element_text(size=15, family="serif", colour = "black"),
+        legend.text = element_text(size=14, family="serif", colour = "black"),
+        panel.background = element_rect(fill = "white"),
+        legend.key.width = unit(1,"cm"),
+        legend.title = element_blank()) +
+  scale_shape_manual(values=c(1, 3, 4, 5, 6)) +
+  guides(colour = guide_legend(nrow = 1)) +
+  geom_text_repel(data = p_in[pos == "above"], aes(label = title_keep), 
+                  fontface = "bold", size = 4, max.overlaps = 1000, force_pull = 1, force = 1, box.padding = 0.5,
+                  nudge_y = 0.2, nudge_x = -0.2,
+                  bg.r = 0.15, seed = 1234, show.legend = FALSE) +
+  geom_text_repel(data = p_in[pos == "below"], aes(label = title_keep[pos == "below"]), 
+                  fontface = "bold", size = 4, max.overlaps = 1000, force_pull = 1, force = 1, box.padding = 0.5,
+                  nudge_y = -0.2, nudge_x = -0.2,
+                  bg.r = 0.15, seed = 1234, show.legend = FALSE) +
+  theme(aspect.ratio=3/5)
+p
+
+
 #### END ####
 
 
@@ -471,6 +522,8 @@ library("RColorBrewer")
 pal[8] <- "black"
 
 pal
+
+saveRDS(ts_for_plot_cit, file = "./int_data/city_ts_for_plotly.rds")
 
 p = ts_for_plot_cit %>%
   mutate(lab = ifelse(year_month == max(year_month), paste0("bold(",gsub(" ","",city),")"), NA_character_)) %>%
