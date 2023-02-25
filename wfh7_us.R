@@ -36,10 +36,10 @@ remove(list = ls())
 #### end ####
 
 #### PREPARE DATA ####
-#system("gsutil -m cp -r gs://for_transfer/data_ingest/bgt_upload/US_stru /mnt/disks/pdisk/bg-us/raw_data/main/")
-#system("gsutil -m cp -r gs://for_transfer/data_ingest/bgt_upload/US_raw /mnt/disks/pdisk/bg-us/raw_data/text/")
+# system("gsutil -m cp -r gs://for_transfer/data_ingest/bgt_upload/US_stru /mnt/disks/pdisk/bg-us/raw_data/main/")
+# system("gsutil -m cp -r gs://for_transfer/data_ingest/bgt_upload/US_raw /mnt/disks/pdisk/bg-us/raw_data/text/")
 #system("gsutil -m cp -r gs://for_transfer/wham/US /mnt/disks/pdisk/bg-us/int_data/wham_pred/")
-
+  
 #system("gsutil -m cp -r gs://for_transfer/dict_us /mnt/disks/pdisk/bg-us/int_data/dict/")
 
 #
@@ -60,6 +60,9 @@ remove(list = ls())
 
 #system("zip -r /mnt/disks/pdisk/bg-us/int_data/us_sequences.zip /mnt/disks/pdisk/bg-us/int_data/sequences/")
 
+# Upload Sequences
+#system("gsutil -m cp -r /mnt/disks/pdisk/bg-us/int_data/sequences/sequences_20230209_20230215.rds gs://for_transfer/sequences_us/sequences/")
+
 # Download WHAM Predictions
 #system("gsutil -m cp -r gs://for_transfer/wham/US /mnt/disks/pdisk/bg-us/int_data/wham_pred")
 
@@ -67,13 +70,13 @@ remove(list = ls())
 
 #### GET PATH NAMES TO MAKE SEQUENCES ####
 paths <- list.files("./raw_data/text/", pattern = "*.zip", full.names = T)
-paths <- paths[grepl("2019|2020|2021|2022", paths)]
+paths <- paths[grepl("2019|2020|2021|2022|2023", paths)]
 paths_done <- list.files("./int_data/sequences/", pattern = "*.rds", full.names = F) %>%
   gsub("sequences_", "", .) %>% gsub(".rds", "", .) %>% unique
-paths_done <- paths_done[grepl("2019|2020|2021|2022", paths_done)]
+paths_done <- paths_done[grepl("2019|2020|2021|2022|2023", paths_done)]
 paths_check <- list.files("./raw_data/text/", pattern = "*.zip", full.names = T) %>%
   str_sub(., -21, -5)
-paths_check <- paths_check[grepl("2019|2020|2021|2022", paths_check)]
+paths_check <- paths_check[grepl("2019|2020|2021|2022|2023", paths_check)]
 paths_check[!(paths_check %in% paths_done)]
 paths <- paths[!(paths_check %in% paths_done)]
 remove(list = c("paths_check", "paths_done"))
@@ -91,7 +94,7 @@ safe_mclapply(1:length(paths), function(i) {
   name
   warning(paste0("\nBEGIN: ",i,"  '",name,"'"))
   cat(paste0("\nBEGIN: ",i,"  '",name,"'"))
-  system(paste0("unzip -n ",paths[i]," -d ./raw_data/text/"))
+  system(paste0("unzip -o ",paths[i]," -d ./raw_data/text/"))
   xml_path = gsub(".zip", ".xml", paths[i])
   xml_path
   #try( {
@@ -122,7 +125,7 @@ safe_mclapply(1:length(paths), function(i) {
     # Sequence Tokeniser
     df_chunked <- safe_mclapply(1:length(df_ads), function(j) {
       
-      warning(paste0("\nSTART: ",100*round(j/23, 2)))
+      #warning(paste0("\nSTART: ",100*round(j/length(df_ads))))
       
       df_chunked <- df_ads[[j]] %>%
         .[str_count(job_text, '\\w+')>5] %>%
@@ -205,11 +208,11 @@ safe_mclapply(1:length(paths), function(i) {
         .[, seq_id := paste0(job_id,"_",sprintf("%04d", as.numeric(id_real)))] %>%
         select(job_id, seq_id, sequence, nfeat, nchar)
       
-      warning(paste0("\nDONE: ",100*round(j/23, 2)))
+      warning(paste0("\ndone: ",i,": ",100*round(j/length(df_ads), 2)))
       
       return(df_chunked)
       
-    }, mc.cores = 8)
+    }, mc.cores = 1)
     
     df_chunked <- rbindlist(df_chunked)
     
@@ -223,63 +226,67 @@ safe_mclapply(1:length(paths), function(i) {
   warning(paste0("SUCCESS: ",i))
   cat(paste0("\nSUCCESS: ",i,"\n"))
   return("")
-}, mc.cores = 1)
+}, mc.cores = 2)
 
 #sink()
 system("echo sci2007! | sudo -S shutdown -h now")
 #### END ####
 
 #### EXTRACT SOURCE AND URL AND SAVE ####
-# remove(list = ls())
-# paths <- list.files("./raw_data/text/", pattern = "*.zip", full.names = T)
-# paths_done <- list.files("./int_data/sources/", pattern = "*.csv", full.names = F) %>%
-#   gsub("sources_", "", .) %>% gsub(".csv", "", .) %>% unique
-# paths_check <- list.files("./raw_data/text/", pattern = "*.zip", full.names = T) %>%
-#   str_sub(., -21, -5)
-# paths_check[!(paths_check %in% paths_done)]
-# paths <- paths[!(paths_check %in% paths_done)]
-# remove(list = c("paths_check", "paths_done"))
-# 
-# source("/mnt/disks/pdisk/bgt_code_repo/old/safe_mclapply.R")
-# #paths <- paths[grepl("2019", paths)]
-# df <- safe_mclapply(1:length(paths), function(i) {
-#   name <- str_sub(paths[i], -21, -5)
-#   name
-#   warning(paste0("\nBEGIN: ",i,"  '",name,"'"))
-#   cat(paste0("\nBEGIN: ",i,"  '",name,"'"))
-#   system(paste0("unzip -o ",paths[i]," -d ./raw_data/text/"))
-#   xml_path = gsub(".zip", ".xml", paths[i])
-#   xml_path
-#   #try( {
-#   df_xml <- read_xml(xml_path) %>%
-#     xml_find_all(., ".//Job")
-# 
-#   df_job_id <- xml_find_all(df_xml, ".//JobID") %>% xml_text
-#   df_job_url <- xml_find_all(df_xml, ".//JobURL") %>% xml_text
-#   df_job_domain <- xml_find_all(df_xml, ".//JobDomain") %>% xml_text
-# 
-#   remove("df_xml")
-# 
-#   df <- data.table(job_id = df_job_id, job_domain = df_job_domain, job_url = df_job_url, stringsAsFactors = FALSE)
-# 
-#   unlink(xml_path)
-# 
-#   df <- df %>%
-#     .[(!is.na(df_job_url) & df_job_url != "") | (!is.na(df_job_domain) & df_job_domain != "")]
-# 
-#   fwrite(df, file = paste0("./int_data/sources/sources_",name,".csv"))
-# 
-#   warning(paste0("SUCCESS: ",i))
-#   cat(paste0("\nSUCCESS: ",i,"\n"))
-# 
-#   return("")
-# }, mc.cores = 2)
-# 
-# head(df)
-# 
-# #sink()
-# system("echo sci2007! | sudo -S shutdown -h now")
+remove(list = ls())
+paths <- list.files("./raw_data/text/", pattern = "*.zip", full.names = T)
+paths <- paths[grepl("2019|2020|2021|2022|2023", paths)]
+paths_done <- list.files("./int_data/sources/", pattern = "*.csv", full.names = F) %>%
+  gsub("us_src_", "", .) %>% gsub("_wfh.csv", "", .) %>% unique
+paths_done <- paths_done[grepl("2019|2020|2021|2022|2023", paths_done)]
+paths_check <- list.files("./raw_data/text/", pattern = "*.zip", full.names = T) %>%
+  str_sub(., -21, -5)
+paths_check <- paths_check[grepl("2019|2020|2021|2022|2023", paths_check)]
+paths_check
+paths_done
+paths_check[!(paths_check %in% paths_done)]
+paths <- paths[!(paths_check %in% paths_done)]
+remove(list = c("paths_check", "paths_done"))
+
+paths
+
+#lapply(1:length(paths), function(i) {
+#  file.rename(from = paths[i], to = gsub("uk_src", "us_src", paths[i]))
+#})
+
+paths
+source("/mnt/disks/pdisk/bgt_code_repo/old/safe_mclapply.R")
+
+safe_mclapply(1:length(paths), function(i) {
+    name <- str_sub(paths[i], -21, -5)
+    name
+    warning(paste0("\nBEGIN: ",i,"  '",name,"'"))
+    cat(paste0("\nBEGIN: ",i,"  '",name,"'"))
+    system(paste0("unzip -o ",paths[i]," -d ./raw_data/text/"))
+    xml_path = gsub(".zip", ".xml", paths[i])
+    xml_path
+    #try( {
+    df_xml <- read_xml(xml_path) %>%
+      xml_find_all(., ".//Job")
+
+    df_job_id <- xml_find_all(df_xml, ".//JobID") %>% xml_text
+    df_job_domain <- xml_find_all(df_xml, ".//JobDomain") %>% xml_text
+
+    remove("df_xml")
+
+    df <- data.table(job_id = df_job_id, job_domain = df_job_domain, stringsAsFactors = FALSE)
+
+    unlink(xml_path)
+    fwrite(df, file = paste0("./int_data/sources/us_src_",name,"_wfh.csv"))
+    warning(paste0("SUCCESS: ",i))
+    cat(paste0("\nSUCCESS: ",i,"\n"))
+    return("")
+  }, mc.cores = 4)
+
+#sink()
+system("echo sci2007! | sudo -S shutdown -h now")
 #### /END ####
+
 
 #### AGGREGATE WHAM TO JOB AD LEVEL ####
 remove(list = ls())
@@ -337,10 +344,10 @@ df_src <- safe_mclapply(1:length(paths), function(i) {
 df_src <- df_src %>%
   .[, job_id := as.numeric(job_id)]
 
-nrow(df_src) # 265,912,726
+nrow(df_src) # 314,555,427
 df_src <- df_src %>%
   unique(., by = "job_id")
-nrow(df_src) # 263,438,320
+nrow(df_src) # 314,404,819
 
 #### END ####
 ls()
@@ -353,7 +360,7 @@ source("/mnt/disks/pdisk/bgt_code_repo/old/safe_mclapply.R")
 df_wham$job_id <- as.numeric(df_wham$job_id)
 df_src$job_id <- as.numeric(df_src$job_id)
 
-safe_mclapply(2014:2022, function(x) {
+safe_mclapply(2014:2023, function(x) {
 
   paths_year <- paths[grepl(x, paths)]
   df_stru <- safe_mclapply(1:length(paths_year), function(i) {
@@ -394,9 +401,9 @@ safe_mclapply(2014:2022, function(x) {
 
 #### EXTRACT ANNUAL HARMONISED DATA, manually changing year ####
 remove(list = ls())
-df_us_stru_2014 <- fread("../bg-us/int_data/us_stru_2014_wfh.csv", nThread = 8) %>% .[!is.na(wfh_wham) & wfh_wham != ""]
+df_us_stru_2023 <- fread("../bg-us/int_data/us_stru_2023_wfh.csv", nThread = 8) %>% .[!is.na(wfh_wham) & wfh_wham != ""]
 
-df_all_us <- df_us_stru_2014
+df_all_us <- df_us_stru_2023
 
 remove(list = setdiff(ls(),"df_all_us"))
 
@@ -445,7 +452,7 @@ df_all_us <- df_all_us %>%
 df_all_us <- df_all_us %>%
   select(job_id,country,year_month,job_date,wfh_wham_prob,wfh_wham,state,city,msa,fips,county,
          employer,exp, max_exp,degree,min_salary,job_hours,bgt_occ,
-         onet,sector_name,tot_emp_ad,job_id_weight, job_url, job_domain)
+         onet,sector_name,tot_emp_ad,job_id_weight, job_domain)
 
 # Remove Cannon
 colnames(df_all_us) <- gsub("canon_","", colnames(df_all_us))
@@ -463,7 +470,7 @@ df_all_us <- df_all_us %>% rename(disjoint_sector = sector_name)
 df_all_us <- df_all_us %>% rename(disjoint_salary = min_salary)
 
 # Final Subset
-df_all_us <- df_all_us %>% select(job_id, country, state, msa, county, fips, city, year_month, job_date, wfh_wham_prob,wfh_wham,employer, bgt_occ, onet,  disjoint_exp_max, disjoint_exp_min, job_hours, disjoint_sector, disjoint_degree_name, disjoint_salary, tot_emp_ad, job_id_weight, job_url, job_domain)
+df_all_us <- df_all_us %>% select(job_id, country, state, msa, county, fips, city, year_month, job_date, wfh_wham_prob,wfh_wham,employer, bgt_occ, onet,  disjoint_exp_max, disjoint_exp_min, job_hours, disjoint_sector, disjoint_degree_name, disjoint_salary, tot_emp_ad, job_id_weight, job_domain)
 df_all_us$year <- year(df_all_us$year_month)
 df_all_us$month <- str_sub(as.character(df_all_us$year_month), 1, 3)
 df_all_us$month <- factor(df_all_us$month, levels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"))
@@ -519,7 +526,7 @@ df_all_us <- df_all_us %>%
   .[order(job_date, job_id)]
 
 # SAVE #
-fwrite(df_all_us, file = "./int_data/df_us_2014_standardised.csv")
+fwrite(df_all_us, file = "./int_data/df_us_2023_standardised.csv")
 
 
 

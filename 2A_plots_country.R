@@ -51,75 +51,75 @@ getDTthreads()
 setwd("/mnt/disks/pdisk/bg_combined/")
 
 #### LOAD "ALL" ####
-# df_nz <- fread("./int_data/df_nz_standardised.csv", nThread = 8, integer64 = "numeric", select = c("job_id", "country", "state", "city", "wfh_wham", "job_date", "bgt_occ", "month", "employer", "job_id_weight", "tot_emp_ad", "job_url")) %>% mutate(country = "NZ") %>% setDT()
-# df_aus <- fread("./int_data/df_aus_standardised.csv", nThread = 8, integer64 = "numeric", select = c("job_id", "country", "state", "city", "wfh_wham", "job_date", "bgt_occ", "month", "employer", "job_id_weight", "tot_emp_ad", "job_url")) %>% mutate(country = "Australia") %>% setDT()
-# df_can <- fread("./int_data/df_can_standardised.csv", nThread = 8, integer64 = "numeric", select = c("job_id", "country", "state", "city", "wfh_wham", "job_date", "bgt_occ", "month", "employer", "job_id_weight", "tot_emp_ad", "job_url")) %>% mutate(country = "Canada") %>% setDT()
-# df_uk <- fread("./int_data/df_uk_standardised.csv", nThread = 8, integer64 = "numeric", select = c("job_id", "country", "state", "city", "wfh_wham", "job_date", "bgt_occ", "month", "employer", "job_id_weight", "tot_emp_ad", "job_url")) %>% mutate(country = "UK") %>% setDT()
-# df_us_2014 <- fread("./int_data/df_us_2014_standardised.csv", nThread = 8, integer64 = "numeric", select = c("job_id", "country", "state", "city", "wfh_wham", "job_date", "bgt_occ", "month", "employer", "job_id_weight", "tot_emp_ad", "job_url")) %>% mutate(country = "US") %>% setDT()
-# df_us_2015 <- fread("./int_data/df_us_2015_standardised.csv", nThread = 8, integer64 = "numeric", select = c("job_id", "country", "state", "city", "wfh_wham", "job_date", "bgt_occ", "month", "employer", "job_id_weight", "tot_emp_ad", "job_url")) %>% mutate(country = "US") %>% setDT()
-# df_us_2016 <- fread("./int_data/df_us_2016_standardised.csv", nThread = 8, integer64 = "numeric", select = c("job_id", "country", "state", "city", "wfh_wham", "job_date", "bgt_occ", "month", "employer", "job_id_weight", "tot_emp_ad", "job_url")) %>% mutate(country = "US") %>% setDT()
-# df_us_2017 <- fread("./int_data/df_us_2017_standardised.csv", nThread = 8, integer64 = "numeric", select = c("job_id", "country", "state", "city", "wfh_wham", "job_date", "bgt_occ", "month", "employer", "job_id_weight", "tot_emp_ad", "job_url")) %>% mutate(country = "US") %>% setDT()
-# df_us_2018 <- fread("./int_data/df_us_2018_standardised.csv", nThread = 8, integer64 = "numeric", select = c("job_id", "country", "state", "city", "wfh_wham", "job_date", "bgt_occ", "month", "employer", "job_id_weight", "tot_emp_ad", "job_url")) %>% mutate(country = "US") %>% setDT()
-# df_us_2019 <- fread("./int_data/df_us_2019_standardised.csv", nThread = 8, integer64 = "numeric", select = c("job_id", "country", "state", "city", "wfh_wham", "job_date", "bgt_occ", "month", "employer", "job_id_weight", "tot_emp_ad", "job_url")) %>% mutate(country = "US") %>% setDT()
-# df_us_2020 <- fread("./int_data/df_us_2020_standardised.csv", nThread = 8, integer64 = "numeric", select = c("job_id", "country", "state", "city", "wfh_wham", "job_date", "bgt_occ", "month", "employer", "job_id_weight", "tot_emp_ad", "job_url")) %>% mutate(country = "US") %>% setDT()
-# df_us_2021 <- fread("./int_data/df_us_2021_standardised.csv", nThread = 8, integer64 = "numeric", select = c("job_id", "country", "state", "city", "wfh_wham", "job_date", "bgt_occ", "month", "employer", "job_id_weight", "tot_emp_ad", "job_url")) %>% mutate(country = "US") %>% setDT()
-# df_us_2022 <- fread("./int_data/df_us_2022_standardised.csv", nThread = 8, integer64 = "numeric", select = c("job_id", "country", "state", "city", "wfh_wham", "job_date", "bgt_occ", "month", "employer", "job_id_weight", "tot_emp_ad", "job_url")) %>% mutate(country = "US") %>% setDT()
-# 
-# df_us <- rbindlist(list(df_us_2014, df_us_2015, df_us_2016, df_us_2017, df_us_2018,df_us_2019,df_us_2020,df_us_2021,df_us_2022))
-# remove(list = c("df_us_2014", "df_us_2015", "df_us_2016", "df_us_2017", "df_us_2018","df_us_2019","df_us_2020","df_us_2021","df_us_2022"))
-# ls()
-# df_nz <- df_nz %>% .[, city_state := paste0(city,"_",state)]
-# df_aus <- df_aus %>% .[, city_state := paste0(city,"_",state)]
-# df_can <- df_can %>% .[, city_state := paste0(city,"_",state)]
-# df_uk <- df_uk %>% .[, city_state := paste0(city,"_",state)]
-# df_us <- df_us %>% .[, city_state := paste0(city,"_",state)]
-# 
-# sum(df_nz[!is.na(job_url) & job_url != ""]$job_id_weight)/sum(df_nz$job_id_weight) # 0.9999921
-# sum(df_aus[!is.na(job_url) & job_url != ""]$job_id_weight)/sum(df_aus$job_id_weight) # 0.9999474
-# sum(df_can[!is.na(job_url) & job_url != ""]$job_id_weight)/sum(df_can$job_id_weight) # 0.992875
-# sum(df_uk[!is.na(job_url) & job_url != ""]$job_id_weight)/sum(df_uk$job_id_weight) # 0.9998274
-# sum(df_us[!is.na(job_url) & job_url != ""]$job_id_weight)/sum(df_us$job_id_weight) # 0.9998699
-# 
-# df_nz <- df_nz[!is.na(job_url) & job_url != ""]
-# df_aus <- df_aus[!is.na(job_url) & job_url != ""]
-# df_can <- df_can[!is.na(job_url) & job_url != ""]
-# df_uk <- df_uk[!is.na(job_url) & job_url != ""]
-# df_us <- df_us[!is.na(job_url) & job_url != ""]
-# 
-# df_nz <- df_nz %>% .[!grepl("mercadojobs", job_url)]
-# df_can <- df_can %>% .[!grepl("workopolis", job_url)]
-# df_can <- df_can %>% .[!grepl("careerjet", job_url)]
-# df_uk <- df_uk %>% .[!grepl("jobisjob", job_url)]
-# df_us <- df_us %>% .[!grepl("careerbuilder", job_url)]
-# 
-# uniqueN(df_nz$job_id) # 1661036
-# uniqueN(df_aus$job_id) # 8417562
-# uniqueN(df_can$job_id) # 11240014
-# uniqueN(df_uk$job_id) # 72636221
-# uniqueN(df_us$job_id) # 155005465
-# 
-# uniqueN(df_nz$employer) # 34808
-# uniqueN(df_aus$employer) # 191659
-# uniqueN(df_can$employer) # 694456
-# uniqueN(df_uk$employer) # 850958
-# uniqueN(df_us$employer) # 3411302
-# 
-# uniqueN(df_nz$city_state) # 67
-# uniqueN(df_aus$city_state) # 59
-# uniqueN(df_can$city_state) # 3684
-# uniqueN(df_uk$city_state) # 2267
-# uniqueN(df_us$city_state) # 31618
-# 
-# df_all_list <- list(df_nz,df_aus,df_can,df_uk,df_us)
-# remove(list = setdiff(ls(), "df_all_list"))
-# #### END ####
-# 
-# df_all_list <- lapply(df_all_list, function(x) {
-#   x <- x %>% select(country, state, wfh_wham, job_date, bgt_occ, month, job_id_weight, tot_emp_ad)
-#   return(x)
-# })
-# 
-# save(df_all_list, file = "./aux_data/df_all_list.RData")
+df_nz <- fread("./int_data/df_nz_standardised.csv", nThread = 8, integer64 = "numeric", select = c("job_id", "country", "state", "city", "wfh_wham", "job_date", "bgt_occ", "month", "employer", "job_id_weight", "tot_emp_ad", "job_url")) %>% mutate(country = "NZ") %>% setDT()
+df_aus <- fread("./int_data/df_aus_standardised.csv", nThread = 8, integer64 = "numeric", select = c("job_id", "country", "state", "city", "wfh_wham", "job_date", "bgt_occ", "month", "employer", "job_id_weight", "tot_emp_ad", "job_url")) %>% mutate(country = "Australia") %>% setDT()
+df_can <- fread("./int_data/df_can_standardised.csv", nThread = 8, integer64 = "numeric", select = c("job_id", "country", "state", "city", "wfh_wham", "job_date", "bgt_occ", "month", "employer", "job_id_weight", "tot_emp_ad", "job_url")) %>% mutate(country = "Canada") %>% setDT()
+df_uk <- fread("./int_data/df_uk_standardised.csv", nThread = 8, integer64 = "numeric", select = c("job_id", "country", "state", "city", "wfh_wham", "job_date", "bgt_occ", "month", "employer", "job_id_weight", "tot_emp_ad", "job_url")) %>% mutate(country = "UK") %>% setDT()
+df_us_2014 <- fread("./int_data/df_us_2014_standardised.csv", nThread = 8, integer64 = "numeric", select = c("job_id", "country", "state", "city", "wfh_wham", "job_date", "bgt_occ", "month", "employer", "job_id_weight", "tot_emp_ad", "job_url")) %>% mutate(country = "US") %>% setDT()
+df_us_2015 <- fread("./int_data/df_us_2015_standardised.csv", nThread = 8, integer64 = "numeric", select = c("job_id", "country", "state", "city", "wfh_wham", "job_date", "bgt_occ", "month", "employer", "job_id_weight", "tot_emp_ad", "job_url")) %>% mutate(country = "US") %>% setDT()
+df_us_2016 <- fread("./int_data/df_us_2016_standardised.csv", nThread = 8, integer64 = "numeric", select = c("job_id", "country", "state", "city", "wfh_wham", "job_date", "bgt_occ", "month", "employer", "job_id_weight", "tot_emp_ad", "job_url")) %>% mutate(country = "US") %>% setDT()
+df_us_2017 <- fread("./int_data/df_us_2017_standardised.csv", nThread = 8, integer64 = "numeric", select = c("job_id", "country", "state", "city", "wfh_wham", "job_date", "bgt_occ", "month", "employer", "job_id_weight", "tot_emp_ad", "job_url")) %>% mutate(country = "US") %>% setDT()
+df_us_2018 <- fread("./int_data/df_us_2018_standardised.csv", nThread = 8, integer64 = "numeric", select = c("job_id", "country", "state", "city", "wfh_wham", "job_date", "bgt_occ", "month", "employer", "job_id_weight", "tot_emp_ad", "job_url")) %>% mutate(country = "US") %>% setDT()
+df_us_2019 <- fread("./int_data/df_us_2019_standardised.csv", nThread = 8, integer64 = "numeric", select = c("job_id", "country", "state", "city", "wfh_wham", "job_date", "bgt_occ", "month", "employer", "job_id_weight", "tot_emp_ad", "job_url")) %>% mutate(country = "US") %>% setDT()
+df_us_2020 <- fread("./int_data/df_us_2020_standardised.csv", nThread = 8, integer64 = "numeric", select = c("job_id", "country", "state", "city", "wfh_wham", "job_date", "bgt_occ", "month", "employer", "job_id_weight", "tot_emp_ad", "job_url")) %>% mutate(country = "US") %>% setDT()
+df_us_2021 <- fread("./int_data/df_us_2021_standardised.csv", nThread = 8, integer64 = "numeric", select = c("job_id", "country", "state", "city", "wfh_wham", "job_date", "bgt_occ", "month", "employer", "job_id_weight", "tot_emp_ad", "job_url")) %>% mutate(country = "US") %>% setDT()
+df_us_2022 <- fread("./int_data/df_us_2022_standardised.csv", nThread = 8, integer64 = "numeric", select = c("job_id", "country", "state", "city", "wfh_wham", "job_date", "bgt_occ", "month", "employer", "job_id_weight", "tot_emp_ad", "job_url")) %>% mutate(country = "US") %>% setDT()
+
+df_us <- rbindlist(list(df_us_2014, df_us_2015, df_us_2016, df_us_2017, df_us_2018,df_us_2019,df_us_2020,df_us_2021,df_us_2022))
+remove(list = c("df_us_2014", "df_us_2015", "df_us_2016", "df_us_2017", "df_us_2018","df_us_2019","df_us_2020","df_us_2021","df_us_2022"))
+ls()
+df_nz <- df_nz %>% .[, city_state := paste0(city,"_",state)]
+df_aus <- df_aus %>% .[, city_state := paste0(city,"_",state)]
+df_can <- df_can %>% .[, city_state := paste0(city,"_",state)]
+df_uk <- df_uk %>% .[, city_state := paste0(city,"_",state)]
+df_us <- df_us %>% .[, city_state := paste0(city,"_",state)]
+
+sum(df_nz[!is.na(job_url) & job_url != ""]$job_id_weight)/sum(df_nz$job_id_weight) # 0.9999921
+sum(df_aus[!is.na(job_url) & job_url != ""]$job_id_weight)/sum(df_aus$job_id_weight) # 0.9999474
+sum(df_can[!is.na(job_url) & job_url != ""]$job_id_weight)/sum(df_can$job_id_weight) # 0.992875
+sum(df_uk[!is.na(job_url) & job_url != ""]$job_id_weight)/sum(df_uk$job_id_weight) # 0.9998274
+sum(df_us[!is.na(job_url) & job_url != ""]$job_id_weight)/sum(df_us$job_id_weight) # 0.9998699
+
+df_nz <- df_nz[!is.na(job_url) & job_url != ""]
+df_aus <- df_aus[!is.na(job_url) & job_url != ""]
+df_can <- df_can[!is.na(job_url) & job_url != ""]
+df_uk <- df_uk[!is.na(job_url) & job_url != ""]
+df_us <- df_us[!is.na(job_url) & job_url != ""]
+
+df_nz <- df_nz %>% .[!grepl("mercadojobs", job_url)]
+df_can <- df_can %>% .[!grepl("workopolis", job_url)]
+df_can <- df_can %>% .[!grepl("careerjet", job_url)]
+df_uk <- df_uk %>% .[!grepl("jobisjob", job_url)]
+df_us <- df_us %>% .[!grepl("careerbuilder", job_url)]
+
+uniqueN(df_nz$job_id) # 1661036
+uniqueN(df_aus$job_id) # 8417562
+uniqueN(df_can$job_id) # 11240014
+uniqueN(df_uk$job_id) # 72636221
+uniqueN(df_us$job_id) # 155005465
+
+uniqueN(df_nz$employer) # 34808
+uniqueN(df_aus$employer) # 191659
+uniqueN(df_can$employer) # 694456
+uniqueN(df_uk$employer) # 850958
+uniqueN(df_us$employer) # 3411302
+
+uniqueN(df_nz$city_state) # 67
+uniqueN(df_aus$city_state) # 59
+uniqueN(df_can$city_state) # 3684
+uniqueN(df_uk$city_state) # 2267
+uniqueN(df_us$city_state) # 31618
+
+df_all_list <- list(df_nz,df_aus,df_can,df_uk,df_us)
+remove(list = setdiff(ls(), "df_all_list"))
+#### END ####
+
+df_all_list <- lapply(df_all_list, function(x) {
+  x <- x %>% select(country, state, wfh_wham, job_date, bgt_occ, month, job_id_weight, tot_emp_ad)
+  return(x)
+})
+
+save(df_all_list, file = "./aux_data/df_all_list.RData")
 load(file = "./aux_data/df_all_list.RData")
 
 #### PREPARE UNWEIGHTED DATA ####
