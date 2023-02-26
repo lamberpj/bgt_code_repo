@@ -48,30 +48,33 @@ getDTthreads()
 setwd("/mnt/disks/pdisk/bg_combined/")
 
 #### LOAD DATA ####
-# df_nz <- fread("./int_data/df_nz_standardised.csv", nThread = 8, integer64 = "numeric") %>% select(job_id_weight, country, state, city, year, bgt_occ, job_date, wfh_wham, job_url) %>% mutate(country = "NZ") %>% setDT()
-# df_aus <- fread("./int_data/df_aus_standardised.csv", nThread = 8, integer64 = "numeric") %>% select(job_id_weight, country, state, city, year, bgt_occ, job_date, wfh_wham, job_url) %>% mutate(country = "Australia") %>% setDT()
-# df_can <- fread("./int_data/df_can_standardised.csv", nThread = 8, integer64 = "numeric") %>% select(job_id_weight, country, state, city, year, bgt_occ, job_date, wfh_wham, job_url) %>% mutate(country = "Canada") %>% setDT()
-# df_uk <- fread("./int_data/df_uk_standardised.csv", nThread = 8, integer64 = "numeric") %>% select(job_id_weight, country, state, city, year, bgt_occ, job_date, wfh_wham, job_url) %>% mutate(country = "UK") %>% setDT()
-# df_us_2019 <- fread("./int_data/df_us_2019_standardised.csv", nThread = 8, integer64 = "numeric") %>% select(job_id_weight, country, state, city, year, bgt_occ, job_date, wfh_wham, job_url) %>% mutate(country = "US") %>% setDT()
-# df_us_2021 <- fread("./int_data/df_us_2021_standardised.csv", nThread = 8, integer64 = "numeric") %>% select(job_id_weight, country, state, city, year, bgt_occ, job_date, wfh_wham, job_url) %>% mutate(country = "US") %>% setDT()
-# df_us_2022 <- fread("./int_data/df_us_2022_standardised.csv", nThread = 8, integer64 = "numeric") %>% select(job_id_weight, country, state, city, year, bgt_occ, job_date, wfh_wham, job_url) %>% mutate(country = "US") %>% setDT()
+# df_nz <- fread("./int_data/df_nz_standardised.csv", nThread = 8, integer64 = "numeric") %>% select(job_id_weight, country, state, city, year, bgt_occ, job_date, wfh_wham, job_domain) %>% mutate(country = "NZ") %>% setDT()
+# df_aus <- fread("./int_data/df_aus_standardised.csv", nThread = 8, integer64 = "numeric") %>% select(job_id_weight, country, state, city, year, bgt_occ, job_date, wfh_wham, job_domain) %>% mutate(country = "Australia") %>% setDT()
+# df_can <- fread("./int_data/df_can_standardised.csv", nThread = 8, integer64 = "numeric") %>% select(job_id_weight, country, state, city, year, bgt_occ, job_date, wfh_wham, job_domain) %>% mutate(country = "Canada") %>% setDT()
+# df_uk <- fread("./int_data/df_uk_standardised.csv", nThread = 8, integer64 = "numeric") %>% select(job_id_weight, country, state, city, year, bgt_occ, job_date, wfh_wham, job_domain) %>% mutate(country = "UK") %>% setDT()
+# df_us_2019 <- fread("./int_data/df_us_2019_standardised.csv", nThread = 8, integer64 = "numeric") %>% select(job_id_weight, country, state, city, year, bgt_occ, job_date, wfh_wham, job_domain) %>% mutate(country = "US") %>% setDT()
+# df_us_2021 <- fread("./int_data/df_us_2021_standardised.csv", nThread = 8, integer64 = "numeric") %>% select(job_id_weight, country, state, city, year, bgt_occ, job_date, wfh_wham, job_domain) %>% mutate(country = "US") %>% setDT()
+# df_us_2022 <- fread("./int_data/df_us_2022_standardised.csv", nThread = 8, integer64 = "numeric") %>% select(job_id_weight, country, state, city, year, bgt_occ, job_date, wfh_wham, job_domain) %>% mutate(country = "US") %>% setDT()
+# df_us_2023 <- fread("./int_data/df_us_2023_standardised.csv", nThread = 8, integer64 = "numeric") %>% select(job_id_weight, country, state, city, year, bgt_occ, job_date, wfh_wham, job_domain) %>% mutate(country = "US") %>% setDT()
 # 
-# df_nz <- df_nz[!is.na(job_url) & job_url != ""]
-# df_aus <- df_aus[!is.na(job_url) & job_url != ""]
-# df_can <- df_can[!is.na(job_url) & job_url != ""]
-# df_uk <- df_uk[!is.na(job_url) & job_url != ""]
-# df_us_2019 <- df_us_2019 %>% .[!is.na(job_url) & job_url != ""]
-# df_us_2021 <- df_us_2021 %>% .[!is.na(job_url) & job_url != ""]
-# df_us_2022 <- df_us_2022 %>% .[!is.na(job_url) & job_url != ""]
+# df_nz <- df_nz[!is.na(job_domain) & job_domain != ""]
+# df_aus <- df_aus[!is.na(job_domain) & job_domain != ""]
+# df_can <- df_can[!is.na(job_domain) & job_domain != ""]
+# df_uk <- df_uk[!is.na(job_domain) & job_domain != ""]
+# df_us_2019 <- df_us_2019 %>% .[!is.na(job_domain) & job_domain != ""]
+# df_us_2021 <- df_us_2021 %>% .[!is.na(job_domain) & job_domain != ""]
+# df_us_2022 <- df_us_2022 %>% .[!is.na(job_domain) & job_domain != ""]
+# df_us_2023 <- df_us_2023 %>% .[!is.na(job_domain) & job_domain != ""]
 # 
-# df_nz <- df_nz %>% .[!grepl("mercadojobs", job_url)]
-# df_can <- df_can %>% .[!grepl("workopolis", job_url)]
-# df_can <- df_can %>% .[!grepl("careerjet", job_url)]
-# df_uk <- df_uk %>% .[!grepl("jobisjob", job_url)]
-# df_us_2019 <- df_us_2019 %>% .[!grepl("careerbuilder", job_url)]
-# df_us_2021 <- df_us_2021 %>% .[!grepl("careerbuilder", job_url)]
-# df_us_2022 <- df_us_2022 %>% .[!grepl("careerbuilder", job_url)]
-# colnames(df_us_2019)
+# df_nz <- df_nz %>% .[!grepl("mercadojobs", job_domain)]
+# df_can <- df_can %>% .[!grepl("workopolis", job_domain)]
+# df_can <- df_can %>% .[!grepl("careerjet", job_domain)]
+# df_uk <- df_uk %>% .[!grepl("jobisjob", job_domain)]
+# df_us_2019 <- df_us_2019 %>% .[!grepl("careerbuilder", job_domain)]
+# df_us_2021 <- df_us_2021 %>% .[!grepl("careerbuilder", job_domain)]
+# df_us_2022 <- df_us_2022 %>% .[!grepl("careerbuilder", job_domain)]
+# df_us_2023 <- df_us_2023 %>% .[!grepl("careerbuilder", job_domain)]
+# 
 # # Make weights
 # us_2019_weights <- df_us_2019 %>%
 #   .[year == 2019] %>%
@@ -88,8 +91,9 @@ setwd("/mnt/disks/pdisk/bg_combined/")
 # df_us_2019 <- df_us_2019 %>% .[, city_state := paste0(city,"_",state)]
 # df_us_2021 <- df_us_2021 %>% .[, city_state := paste0(city,"_",state)]
 # df_us_2022 <- df_us_2022 %>% .[, city_state := paste0(city,"_",state)]
+# df_us_2023 <- df_us_2023 %>% .[, city_state := paste0(city,"_",state)]
 # 
-# df <- rbindlist(list(df_nz,df_aus,df_can,df_uk,df_us_2019,df_us_2021,df_us_2022))
+# df <- rbindlist(list(df_nz,df_aus,df_can,df_uk,df_us_2019,df_us_2021,df_us_2022,df_us_2023))
 # ls()
 # remove(list = setdiff(ls(), "df"))
 # df$year_quarter <- as.yearqtr(df$job_date)
@@ -101,8 +105,7 @@ setwd("/mnt/disks/pdisk/bg_combined/")
 #   setDT(.)
 # 
 # df <- df %>%
-#   .[year %in% c(2019,2022) | year_month == as.yearmon(ymd("20211201"))] %>%
-#   .[year_month != as.yearmon(ymd("20221201"))] %>%
+#   .[year >= 2019] %>%
 #   .[!is.na(bgt_occ) & bgt_occ != ""]
 # 
 # remove(list = setdiff(ls(), "df"))
@@ -131,16 +134,14 @@ setwd("/mnt/disks/pdisk/bg_combined/")
 # 
 # rm(df_weights_us_2019)
 # 
-# View(df_weights)
-# 
-# nrow(df) # 121,077,597
+# nrow(df) # 195,154,283
 # df <- df %>%
-#   .[, period := ifelse(year == 2019, "2019", "2022")] %>%
 #   .[, bgt_occ5 := str_sub(bgt_occ, 1, 6)] %>%
 #   .[!is.na(bgt_occ5) & bgt_occ5 != ""] %>%
 #   left_join(df_weights) %>%
 #   setDT(.)
-# nrow(df) # 121,077,597
+# 
+# nrow(df) # 195,154,283
 # 
 # df_cit <- df %>%
 #   .[!is.na(city) & city != ""] %>%
@@ -235,7 +236,7 @@ p = ggplot(df_cit_large, aes(x = city_country_fac, y = wfh_share, fill = as.char
         legend.text = element_text(size=14, family="serif", colour = "black"),
         panel.background = element_rect(fill = "white"),
         legend.key.width = unit(1,"cm"),
-        axis.text.y = element_text(hjust=0.5, colour = "black"),
+        axis.text.y = element_text(hjust=1, colour = "black"),
         legend.position = c(0.80, 0.125)) +
   guides(fill = guide_legend(ncol = 1)) +
   coord_flip() +
@@ -321,28 +322,26 @@ p_in <- df_cit_scat %>%
 
 summary(p_in[wfh_share_2019 > 0.3 & wfh_share_2022 > 2]$wfh_share_2019)
 #    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-# 0.3078  2.2036  3.2929  3.6381  4.5148 16.3464 
+# 0.3078  2.2035  3.2929  3.6423  4.5299 16.3464 
 sd(p_in[wfh_share_2019 > 0.3 & wfh_share_2022 > 2]$wfh_share_2019)
-# 2.121171
+# 2.12553
 summary(p_in$wfh_share_2019)
 # Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-# 0.237   2.203   3.282   3.632   4.507  16.346 
+# 0.237   2.201   3.282   3.636   4.522  16.346 
 sd(p_in$wfh_share_2019)
-# 2.124173
+# 2.128519
 summary(p_in[wfh_share_2019 > 0.3 & wfh_share_2022 > 2]$wfh_share_2022)
 #    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-# 2.236   6.356   9.607  10.681  13.760  33.015 
+# 2.262   5.918   8.554   9.616  12.380  27.933 
 sd(p_in[wfh_share_2019 > 0.3 & wfh_share_2022 > 2]$wfh_share_2022)
-# 5.656614
+# 4.847646
 summary(p_in$wfh_share_2022)
 # Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-# 2.107   6.355   9.593  10.666  13.753  33.015 
+# 1.627   5.886   8.544   9.602  12.378  27.933 
 sd(p_in$wfh_share_2022)
-# 5.663226
+# 4.855112
 
 scaleFUN <- function(x) {paste0(sprintf('%.2f',round(x, 2)))}
-
-log(32)
 
 p = p_in %>%
   ggplot(., aes(x = wfh_share_2019, y = wfh_share_2022,
@@ -362,8 +361,8 @@ p = p_in %>%
                eq.x.rhs = "~plain(log)(italic(x))", colour = "blue", size = 4.5) +
   stat_poly_eq(aes(group=1, label=paste(..rr.label.., sep = "~~~")),geom="label",alpha=1,method = lm,label.y = log(2.2), label.x = log(14),
                colour = "blue", size = 4.5) +
-  ylab("Percent (2022)") +
-  xlab("Percent (2019)") +
+  ylab("Share (%) (2022)") +
+  xlab("Share (%) (2019)") +
   #scale_y_continuous(breaks = c(0,1,2,3,4,5)) +
   #scale_x_continuous(breaks = c(0,1,2,3,4,5)) +
   coord_cartesian(ylim = c(2, 32), xlim = c(0.5, 26)) +
@@ -391,56 +390,6 @@ p = p_in %>%
   theme(aspect.ratio=3/5)
 p
 save(p, file = "./ppt/ggplots/wfh_pre_post_by_city.RData")
-
-
-# FOR RAF
-p = p_in %>%
-  ggplot(., aes(x = wfh_share_2019, y = wfh_share_2022,
-                color = `country`, shape = `country`)) +
-  scale_color_manual(values = cbbPalette) +
-  scale_y_continuous(trans = log_trans(), 
-                     labels=scaleFUN,
-                     breaks = c(0.25, 0.5, 1, 2, 4, 8, 16, 32, 64)) +
-  scale_x_continuous(trans = log_trans(), 
-                     labels=scaleFUN,
-                     breaks = c(0.25, 0.5, 1, 2, 4, 8, 16, 32, 64)) +
-  geom_point(data = p_in[is.na(title_keep) & wfh_share_2019 > 0.3 & wfh_share_2022 > 2], aes(x = wfh_share_2019, y = wfh_share_2022), size = 1.5, stroke = 1, alpha = 0.3)  +
-  geom_smooth(method=lm, se=FALSE, aes(group=1), colour = "blue", size = 0.8) +
-  geom_point(data = p_in[!is.na(title_keep) & wfh_share_2019 > 0.3 & wfh_share_2022 > 2], aes(x = wfh_share_2019, y = wfh_share_2022), size = 3, stroke = 2) +
-  stat_poly_eq(aes(group=1, label=paste(..eq.label.., sep = "~~~")),geom="label",alpha=1,method = lm,label.y = log(3), label.x = log(14),
-               eq.with.lhs = "plain(log)(y)~`=`~",
-               eq.x.rhs = "~plain(log)(italic(x))", colour = "blue", size = 4.5) +
-  stat_poly_eq(aes(group=1, label=paste(..rr.label.., sep = "~~~")),geom="label",alpha=1,method = lm,label.y = log(2.2), label.x = log(14),
-               colour = "blue", size = 4.5) +
-  ylab("Percent (2022)") +
-  xlab("Percent (2019)") +
-  #scale_y_continuous(breaks = c(0,1,2,3,4,5)) +
-  #scale_x_continuous(breaks = c(0,1,2,3,4,5)) +
-  coord_cartesian(ylim = c(1, 32), xlim = c(1, 32)) +
-  guides(size = "none") +
-  theme(
-    legend.position="bottom"
-  ) +
-  theme(text = element_text(size=15, family="serif", colour = "black"),
-        axis.text = element_text(size=14, family="serif", colour = "black"),
-        axis.title = element_text(size=15, family="serif", colour = "black"),
-        legend.text = element_text(size=14, family="serif", colour = "black"),
-        panel.background = element_rect(fill = "white"),
-        legend.key.width = unit(1,"cm"),
-        legend.title = element_blank()) +
-  scale_shape_manual(values=c(1, 3, 4, 5, 6)) +
-  guides(colour = guide_legend(nrow = 1)) +
-  geom_text_repel(data = p_in[pos == "above"], aes(label = title_keep), 
-                  fontface = "bold", size = 4, max.overlaps = 1000, force_pull = 1, force = 1, box.padding = 0.5,
-                  nudge_y = 0.2, nudge_x = -0.2,
-                  bg.r = 0.15, seed = 1234, show.legend = FALSE) +
-  geom_text_repel(data = p_in[pos == "below"], aes(label = title_keep[pos == "below"]), 
-                  fontface = "bold", size = 4, max.overlaps = 1000, force_pull = 1, force = 1, box.padding = 0.5,
-                  nudge_y = -0.2, nudge_x = -0.2,
-                  bg.r = 0.15, seed = 1234, show.legend = FALSE) +
-  theme(aspect.ratio=3/5)
-p
-
 
 #### END ####
 
@@ -606,7 +555,7 @@ save(p, file = "./ppt/ggplots/ts_cities_ne_w_s.RData")
 
 #### END ####
 
-#### CITY TIME SERIES PLOTS - UK ####
+#### CITY TIME SERIES PLOTS - UK NOT NOW ####
 # City-level comparisons
 
 # load city plots
@@ -726,12 +675,12 @@ unique(df_acs$acs_ind)
 
 remove(list = setdiff(ls(), "df_acs"))
 
-df <- fread(file = "../bg-us/int_data/us_stru_2022_wfh.csv", select = c("job_id", "job_date","soc","sector_name","city","state","county","fips","msa","wfh_wham","job_url"))
+df <- fread(file = "../bg-us/int_data/us_stru_2022_wfh.csv", select = c("job_id", "job_date","soc","sector_name","city","state","county","fips","msa","wfh_wham","job_domain"))
 df <- df %>% .[!is.na(soc) & !is.na(sector_name) & !is.na(wfh_wham) & !is.na(msa)]
 df <- df %>% .[soc != "" & sector_name != "" & wfh_wham  != "" & msa != ""]
 df <- df %>% .[soc != "" & sector_name != "" & wfh_wham  != "" & msa != ""]
-df <- df %>% .[!grepl("careerbuilder", job_url)]
-df <- df %>% .[!is.na(job_url) & job_url != ""]
+df <- df %>% .[!grepl("careerbuilder", job_domain)]
+df <- df %>% .[!is.na(job_domain) & job_domain != ""]
 
 df <- df %>%
   mutate(acs_ind = case_when(

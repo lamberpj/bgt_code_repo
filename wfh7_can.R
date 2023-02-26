@@ -387,7 +387,7 @@ df_can_stru_2023 <- fread("../bg-can/int_data/can_stru_2023_wfh.csv", nThread = 
 
 df_all_can <- rbindlist(list(df_can_stru_2014,df_can_stru_2015,df_can_stru_2016,df_can_stru_2017,df_can_stru_2018,df_can_stru_2019,df_can_stru_2020,df_can_stru_2021,df_can_stru_2022, df_can_stru_2023))
 remove(list = setdiff(ls(),"df_all_can"))
-
+colnames(df_all_can)
 df_all_can <- df_all_can %>%
   .[, year_quarter := as.yearqtr(job_ymd)] %>%
   .[, year_month := as.yearmon(job_ymd)]
@@ -510,6 +510,7 @@ df_all_can <- df_all_can %>%
 head(df_all_can)
 
 # SAVE #
+colnames(df_all_can)
 fwrite(df_all_can, file = "./int_data/df_can_standardised.csv")
 
 #### END ####

@@ -49,26 +49,24 @@ setwd("/mnt/disks/pdisk/bg_combined/")
 
 colnames(fread("../bg-us/int_data/us_stru_2019_wfh.csv", nThread = 8, nrows = 1000))
 
-df_us_2019 <- fread("../bg-us/int_data/us_stru_2019_wfh.csv", nThread = 8, integer64 = "numeric", select = c("job_id","job_date","soc","employer","sector","sector_name","naics5","naics4","state", "city", "wfh_wham","job_domain","job_url"))
-df_us_2021 <- fread("../bg-us/int_data/us_stru_2021_wfh.csv", nThread = 8, integer64 = "numeric", select = c("job_id","job_date","soc","employer","sector","sector_name","naics5","naics4","state", "city", "wfh_wham","job_domain","job_url"))
-df_us_2022 <- fread("../bg-us/int_data/us_stru_2022_wfh.csv", nThread = 8, integer64 = "numeric", select = c("job_id","job_date","soc","employer","sector","sector_name","naics5","naics4","state", "city", "wfh_wham","job_domain","job_url"))
+df_us_2019 <- fread("../bg-us/int_data/us_stru_2019_wfh.csv", nThread = 8, integer64 = "numeric", select = c("job_id","job_date","soc","employer","sector","sector_name","naics5","naics4","state", "city", "wfh_wham","job_domain"))
+df_us_2022 <- fread("../bg-us/int_data/us_stru_2022_wfh.csv", nThread = 8, integer64 = "numeric", select = c("job_id","job_date","soc","employer","sector","sector_name","naics5","naics4","state", "city", "wfh_wham","job_domain"))
 
-df_us <- rbindlist(list(df_us_2019,df_us_2021,df_us_2022))
+df_us <- rbindlist(list(df_us_2019,df_us_2022))
 
 remove(list = setdiff(ls(), "df_us"))
 
 df_us <- df_us %>%
-  .[employer != "" & !is.na(employer)]
+  .[employer != "" & !is.na(employer)] %>%
+  .[year(job_date) %in% c(2019, 2022)]
 
 df_us <- df_us %>%
-  .[year(job_date) == 2019 | year(job_date) == 2022 & job_date < ymd("2022-12-01")| year(job_date) == 2021 & job_date >= ymd("2021-12-01")] %>%
   .[, period := ifelse(year(job_date) == 2019, "2019", "2022")]
 
-nrow(df_us) # 70,405,086
+nrow(df_us) # 71,348,406
 df_us <- df_us %>%
   .[!grepl("careerbuilder", job_domain)]
 nrow(df_us) # 65,938,081
-ls()
 
 # Boeing, Lockheed Martin, Northrop Grumman, SpaceX.
 #### SPECIFIC EXAMPLES - AEROSPACE MANUF SECTOR MANAGEMENT OCCS ####
@@ -403,11 +401,10 @@ df_us_top_employers_cells <- df_us %>%
 
 nrow(df_us_top_employers_cells) # 449,399 unbalanced, 198,248 balanced
 
-View(df_us_top_employers_cells[!is.na(dhs_change_N)])
-quantile(df_us_top_employers_cells[period == "2022"]$N, probs = c(0.25, 0.5, 0.75, 0.9, 0.95, 0.98, 0.99, 0.999, 0.9999, 1))
-quantile(df_us_top_employers_cells[period == "2019"]$N, probs = c(0.25, 0.5, 0.75, 0.9, 0.95, 0.98, 0.99, 0.999, 0.9999, 1))
+quantile(df_us_top_employers_cells[period == "2022"]$N, probs = c(0.25, 0.5, 0.75, 0.9, 0.95, 0.98, 0.99, 0.995, 0.999, 0.9999, 1))
+quantile(df_us_top_employers_cells[period == "2019"]$N, probs = c(0.25, 0.5, 0.75, 0.9, 0.95, 0.98, 0.99, 0.995, 0.999, 0.9999, 1))
 
-(ub_N <- quantile(df_us_top_employers_cells[period == "2019"]$N, probs = c(0.97), na.rm = T))
+(ub_N <- quantile(df_us_top_employers_cells[period == "2019"]$N, probs = c(0.95), na.rm = T))
 
 head(df_us_top_employers_cells)
 
@@ -415,11 +412,11 @@ scaleFUN <- function(x) {paste0(round(x, 0))}
 
 p = df_us_top_employers_cells %>%
   filter(period == "2019") %>%
-  filter(N <= 4096) %>%
+  filter(N <= 365.65) %>%
   ggplot(., aes(y = wfh_share, x = N)) +
   scale_x_continuous(trans = log_trans(), 
                      labels=scaleFUN,
-                     breaks = c(8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096)) +
+                     breaks = c(8, 16, 32, 64, 128, 256)) +
   # stat_summary_bin(bins=150,
   #                  color='grey', size=2, geom='point', alpha = 0.5) +
   stat_summary_bin(bins=30,
@@ -427,7 +424,7 @@ p = df_us_top_employers_cells %>%
   ylab("Percent") +
   xlab('Number of Postings') +
   #labs(title = "Binscatter WFH vs Posting Counts", subtitle = "No reweighting, no residualising") +
-  #coord_cartesian(ylim = c(2, 4)) +
+  coord_cartesian(xlim = c(8, 366)) +
   theme(
     #axis.title.x=element_blank(),
     legend.position="bottom",
@@ -446,11 +443,11 @@ save(p, file = "./ppt/ggplots/wfh_share_vs_firm_size_bs1_2019.RData")
 
 p = df_us_top_employers_cells %>%
   filter(period == "2022") %>%
-  filter(N <= 4056) %>%
+  filter(N <= 365.65) %>%
   ggplot(., aes(y = wfh_share, x = N)) +
   scale_x_continuous(trans = log_trans(), 
                      labels=scaleFUN,
-                     breaks = c(8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096)) +
+                     breaks = c(8, 16, 32, 64, 128, 256)) +
   # stat_summary_bin(bins=150,
   #                  color='grey', size=2, geom='point', alpha = 0.5) +
   stat_summary_bin(bins=30,
@@ -458,7 +455,7 @@ p = df_us_top_employers_cells %>%
   ylab("Percent") +
   xlab('Number of Postings') +
   #labs(title = "Binscatter WFH vs Posting Counts", subtitle = "No reweighting, no residualising") +
-  #coord_cartesian(ylim = c(2, 4)) +
+  coord_cartesian(xlim = c(8, 366)) +
   theme(
     #axis.title.x=element_blank(),
     legend.position="bottom",
@@ -474,47 +471,6 @@ p = df_us_top_employers_cells %>%
   theme(aspect.ratio=3/5)
 p
 save(p, file = "./ppt/ggplots/wfh_share_vs_firm_size_bs1_2022.RData")
-
-lb_diff_N <- quantile(df_us_top_employers_cells[period == "2022" & N < 300]$dhs_change_N, probs = c(0.01), na.rm = T)
-ub_diff_N <- quantile(df_us_top_employers_cells[period == "2022" & N < 300]$dhs_change_N, probs = c(0.99), na.rm = T)
-
-for_p = df_us_top_employers_cells %>%
-  filter(period == "2022") %>%
-  filter(N < 750) %>%
-  filter(dhs_change_N > lb_diff_N & dhs_change_N < ub_diff_N)
-
-p = ggplot(data = for_p, aes(y = dhs_change_wfh, x = dhs_change_N)) +
-  # geom_point(data=for_p %>% 
-  #              group_by(bins=cut(dhs_change_N,breaks=seq(min(dhs_change_N, na.rm = T),max(dhs_change_N, na.rm = T),length.out=150), include.lowest=FALSE)) %>%
-  #              summarise(x=mean(dhs_change_N, na.rm = T), y=mean(dhs_change_wfh, na.rm = T)),
-  #            aes(x,y), color='grey', size=2, alpha = 0.5) +
-  geom_point(data=for_p %>% 
-               group_by(bins=cut(dhs_change_N,breaks=seq(min(dhs_change_N, na.rm = T),max(dhs_change_N, na.rm = T),length.out=51), include.lowest=FALSE)) %>%
-               summarise(x=mean(dhs_change_N, na.rm = T), y=mean(dhs_change_wfh, na.rm = T)),
-             aes(x,y), size=4, color="black") +
-  scale_y_continuous(breaks = seq(-2,2,0.25)) +
-  scale_x_continuous(breaks = seq(-2,2,1)) +
-  ylab('DHS Difference in Share (%)') +
-  xlab('DHS Difference in Number of Postings') +
-  #labs(title = "Binscatter WFH vs Posting Counts", subtitle = "No reweighting, no residualising") +
-  coord_cartesian(clip = "on", ylim = c(0.7, 1.6), xlim = c(-2, 2)) +
-  theme(
-    #axis.title.x=element_blank(),
-    legend.position="bottom",
-    legend.title = element_blank(),
-    axis.text.x = element_text(angle = 0)) +
-  theme(text = element_text(size=15, family="serif", colour = "black"),
-        axis.text = element_text(size=14, family="serif", colour = "black"),
-        axis.title = element_text(size=15, family="serif", colour = "black"),
-        legend.text = element_text(size=14, family="serif", colour = "black"),
-        panel.background = element_rect(fill = "white"),
-        legend.key.width = unit(1,"cm")) +
-  guides(colour = guide_legend(ncol = 3)) +
-  theme(aspect.ratio=3/5)
-p
-save(p, file = "./ppt/ggplots/wfh_share_vs_firm_size_bs2.RData")
-
-
 #### END ####
 
 #### OLD ####

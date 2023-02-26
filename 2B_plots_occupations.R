@@ -52,15 +52,14 @@ setwd("/mnt/disks/pdisk/bg_combined/")
 #### LOAD DATA ####
 colnames(fread("../bg-us/int_data/us_stru_2019_wfh.csv", nrows = 100))
 
-df_us_2019 <- fread("../bg-us/int_data/us_stru_2019_wfh.csv", nThread = 4, integer64 = "numeric", select = c("job_id","job_date","soc","onet","year_quarter","wfh_wham","job_domain","job_url"))
-df_us_2021 <- fread("../bg-us/int_data/us_stru_2021_wfh.csv", nThread = 4, integer64 = "numeric", select = c("job_id","job_date","soc","onet","year_quarter","wfh_wham","job_domain","job_url"))
-df_us_2022 <- fread("../bg-us/int_data/us_stru_2022_wfh.csv", nThread = 4, integer64 = "numeric", select = c("job_id","job_date","soc","onet","year_quarter","wfh_wham","job_domain","job_url"))
+df_us_2019 <- fread("../bg-us/int_data/us_stru_2019_wfh.csv", nThread = 4, integer64 = "numeric", select = c("job_id","job_date","soc","onet","year_quarter","wfh_wham","job_domain"))
+df_us_2022 <- fread("../bg-us/int_data/us_stru_2022_wfh.csv", nThread = 4, integer64 = "numeric", select = c("job_id","job_date","soc","onet","year_quarter","wfh_wham","job_domain"))
 
-df_us <- rbindlist(list(df_us_2019,df_us_2021,df_us_2022))
+df_us <- rbindlist(list(df_us_2019,df_us_2022))
 ls()
-remove(list = c("df_us_2019","df_us_2021","df_us_2022"))
-df_us <- df_us %>% .[!grepl("careerbuilder", job_url)]
-df_us <- df_us[!is.na(job_url) & job_url != ""]
+remove(list = c("df_us_2019","df_us_2022"))
+df_us <- df_us %>% .[!grepl("careerbuilder", job_domain)]
+df_us <- df_us[!is.na(job_domain) & job_domain != ""]
 nrow(df_us)
 df_us <- df_us %>% .[!(onet %in% c("19-2099.01","19-4099.03"))]
 nrow(df_us)
@@ -69,18 +68,15 @@ nrow(df_us)
 remove(list = setdiff(ls(), "df_us"))
 df_us$year_quarter <- as.yearqtr(df_us$job_date)
 df_us$year_month <- as.yearmon(df_us$job_date)
-table(df_us$year_month)
 
 colnames(df_us)
 
 df_us_oc <- df_us %>%
-  .[year(job_date) %in% c(2019,2022) | year_month == as.yearmon(ymd("20211201"))] %>%
-  .[year_month != as.yearmon(ymd("20221201"))] %>%
   .[!is.na(soc) & soc != ""] %>%
   .[!is.na(wfh_wham) & wfh_wham != ""] %>%
   .[, soc2 := str_sub(soc, 1, 2)] %>%
   .[, year := year(job_date)] %>%
-  .[, year := ifelse(year == 2021, 2022, year)] %>%
+  .[year %in% c(2019, 2022)] %>%
   setDT(.) %>%
   select(year, wfh_wham, soc2) %>%
   setDT(.) %>%
@@ -104,15 +100,13 @@ df_us_oc <- df_us_oc %>% filter(!is.na(df_us_oc$name))
 df_us_oc <- setDT(df_us_oc)
 df_us_oc$ussoc_2d_wn <- paste0(df_us_oc$name)
 
-saveRDS(df_us_oc)
-
-#### BAR PLOT 2021 vs 2019 ####
+#### BAR PLOT 2022 vs 2019 ####
 df_us_oc <- df_us_oc %>%
   group_by(ussoc_2d_wn) %>%
   mutate(prop_growth = ifelse(!is.na(lag(wfh_share)), paste0(round((wfh_share)/lag(wfh_share),1),"X"), NA)) %>%
   ungroup() %>%
   setDT(.)
-df_us_oc$wfh_share_index <- 100*df_us_oc$wfh_share_index
+df_us_oc
 cbbPalette <- c("#E69F00", "#009E73", "#CC79A7", "#0072B2", "#D55E00")
 cbbPalette_oc <- c("#000000", "darkorange")
 cbbPalette_ind <- c("#000000", "#F0E442")
@@ -120,14 +114,17 @@ df_us_oc$prop_growth[is.na(df_us_oc$prop_growth)] <- ""
 df_us_oc <- df_us_oc %>%
   mutate(year = ifelse(year == 2019, "2019", "2022"))
 
+df_us_oc <- df_us_oc %>%
+  mutate(ussoc_2d_wn = fct_reorder(ussoc_2d_wn, 100*wfh_share, .desc = FALSE))
+
+df_us_oc
+
 p = df_us_oc %>%
-  #filter(ussoc_2d_wn < 27) %>%
-  mutate(ussoc_2d_wn = fct_reorder(ussoc_2d_wn, 100*wfh_share, .desc = FALSE)) %>%
   ggplot(., aes(x = ussoc_2d_wn, y = 100*wfh_share, fill = as.factor(year))) +
   geom_bar(stat = "identity", width=1, position = position_dodge(width=0.8))  +
   geom_text(aes(label = prop_growth, family = "serif"), size = 5, vjust = 0, colour = "black", hjust = -0.5) +
   ylab("Share (%)") +
-  scale_y_continuous(breaks = seq(0,100,5), limits = c(0, 35)) +
+  scale_y_continuous(breaks = seq(0,100,5), limits = c(0, 37)) +
   scale_fill_manual(values = cbbPalette_oc) +
   theme(
     #axis.title.x=element_blank(),
@@ -143,7 +140,7 @@ p = df_us_oc %>%
         legend.text = element_text(size=14, family="serif", colour = "black"),
         panel.background = element_rect(fill = "white"),
         legend.key.width = unit(1,"cm"),
-        axis.text.y = element_text(hjust=0.5),
+        axis.text.y = element_text(hjust=1),
         legend.position = c(0.80, 0.125)) +
   guides(fill = guide_legend(ncol = 1)) +
   coord_flip() +
@@ -153,7 +150,6 @@ p
 save(p, file = "./ppt/ggplots/occ_dist_alt.RData")
 remove(p)
 
-
 #### END ####
 
 #### OCCUPATION SCATTER PLOTS ####
@@ -161,12 +157,9 @@ remove(p)
 remove(list = setdiff(ls(), "df_us"))
 
 df_us_oc <- df_us %>%
-  .[year(job_date) %in% c(2019,2022) | year_month == as.yearmon(ymd("20211201"))] %>%
-  .[year_month != as.yearmon(ymd("20221201"))] %>%
   .[!is.na(onet) & onet != ""] %>%
   .[!is.na(wfh_wham) & wfh_wham != ""] %>%
   .[, year := year(job_date)] %>%
-  .[, year := ifelse(year == 2021, 2022, year)] %>%
   setDT(.) %>%
   select(year, wfh_wham, onet) %>%
   setDT(.) %>%
@@ -245,37 +238,37 @@ p_in <- df_us_oc_wide %>%
 
 head(p_in)
 
-max(p_in[`D&N Classification:` != "Teleworkable"]$wfh_share_2022) # 51.14
+max(p_in[`D&N Classification:` != "Teleworkable"]$wfh_share_2022) # 50.71
 min(p_in[`D&N Classification:` != "Teleworkable"]$wfh_share_2022) # 0
-mean(p_in[`D&N Classification:` != "Teleworkable"]$wfh_share_2022) # 4.904097
-sd(p_in[`D&N Classification:` != "Teleworkable"]$wfh_share_2022) # 6.68691
-max(p_in[`D&N Classification:` == "Teleworkable"]$wfh_share_2022) # 73.71
-min(p_in[`D&N Classification:` == "Teleworkable"]$wfh_share_2022) # 0.3
-mean(p_in[`D&N Classification:` == "Teleworkable"]$wfh_share_2022) # 17.91092
-sd(p_in[`D&N Classification:` == "Teleworkable"]$wfh_share_2022) # 12.16225
+mean(p_in[`D&N Classification:` != "Teleworkable"]$wfh_share_2022) # 4.924618
+sd(p_in[`D&N Classification:` != "Teleworkable"]$wfh_share_2022) # 6.757661
+max(p_in[`D&N Classification:` == "Teleworkable"]$wfh_share_2022) # 73.5
+min(p_in[`D&N Classification:` == "Teleworkable"]$wfh_share_2022) # 0.48
+mean(p_in[`D&N Classification:` == "Teleworkable"]$wfh_share_2022) # 18.10762
+sd(p_in[`D&N Classification:` == "Teleworkable"]$wfh_share_2022) # 12.32669
 
 scaleFUN <- function(x) {paste0(sprintf('%.2f',round(x, 2)))}
 
 summary(p_in[wfh_share_2019 > 0.1 & wfh_share_2022 > 0.1]$wfh_share_2019)
 #    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-# 0.110   0.710   2.030   3.730   4.822  40.050
+# 0.110   0.710   2.030   3.730   4.822  40.050 
 sd(p_in[wfh_share_2019 > 0.1 & wfh_share_2022 > 0.1]$wfh_share_2019)
-# 4.865484
+# 4.865454
 summary(p_in$wfh_share_2019)
 # Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-# 0.000   0.550   1.720   3.502   4.660  40.050 
+# .000   0.550   1.720   3.502   4.660  40.050 
 sd(p_in$wfh_share_2019)
-# 4.798252
+# 4.798223
 summary(p_in[wfh_share_2019 > 0.1 & wfh_share_2022 > 0.1]$wfh_share_2022)
 # Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-# 0.140   1.877   5.780  10.482  16.282  73.710 
+# 0.14    1.89    5.74   10.58   16.48   73.50 
 sd(p_in[wfh_share_2019 > 0.1 & wfh_share_2022 > 0.1]$wfh_share_2022)
-# 11.25498
+# 11.39738
 summary(p_in$wfh_share_2022)
 # Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-# 0.00    1.60    4.87    9.91   15.28   73.71 
+# 0.000   1.560   4.840   9.998  15.270  73.500 
 sd(p_in$wfh_share_2022)
-# 11.15395
+# 11.29761
 # Scatter plot - logscale
 p = ggplot(data = p_in, aes(x = wfh_share_2019, y = wfh_share_2022,
                 color = `D&N Classification:`, shape = `D&N Classification:`)) +
@@ -294,8 +287,8 @@ p = ggplot(data = p_in, aes(x = wfh_share_2019, y = wfh_share_2022,
                eq.x.rhs = "~plain(log)(italic(x))", colour = "blue", size = 4.5) +
   stat_poly_eq(aes(group=1, label=paste(..rr.label.., sep = "~~~")),geom="label",alpha=1,method = lm,label.y = log(0.23), label.x = 3.5,
                colour = "blue", size = 4.5) +
-  ylab("Share (%) (2021-22) (Logscale)") +
-  xlab("Share (%) (2019)  (Logscale)") +
+  ylab("Share (%) (2022)") +
+  xlab("Share (%) (2019)") +
   #scale_y_continuous(breaks = c(0,1,2,3,4,5)) +
   #scale_x_continuous(breaks = c(0,1,2,3,4,5)) +
   coord_cartesian(ylim = c(exp(-2.1), exp(4.5)), xlim = c(exp(-2.1), exp(4.5))) +
