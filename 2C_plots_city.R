@@ -105,7 +105,7 @@ setwd("/mnt/disks/pdisk/bg_combined/")
 #   setDT(.)
 # 
 # df <- df %>%
-#   .[year >= 2019] %>%
+#   .[year %in% c(2019, 2022)] %>%
 #   .[!is.na(bgt_occ) & bgt_occ != ""]
 # 
 # remove(list = setdiff(ls(), "df"))
@@ -210,7 +210,10 @@ df_cit_large$country <- ifelse(df_cit_large$country=="Australia", "AUS", df_cit_
 df_cit_large$country <- ifelse(df_cit_large$country=="Canada", "CAN", df_cit_large$country)
 df_cit_large$city_country <- paste0(df_cit_large$city, " (",df_cit_large$country,")")
 
-df_cit_large <- df_cit_large %>% mutate(city_country_fac = fct_reorder(city_country, wfh_share, .fun = max, .desc = FALSE)) %>% ungroup()
+length(df_cit_large[period==2022][order(desc(wfh_share))]$city_country)
+uniqueN(df_cit_large[period==2022][order(desc(wfh_share))]$city)
+
+df_cit_large <- df_cit_large %>% mutate(city_country_fac = factor(city_country, levels = df_cit_large[period==2022][order(wfh_share)]$city_country,  ordered = T)) %>% ungroup()
 
 a <- ifelse(grepl("(AUS)", as.vector(levels(df_cit_large$city_country_fac))), "red", "black")
 

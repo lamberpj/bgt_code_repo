@@ -780,52 +780,52 @@ base::print(ppt, target = paste0("ppt/f",fig_number,"_",fig_short_name,".pptx"))
 #### END ####
 
 #### 16 WHAM vs N DHS DIFF ####
-remove(list = ls())
-load(file = "./ppt/ggplots/wfh_share_vs_firm_size_bs2.RData")
-fig_number <- 16
-fig_number_title <- paste0("Figure ", fig_number, ": ")
-fig_short_name <- "wham_vs_N_diff"
-fig_title <- "Binscatter of Absolute Change in the Share of Online Job Vacancy Postings which Advertise Remote Work (2019 vs 2021-22) vs Absolute Change in the Number of New Job Vacancies, by Employers (2019 vs 2021-22)"
-fig_footnote <- "The y-axis shows the absolute difference between the share of all new job vacancy postings which explicitly advertise remote working arrangements, calculated for each employer with 10 or more vacancies in both 2019 and the period 2021 Q3 to 2022 Q2, inclusive. The x-axis shows the absolute difference in the 2019 and 2021-22 number of new vacancy postings for each employer, during the period 2021 Q3 to 2022 Q2, inclusive. Data is trimmed at the 5/95 percentiles along both dimensions. The large orange circles depict a bin-scatter across 10 bins. The small grey circles depict a bin-scatter across 150 bins.  Standard errors for orange points are present, but not discernable."
-p_dml <- rvg::dml(ggobj = p)
-ppt <- officer::read_pptx() %>%
-  officer::add_slide(layout = "Title and Content", master = "Office Theme")
-layout_properties(ppt, layout = "Title and Content")
-s_s <- slide_size(ppt)
-(s_w <- s_s$width) # width of slides
-(s_h <- s_s$height) # height of slides
-f_w <- 7 # width of figure
-f_h <- 5 # height of figure
-left_f <- (s_w/2) - (f_w/2) 
-top_f <- (s_h/2) - (f_h/2)
-cap_w <- 9
-cap_h <- 3
-left_cap <-  (s_w/2) - (cap_w/2) 
-top_cap <- (s_h/2) + (f_h/2) - 1
-ppt <- ppt %>%
-  ph_with(p_dml, ph_location(left = left_f, top = top_f + 0.15, width = f_w, height = f_h)) %>%
-  ph_with(
-    block_list(
-      fpar(
-        ftext(fig_number_title, prop = fp_text(bold = TRUE, font.size = 20, color = "black")),
-        ftext(fig_title, prop = fp_text(font.size = 20, color = "black")),
-        fp_p = fp_par(text.align = "justify")
-      )
-    ),
-    location = ph_location_type(type = "title")
-  ) %>%
-  ph_with(
-    block_list(
-      fpar(
-        ftext("Note: ", prop = fp_text(bold = TRUE, font.size = 12, color = "black")),
-        ftext(fig_footnote, prop = fp_text(font.size = 12, color = "black")),
-        fp_p = fp_par(text.align = "justify")
-      )
-    ),
-    location = ph_location(left = left_cap, top = top_cap, width = cap_w, height = cap_h))
-
-try(unlink(paste0("ppt/f",fig_number,"_",fig_short_name,".pptx")))
-base::print(ppt, target = paste0("ppt/f",fig_number,"_",fig_short_name,".pptx"))
+# remove(list = ls())
+# load(file = "./ppt/ggplots/wfh_share_vs_firm_size_bs2.RData")
+# fig_number <- 16
+# fig_number_title <- paste0("Figure ", fig_number, ": ")
+# fig_short_name <- "wham_vs_N_diff"
+# fig_title <- "Binscatter of Absolute Change in the Share of Online Job Vacancy Postings which Advertise Remote Work (2019 vs 2021-22) vs Absolute Change in the Number of New Job Vacancies, by Employers (2019 vs 2021-22)"
+# fig_footnote <- "The y-axis shows the absolute difference between the share of all new job vacancy postings which explicitly advertise remote working arrangements, calculated for each employer with 10 or more vacancies in both 2019 and the period 2021 Q3 to 2022 Q2, inclusive. The x-axis shows the absolute difference in the 2019 and 2021-22 number of new vacancy postings for each employer, during the period 2021 Q3 to 2022 Q2, inclusive. Data is trimmed at the 5/95 percentiles along both dimensions. The large orange circles depict a bin-scatter across 10 bins. The small grey circles depict a bin-scatter across 150 bins.  Standard errors for orange points are present, but not discernable."
+# p_dml <- rvg::dml(ggobj = p)
+# ppt <- officer::read_pptx() %>%
+#   officer::add_slide(layout = "Title and Content", master = "Office Theme")
+# layout_properties(ppt, layout = "Title and Content")
+# s_s <- slide_size(ppt)
+# (s_w <- s_s$width) # width of slides
+# (s_h <- s_s$height) # height of slides
+# f_w <- 7 # width of figure
+# f_h <- 5 # height of figure
+# left_f <- (s_w/2) - (f_w/2) 
+# top_f <- (s_h/2) - (f_h/2)
+# cap_w <- 9
+# cap_h <- 3
+# left_cap <-  (s_w/2) - (cap_w/2) 
+# top_cap <- (s_h/2) + (f_h/2) - 1
+# ppt <- ppt %>%
+#   ph_with(p_dml, ph_location(left = left_f, top = top_f + 0.15, width = f_w, height = f_h)) %>%
+#   ph_with(
+#     block_list(
+#       fpar(
+#         ftext(fig_number_title, prop = fp_text(bold = TRUE, font.size = 20, color = "black")),
+#         ftext(fig_title, prop = fp_text(font.size = 20, color = "black")),
+#         fp_p = fp_par(text.align = "justify")
+#       )
+#     ),
+#     location = ph_location_type(type = "title")
+#   ) %>%
+#   ph_with(
+#     block_list(
+#       fpar(
+#         ftext("Note: ", prop = fp_text(bold = TRUE, font.size = 12, color = "black")),
+#         ftext(fig_footnote, prop = fp_text(font.size = 12, color = "black")),
+#         fp_p = fp_par(text.align = "justify")
+#       )
+#     ),
+#     location = ph_location(left = left_cap, top = top_cap, width = cap_w, height = cap_h))
+# 
+# try(unlink(paste0("ppt/f",fig_number,"_",fig_short_name,".pptx")))
+# base::print(ppt, target = paste0("ppt/f",fig_number,"_",fig_short_name,".pptx"))
 #### END ####
 
 

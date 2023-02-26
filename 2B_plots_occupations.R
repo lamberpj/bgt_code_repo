@@ -50,55 +50,60 @@ setwd("/mnt/disks/pdisk/bg_combined/")
 #### END ####
 
 #### LOAD DATA ####
-colnames(fread("../bg-us/int_data/us_stru_2019_wfh.csv", nrows = 100))
-
-df_us_2019 <- fread("../bg-us/int_data/us_stru_2019_wfh.csv", nThread = 4, integer64 = "numeric", select = c("job_id","job_date","soc","onet","year_quarter","wfh_wham","job_domain"))
-df_us_2022 <- fread("../bg-us/int_data/us_stru_2022_wfh.csv", nThread = 4, integer64 = "numeric", select = c("job_id","job_date","soc","onet","year_quarter","wfh_wham","job_domain"))
-
-df_us <- rbindlist(list(df_us_2019,df_us_2022))
-ls()
-remove(list = c("df_us_2019","df_us_2022"))
-df_us <- df_us %>% .[!grepl("careerbuilder", job_domain)]
-df_us <- df_us[!is.na(job_domain) & job_domain != ""]
-nrow(df_us)
-df_us <- df_us %>% .[!(onet %in% c("19-2099.01","19-4099.03"))]
-nrow(df_us)
+# colnames(fread("../bg-us/int_data/us_stru_2019_wfh.csv", nrows = 100))
+# 
+# df_us_2019 <- fread("../bg-us/int_data/us_stru_2019_wfh.csv", nThread = 4, integer64 = "numeric", select = c("job_id","job_date","soc","onet","year_quarter","wfh_wham","job_domain"))
+# df_us_2022 <- fread("../bg-us/int_data/us_stru_2022_wfh.csv", nThread = 4, integer64 = "numeric", select = c("job_id","job_date","soc","onet","year_quarter","wfh_wham","job_domain"))
+# 
+# df_us <- rbindlist(list(df_us_2019,df_us_2022))
+# ls()
+# remove(list = c("df_us_2019","df_us_2022"))
+# df_us <- df_us %>% .[!grepl("careerbuilder", job_domain)]
+# df_us <- df_us[!is.na(job_domain) & job_domain != ""]
+# nrow(df_us)
+# df_us <- df_us %>% .[!(onet %in% c("19-2099.01","19-4099.03"))]
+# nrow(df_us)
+# 
+# #### END ####
+# remove(list = setdiff(ls(), "df_us"))
+# df_us$year_quarter <- as.yearqtr(df_us$job_date)
+# df_us$year_month <- as.yearmon(df_us$job_date)
+# 
+# colnames(df_us)
+# 
+# df_us_oc <- df_us %>%
+#   .[!is.na(soc) & soc != ""] %>%
+#   .[!is.na(wfh_wham) & wfh_wham != ""] %>%
+#   .[, soc2 := str_sub(soc, 1, 2)] %>%
+#   .[, year := year(job_date)] %>%
+#   .[year %in% c(2019, 2022)] %>%
+#   setDT(.) %>%
+#   select(year, wfh_wham, soc2) %>%
+#   setDT(.) %>%
+#   .[, .(wfh_share = mean(wfh_wham)),
+#     by = .(year, soc2)] %>%
+#   setDT(.)
+# 
+# soc2010_names <- fread(file = "./aux_data/us_soc_2010_names.csv")
+# soc2010_names$soc10_2d <- as.numeric(soc2010_names$soc10_2d)
+# df_us_oc$soc2 <- as.numeric(df_us_oc$soc2)
+# nrow(df_us_oc)
+# df_us_oc <- df_us_oc %>%
+#   left_join(., soc2010_names, by = c("soc2" = "soc10_2d")) %>%
+#   setDT(.)
+# nrow(df_us_oc)
+# rm(soc2010_names)
+# df_us_oc$name <- gsub("and", "&", df_us_oc$name, fixed = T)
+# df_us_oc$name <- gsub(" Occupations", "", df_us_oc$name)
+# df_us_oc$name <- gsub(", Sports, & Media| & Technical|, & Repair|Cleaning &|& Serving Related", "", df_us_oc$name)
+# df_us_oc <- df_us_oc %>% filter(!is.na(df_us_oc$name))
+# df_us_oc <- setDT(df_us_oc)
+# df_us_oc$ussoc_2d_wn <- paste0(df_us_oc$name)
+# 
+# saveRDS(df_us_oc, file = "./int_data/df_occ_2019_2022.csv")
+df_us_oc <- readRDS(file = "./int_data/df_occ_2019_2022.csv")
 
 #### END ####
-remove(list = setdiff(ls(), "df_us"))
-df_us$year_quarter <- as.yearqtr(df_us$job_date)
-df_us$year_month <- as.yearmon(df_us$job_date)
-
-colnames(df_us)
-
-df_us_oc <- df_us %>%
-  .[!is.na(soc) & soc != ""] %>%
-  .[!is.na(wfh_wham) & wfh_wham != ""] %>%
-  .[, soc2 := str_sub(soc, 1, 2)] %>%
-  .[, year := year(job_date)] %>%
-  .[year %in% c(2019, 2022)] %>%
-  setDT(.) %>%
-  select(year, wfh_wham, soc2) %>%
-  setDT(.) %>%
-  .[, .(wfh_share = mean(wfh_wham)),
-    by = .(year, soc2)] %>%
-  setDT(.)
-
-soc2010_names <- fread(file = "./aux_data/us_soc_2010_names.csv")
-soc2010_names$soc10_2d <- as.numeric(soc2010_names$soc10_2d)
-df_us_oc$soc2 <- as.numeric(df_us_oc$soc2)
-nrow(df_us_oc)
-df_us_oc <- df_us_oc %>%
-  left_join(., soc2010_names, by = c("soc2" = "soc10_2d")) %>%
-  setDT(.)
-nrow(df_us_oc)
-rm(soc2010_names)
-df_us_oc$name <- gsub("and", "&", df_us_oc$name, fixed = T)
-df_us_oc$name <- gsub(" Occupations", "", df_us_oc$name)
-df_us_oc$name <- gsub(", Sports, & Media| & Technical|, & Repair|Cleaning &|& Serving Related", "", df_us_oc$name)
-df_us_oc <- df_us_oc %>% filter(!is.na(df_us_oc$name))
-df_us_oc <- setDT(df_us_oc)
-df_us_oc$ussoc_2d_wn <- paste0(df_us_oc$name)
 
 #### BAR PLOT 2022 vs 2019 ####
 df_us_oc <- df_us_oc %>%
@@ -115,12 +120,10 @@ df_us_oc <- df_us_oc %>%
   mutate(year = ifelse(year == 2019, "2019", "2022"))
 
 df_us_oc <- df_us_oc %>%
-  mutate(ussoc_2d_wn = fct_reorder(ussoc_2d_wn, 100*wfh_share, .desc = FALSE))
-
-df_us_oc
+  mutate(ussoc_2d_wn_fac = factor(ussoc_2d_wn, levels = df_us_oc[year==2022][order(wfh_share)]$ussoc_2d_wn,  ordered = T)) %>% ungroup()
 
 p = df_us_oc %>%
-  ggplot(., aes(x = ussoc_2d_wn, y = 100*wfh_share, fill = as.factor(year))) +
+  ggplot(., aes(x = ussoc_2d_wn_fac, y = 100*wfh_share, fill = as.factor(year))) +
   geom_bar(stat = "identity", width=1, position = position_dodge(width=0.8))  +
   geom_text(aes(label = prop_growth, family = "serif"), size = 5, vjust = 0, colour = "black", hjust = -0.5) +
   ylab("Share (%)") +
@@ -208,10 +211,10 @@ class(df_us_oc_wide$year)
 
 df_us_oc_wide <- df_us_oc_wide %>%
   .[, title_keepA := ifelse(title %in%
-                      c("Software Developers, Applications", "Telemarketers", "Advertising Sales Agents", "Loan Officers",
-                        "Mental Health and Substance Abuse Social Workers",
-                        "Gas Plant Operators"),
-                      title, NA)] %>%
+                              c("Software Developers, Applications", "Telemarketers", "Advertising Sales Agents", "Loan Officers",
+                                "Mental Health and Substance Abuse Social Workers",
+                                "Gas Plant Operators"),
+                            title, NA)] %>%
   .[, title_keepA := gsub(" and ", " & ", title_keepA)] %>%
   .[, title_keepA := gsub(", Applications", "", title_keepA)] %>%
   .[, title_keepA := gsub(", Except Special Education", "", title_keepA)] %>%
@@ -230,8 +233,8 @@ df_us_oc_wide <- df_us_oc_wide %>%
 cbbPalette_d_and_n <- c("#000000", "darkorange")
 
 summary(feols(data = df_us_oc_wide %>%
-             filter(n_post_2019 > 250 & n_post_2022 > 250),
-           fml = log(wfh_share_2022) ~ 1 + log(wfh_share_2019)))
+                filter(n_post_2019 > 250 & n_post_2022 > 250),
+              fml = log(wfh_share_2022) ~ 1 + log(wfh_share_2019)))
 
 p_in <- df_us_oc_wide %>%
   filter(n_post_2019 > 250 & n_post_2022 > 250)
@@ -271,7 +274,7 @@ sd(p_in$wfh_share_2022)
 # 11.29761
 # Scatter plot - logscale
 p = ggplot(data = p_in, aes(x = wfh_share_2019, y = wfh_share_2022,
-                color = `D&N Classification:`, shape = `D&N Classification:`)) +
+                            color = `D&N Classification:`, shape = `D&N Classification:`)) +
   scale_color_manual(values = cbbPalette_d_and_n) +
   scale_y_continuous(trans = log_trans(), 
                      labels=scaleFUN,
@@ -306,9 +309,9 @@ p = ggplot(data = p_in, aes(x = wfh_share_2019, y = wfh_share_2022,
   scale_shape_manual(values=c(1, 2)) +
   guides(colour = guide_legend(override.aes = list(size=3))) +
   geom_text_repel(aes(label = title_keepA),
-                 fontface = "bold", size = 4, max.overlaps = 1000, point.padding = 0, box.padding = 0.5, nudge_x = -0.4, nudge_y = 0.4, force = 10, force_pull = 1,
-                 bg.color = "white",
-                 bg.r = 0.15, seed = 1234, show.legend = FALSE) +
+                  fontface = "bold", size = 4, max.overlaps = 1000, point.padding = 0, box.padding = 0.5, nudge_x = -0.4, nudge_y = 0.4, force = 10, force_pull = 1,
+                  bg.color = "white",
+                  bg.r = 0.15, seed = 1234, show.legend = FALSE) +
   geom_text_repel(aes(label = title_keepB),
                   fontface = "bold", size = 4, max.overlaps = 1000, point.padding = 0, box.padding = 0.5, nudge_x = 0.4, nudge_y = -0.4, force = 10, force_pull = 1,
                   bg.color = "white",
