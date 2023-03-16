@@ -386,6 +386,15 @@ save(p, file = "./ppt/ggplots/top_us_firms_soc2_11-9_naics4_9211_other_man__occs
 #### FIRM SIZE and REMOTE WORK ####
 remove(list = setdiff(ls(), "df_us"))
 
+check <- df_us %>%
+  .[period == "2022"] %>%
+  .[, firm_posting_count := .N, by = employer]
+
+check <- check %>% .[employer != "" & !is.na(employer)]
+
+length(check[firm_posting_count < 10]$employer)/length(check$employer) # 8.39%
+length(check[firm_posting_count > 1666]$employer)/length(check$employer) # 47.8%
+
 df_us_top_employers_cells <- df_us %>%
   .[, keep := .N >= 10, by = .(period,employer)] %>%
   .[keep == TRUE] %>%
@@ -411,20 +420,18 @@ head(df_us_top_employers_cells)
 scaleFUN <- function(x) {paste0(round(x, 0))}
 
 p = df_us_top_employers_cells %>%
-  filter(period == "2019") %>%
+  #filter(period == "2019") %>%
   filter(N <= 365.65) %>%
-  ggplot(., aes(y = wfh_share, x = N)) +
+  ggplot(., aes(y = wfh_share, x = N, shape = as.character(period), colour = as.character(period))) +
   scale_x_continuous(trans = log_trans(), 
                      labels=scaleFUN,
-                     breaks = c(8, 16, 32, 64, 128, 256)) +
-  # stat_summary_bin(bins=150,
-  #                  color='grey', size=2, geom='point', alpha = 0.5) +
-  stat_summary_bin(bins=30,
-                   color='black', size=4, geom='point') +
+                     breaks = c(8, 16, 32, 64, 128, 256, 512)) +
+  scale_y_continuous(breaks = seq(0, 20, 2.5)) +
+  stat_summary_bin(bins=30, size=4, geom='point') +
   ylab("Percent") +
   xlab('Number of Postings') +
   #labs(title = "Binscatter WFH vs Posting Counts", subtitle = "No reweighting, no residualising") +
-  coord_cartesian(xlim = c(8, 366)) +
+  coord_cartesian(xlim = c(8, 400), ylim = c(2, 13), expand = FALSE) +
   theme(
     #axis.title.x=element_blank(),
     legend.position="bottom",
@@ -435,27 +442,28 @@ p = df_us_top_employers_cells %>%
         axis.title = element_text(size=15, family="serif", colour = "black"),
         legend.text = element_text(size=14, family="serif", colour = "black"),
         panel.background = element_rect(fill = "white"),
-        legend.key.width = unit(1,"cm")) +
-  guides(colour = guide_legend(ncol = 3)) +
+        legend.key.width = unit(1,"cm"),
+        legend.position = c(0.085, 0.865)) +
+  guides(colour = guide_legend(ncol = 1)) +
+  scale_shape_manual(values=c(17, 16)) +
   theme(aspect.ratio=3/5)
 p
-save(p, file = "./ppt/ggplots/wfh_share_vs_firm_size_bs1_2019.RData")
+save(p, file = "./ppt/ggplots/wfh_share_vs_firm_size_bs1.RData")
+
 
 p = df_us_top_employers_cells %>%
-  filter(period == "2022") %>%
-  filter(N <= 365.65) %>%
-  ggplot(., aes(y = wfh_share, x = N)) +
+  #filter(period == "2019") %>%
+  filter(N <= 1666) %>%
+  ggplot(., aes(y = wfh_share, x = N, shape = as.character(period), colour = as.character(period))) +
   scale_x_continuous(trans = log_trans(), 
                      labels=scaleFUN,
-                     breaks = c(8, 16, 32, 64, 128, 256)) +
-  # stat_summary_bin(bins=150,
-  #                  color='grey', size=2, geom='point', alpha = 0.5) +
-  stat_summary_bin(bins=30,
-                   color='black', size=4, geom='point') +
+                     breaks = c(8, 16, 32, 64, 128, 256, 512, 1024, 2048, 2*2048, 4*2048, 8*2048, 16*2048)) +
+  scale_y_continuous(breaks = seq(0, 20, 2.5)) +
+  stat_summary_bin(bins=30, size=4, geom='point') +
   ylab("Percent") +
   xlab('Number of Postings') +
   #labs(title = "Binscatter WFH vs Posting Counts", subtitle = "No reweighting, no residualising") +
-  coord_cartesian(xlim = c(8, 366)) +
+  coord_cartesian(xlim = c(8, 2250), ylim = c(1.8, 12.6), expand = FALSE) +
   theme(
     #axis.title.x=element_blank(),
     legend.position="bottom",
@@ -466,11 +474,14 @@ p = df_us_top_employers_cells %>%
         axis.title = element_text(size=15, family="serif", colour = "black"),
         legend.text = element_text(size=14, family="serif", colour = "black"),
         panel.background = element_rect(fill = "white"),
-        legend.key.width = unit(1,"cm")) +
-  guides(colour = guide_legend(ncol = 3)) +
+        legend.key.width = unit(1,"cm"),
+        legend.position = c(0.085, 0.865)) +
+  guides(colour = guide_legend(ncol = 1)) +
+  scale_shape_manual(values=c(17, 16)) +
   theme(aspect.ratio=3/5)
 p
-save(p, file = "./ppt/ggplots/wfh_share_vs_firm_size_bs1_2022.RData")
+save(p, file = "./ppt/ggplots/wfh_share_vs_firm_size_bs2.RData")
+
 #### END ####
 
 #### OLD ####

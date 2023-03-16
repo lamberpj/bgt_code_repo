@@ -38,8 +38,8 @@ remove(list = ls())
 
 #### PREPARE DATA ####
 
-#system("gsutil -m cp -r gs://for_transfer/data_ingest/bgt_upload/ANZ_raw/ /mnt/disks/pdisk/bg-anz/raw_data/text/")
-#system("gsutil -m cp -r gs://for_transfer/data_ingest/bgt_upload/ANZ_stru/ /mnt/disks/pdisk/bg-anz/raw_data/main/")
+#system("gsutil -m cp -r gs://for_transfer/data_ingest/bgt_upload/ANZ_raw/ANZ_XML_Postings_AddFeed_20230201_20230228.zip /mnt/disks/pdisk/bg-anz/raw_data/text/")
+#system("gsutil -m cp -r gs://for_transfer/data_ingest/bgt_upload/ANZ_stru/Main_2023_02.zip /mnt/disks/pdisk/bg-anz/raw_data/main/")
 #system("gsutil -m cp -r gs://for_transfer/data_ingest/bgt_upload/ANZ_raw /mnt/disks/pdisk/bg-anz/raw_data/text")
 #system("gsutil -m cp -r gs://for_transfer/data_ingest/bgt_upload/ANZ_raw/ANZ_XML_Postings_AddFeed_20221101_20221130.zip /mnt/disks/pdisk/bg-anz/raw_data/text")
 #system("gsutil -m cp -r gs://for_transfer/data_ingest/bgt_upload/ANZ_stru /mnt/disks/pdisk/bg-anz/raw_data/main")
@@ -64,9 +64,11 @@ remove(list = ls())
 #system("zip -r /mnt/disks/pdisk/bg-anz/int_data/us_sequences.zip /mnt/disks/pdisk/bg-anz/int_data/sequences/")
 
 # Upload Sequences
-#system("gsutil -m cp -r /mnt/disks/pdisk/bg-anz/int_data/sequences/sequences_20230101_20230131.rds gs://for_transfer/sequences_anz/")
+#system("gsutil -m cp -r /mnt/disks/pdisk/bg-anz/int_data/sequences/sequences_20230201_20230228.rds gs://for_transfer/sequences_anz/")
 # system("gsutil -m cp -r /mnt/disks/pdisk/bg-anz/int_data/sequences/sequences_20221101_20221130.rds gs://for_transfer/sequences_anz/")
 
+# Download WHAM
+system("gsutil -m cp -r gs://for_transfer/wham/ANZ /mnt/disks/pdisk/bg-anz/int_data/wham_pred/")
 
 #### END ####
 
@@ -223,38 +225,58 @@ system("echo sci2007! | sudo -S shutdown -h now")
 #### END ####
 
 #### EXTRACT SOURCE AND URL AND SAVE ####
-# remove(list = ls())
-# paths <- list.files("./raw_data/text/", pattern = "*.zip", full.names = T)
-# source("/mnt/disks/pdisk/bgt_code_repo/old/safe_mclapply.R")
-# 
-# safe_mclapply(1:length(paths), function(i) {
-#     name <- str_sub(paths[i], -21, -5)
-#     name
-#     warning(paste0("\nBEGIN: ",i,"  '",name,"'"))
-#     cat(paste0("\nBEGIN: ",i,"  '",name,"'"))
-#     system(paste0("unzip -o ",paths[i]," -d ./raw_data/text/"))
-#     xml_path = gsub(".zip", ".xml", paths[i])
-#     xml_path
-#     #try( {
-#     df_xml <- read_xml(xml_path) %>%
-#       xml_find_all(., ".//Job")
-# 
-#     df_job_id <- xml_find_all(df_xml, ".//JobID") %>% xml_text
-#     df_job_domain <- xml_find_all(df_xml, ".//JobDomain") %>% xml_text
-# 
-#     remove("df_xml")
-# 
-#     df <- data.table(job_id = df_job_id, job_domain = df_job_domain, stringsAsFactors = FALSE)
-# 
-#     unlink(xml_path)
-#     fwrite(df, file = paste0("./int_data/sources/anz_src_",name,"_wfh.csv"))
-#     warning(paste0("SUCCESS: ",i))
-#     cat(paste0("\nSUCCESS: ",i,"\n"))
-#     return("")
-#   }, mc.cores = 8)
+remove(list = ls())
+paths <- list.files("./raw_data/text/", pattern = "*.zip", full.names = T)
+paths <- paths[grepl("2019|2020|2021|2022|2023", paths)]
+paths_done <- list.files("./int_data/sources/", pattern = "*.csv", full.names = F) %>%
+  gsub("anz_src_", "", .) %>% gsub("_wfh.csv", "", .) %>% unique
+paths_done <- paths_done[grepl("2019|2020|2021|2022|2023", paths_done)]
+paths_check <- list.files("./raw_data/text/", pattern = "*.zip", full.names = T) %>%
+  str_sub(., -21, -5)
+paths_check <- paths_check[grepl("2019|2020|2021|2022|2023", paths_check)]
+paths_check
+paths_done
+paths_check[!(paths_check %in% paths_done)]
+paths <- paths[!(paths_check %in% paths_done)]
+remove(list = c("paths_check", "paths_done"))
+
+paths
+
+#lapply(1:length(paths), function(i) {
+#  file.rename(from = paths[i], to = gsub("uk_src", "us_src", paths[i]))
+#})
+
+paths
+source("/mnt/disks/pdisk/bgt_code_repo/old/safe_mclapply.R")
+
+safe_mclapply(1:length(paths), function(i) {
+  name <- str_sub(paths[i], -21, -5)
+  name
+  warning(paste0("\nBEGIN: ",i,"  '",name,"'"))
+  cat(paste0("\nBEGIN: ",i,"  '",name,"'"))
+  system(paste0("unzip -o ",paths[i]," -d ./raw_data/text/"))
+  xml_path = gsub(".zip", ".xml", paths[i])
+  xml_path
+  #try( {
+  df_xml <- read_xml(xml_path) %>%
+    xml_find_all(., ".//Job")
+  
+  df_job_id <- xml_find_all(df_xml, ".//JobID") %>% xml_text
+  df_job_domain <- xml_find_all(df_xml, ".//JobDomain") %>% xml_text
+  
+  remove("df_xml")
+  
+  df <- data.table(job_id = df_job_id, job_domain = df_job_domain, stringsAsFactors = FALSE)
+  
+  unlink(xml_path)
+  fwrite(df, file = paste0("./int_data/sources/anz_src_",name,"_wfh.csv"))
+  warning(paste0("SUCCESS: ",i))
+  cat(paste0("\nSUCCESS: ",i,"\n"))
+  return("")
+}, mc.cores = 4)
 
 #sink()
-# system("echo sci2007! | sudo -S shutdown -h now")
+system("echo sci2007! | sudo -S shutdown -h now")
 #### /END ####
 
 #### AGGREGATE WHAM TO JOB AD LEVEL ####
@@ -326,7 +348,7 @@ paths <- list.files("/mnt/disks/pdisk/bg-anz/raw_data/main", pattern = ".zip", f
 paths
 source("/mnt/disks/pdisk/bgt_code_repo/old/safe_mclapply.R")
 
-safe_mclapply(2014:2023, function(x) {
+safe_mclapply(2022:2023, function(x) {
   paths_year <- paths[grepl(x, paths)]
   
   df_stru <- safe_mclapply(1:length(paths_year), function(i) {

@@ -69,29 +69,19 @@ setwd("/mnt/disks/pdisk/bg_combined/")
 remove(list = ls())
 
 # Plot unweighted
-remove(list = setdiff(ls(), "df_all_list"))
 ts_for_plot <- readRDS(file = "./int_data/country_ts_combined_weights.rds")
+
+unique(ts_for_plot$weight)
 
 ts_for_plot_2 <- ts_for_plot %>%
   ungroup() %>%
-  filter(weight != "Global 2019 Employment") %>%
+  filter(weight == "US 2019 Vacancy") %>%
   mutate(Date = as.Date(as.yearmon(year_month)),
          Percent = round(100*value_3ma, 2),
-         Country = country,
-         group = paste0(Country,"_",weight),
-         Weights = case_when(
-           weight == "US 2019 Employment" ~ "Reweighed by US Employment in 2019",
-           weight == "Unweighted" ~ "Unweighted",
-           weight == "US 2019 Vacancy" ~ "Reweighed by US Vacancies in 2019",
-           TRUE ~ "")) %>%
-  filter(Weights == "Reweighed by US Vacancies in 2019")
+         Country = country) %>%
+  mutate(Weights = "Reweighed by US Vacancies in 2019")
 
 cbbPalette <- c("#E69F00", "#009E73", "#CC79A7", "#0072B2", "#D55E00")
-
-# thm <- hc_theme(title = list(style = list(fontSize = 20)),
-#                 subtitle = list(style = list(fontSize = 20)),
-#                 legend = list(itemStyle = list(fontSize = 20)
-#                               ,itemHoverStyle = list(color ='gray')))
 
 hc <- ts_for_plot_2 %>%
   hchart(object = .,

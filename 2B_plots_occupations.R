@@ -50,57 +50,57 @@ setwd("/mnt/disks/pdisk/bg_combined/")
 #### END ####
 
 #### LOAD DATA ####
-# colnames(fread("../bg-us/int_data/us_stru_2019_wfh.csv", nrows = 100))
-# 
-# df_us_2019 <- fread("../bg-us/int_data/us_stru_2019_wfh.csv", nThread = 4, integer64 = "numeric", select = c("job_id","job_date","soc","onet","year_quarter","wfh_wham","job_domain"))
-# df_us_2022 <- fread("../bg-us/int_data/us_stru_2022_wfh.csv", nThread = 4, integer64 = "numeric", select = c("job_id","job_date","soc","onet","year_quarter","wfh_wham","job_domain"))
-# 
-# df_us <- rbindlist(list(df_us_2019,df_us_2022))
-# ls()
-# remove(list = c("df_us_2019","df_us_2022"))
-# df_us <- df_us %>% .[!grepl("careerbuilder", job_domain)]
-# df_us <- df_us[!is.na(job_domain) & job_domain != ""]
-# nrow(df_us)
-# df_us <- df_us %>% .[!(onet %in% c("19-2099.01","19-4099.03"))]
-# nrow(df_us)
-# 
-# #### END ####
-# remove(list = setdiff(ls(), "df_us"))
-# df_us$year_quarter <- as.yearqtr(df_us$job_date)
-# df_us$year_month <- as.yearmon(df_us$job_date)
-# 
-# colnames(df_us)
-# 
-# df_us_oc <- df_us %>%
-#   .[!is.na(soc) & soc != ""] %>%
-#   .[!is.na(wfh_wham) & wfh_wham != ""] %>%
-#   .[, soc2 := str_sub(soc, 1, 2)] %>%
-#   .[, year := year(job_date)] %>%
-#   .[year %in% c(2019, 2022)] %>%
-#   setDT(.) %>%
-#   select(year, wfh_wham, soc2) %>%
-#   setDT(.) %>%
-#   .[, .(wfh_share = mean(wfh_wham)),
-#     by = .(year, soc2)] %>%
-#   setDT(.)
-# 
-# soc2010_names <- fread(file = "./aux_data/us_soc_2010_names.csv")
-# soc2010_names$soc10_2d <- as.numeric(soc2010_names$soc10_2d)
-# df_us_oc$soc2 <- as.numeric(df_us_oc$soc2)
-# nrow(df_us_oc)
-# df_us_oc <- df_us_oc %>%
-#   left_join(., soc2010_names, by = c("soc2" = "soc10_2d")) %>%
-#   setDT(.)
-# nrow(df_us_oc)
-# rm(soc2010_names)
-# df_us_oc$name <- gsub("and", "&", df_us_oc$name, fixed = T)
-# df_us_oc$name <- gsub(" Occupations", "", df_us_oc$name)
-# df_us_oc$name <- gsub(", Sports, & Media| & Technical|, & Repair|Cleaning &|& Serving Related", "", df_us_oc$name)
-# df_us_oc <- df_us_oc %>% filter(!is.na(df_us_oc$name))
-# df_us_oc <- setDT(df_us_oc)
-# df_us_oc$ussoc_2d_wn <- paste0(df_us_oc$name)
-# 
-# saveRDS(df_us_oc, file = "./int_data/df_occ_2019_2022.csv")
+colnames(fread("../bg-us/int_data/us_stru_2019_wfh.csv", nrows = 100))
+
+df_us_2019 <- fread("../bg-us/int_data/us_stru_2019_wfh.csv", nThread = 4, integer64 = "numeric", select = c("job_id","job_date","soc","onet","year_quarter","wfh_wham","job_domain"))
+df_us_2022 <- fread("../bg-us/int_data/us_stru_2022_wfh.csv", nThread = 4, integer64 = "numeric", select = c("job_id","job_date","soc","onet","year_quarter","wfh_wham","job_domain"))
+
+df_us <- rbindlist(list(df_us_2019,df_us_2022))
+ls()
+remove(list = c("df_us_2019","df_us_2022"))
+df_us <- df_us %>% .[!grepl("careerbuilder", job_domain)]
+df_us <- df_us[!is.na(job_domain) & job_domain != ""]
+nrow(df_us)
+df_us <- df_us %>% .[!(onet %in% c("19-2099.01","19-4099.03"))]
+nrow(df_us)
+
+#### END ####
+remove(list = setdiff(ls(), "df_us"))
+df_us$year_quarter <- as.yearqtr(df_us$job_date)
+df_us$year_month <- as.yearmon(df_us$job_date)
+
+colnames(df_us)
+
+df_us_oc <- df_us %>%
+  .[!is.na(soc) & soc != ""] %>%
+  .[!is.na(wfh_wham) & wfh_wham != ""] %>%
+  .[, soc2 := str_sub(soc, 1, 2)] %>%
+  .[, year := year(job_date)] %>%
+  .[year %in% c(2019, 2022)] %>%
+  setDT(.) %>%
+  select(year, wfh_wham, soc2) %>%
+  setDT(.) %>%
+  .[, .(wfh_share = mean(wfh_wham)),
+    by = .(year, soc2)] %>%
+  setDT(.)
+
+soc2010_names <- fread(file = "./aux_data/us_soc_2010_names.csv")
+soc2010_names$soc10_2d <- as.numeric(soc2010_names$soc10_2d)
+df_us_oc$soc2 <- as.numeric(df_us_oc$soc2)
+nrow(df_us_oc)
+df_us_oc <- df_us_oc %>%
+  left_join(., soc2010_names, by = c("soc2" = "soc10_2d")) %>%
+  setDT(.)
+nrow(df_us_oc)
+rm(soc2010_names)
+df_us_oc$name <- gsub("and", "&", df_us_oc$name, fixed = T)
+df_us_oc$name <- gsub(" Occupations", "", df_us_oc$name)
+df_us_oc$name <- gsub(", Sports, & Media| & Technical|, & Repair|Cleaning &|& Serving Related", "", df_us_oc$name)
+df_us_oc <- df_us_oc %>% filter(!is.na(df_us_oc$name))
+df_us_oc <- setDT(df_us_oc)
+df_us_oc$ussoc_2d_wn <- paste0(df_us_oc$name)
+
+saveRDS(df_us_oc, file = "./int_data/df_occ_2019_2022.csv")
 df_us_oc <- readRDS(file = "./int_data/df_occ_2019_2022.csv")
 
 #### END ####

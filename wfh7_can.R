@@ -38,8 +38,8 @@ remove(list = ls())
 
 #### PREPARE DATA ####
 
-#system("gsutil -m cp -r gs://for_transfer/data_ingest/bgt_upload/CAN_raw /mnt/disks/pdisk/bg-can/raw_data/text/")
-#system("gsutil -m cp -r gs://for_transfer/data_ingest/bgt_upload/CAN_stru /mnt/disks/pdisk/bg-can/raw_data/main")
+#system("gsutil -m cp -r gs://for_transfer/data_ingest/bgt_upload/CAN_raw/CAN_XML_Postings_AddFeed_20230201_20230228.zip /mnt/disks/pdisk/bg-can/raw_data/text/")
+#system("gsutil -m cp -r gs://for_transfer/data_ingest/bgt_upload/CAN_stru/Main_2023_02.zip /mnt/disks/pdisk/bg-can/raw_data/main")
 #system("gsutil -m cp -r gs://for_transfer/wham/CAN /mnt/disks/pdisk/bg-can/int_data/wham_pred")
 
 #
@@ -61,197 +61,216 @@ remove(list = ls())
 #system("zip -r /mnt/disks/pdisk/bg-can/int_data/us_sequences.zip /mnt/disks/pdisk/bg-can/int_data/sequences/")
 
 # Upload Sequences
-#system("gsutil -m cp -r /mnt/disks/pdisk/bg-can/int_data/sequences/ gs://for_transfer/sequences_can")
+#system("gsutil -m cp -r /mnt/disks/pdisk/bg-can/int_data/sequences/sequences_20230201_20230228.rds gs://for_transfer/sequences_can")
 #system("gsutil -m cp -r /mnt/disks/pdisk/bg-can/int_data/wham_pred /sequences_20230101_20230131.rds gs://for_transfer/sequences_can/sequences/")
 
 # Download WHAM
-#system("gsutil -m cp -r gs://for_transfer/wham/CAN /mnt/disks/pdisk/bg-can/int_data/wham_pred/")
-
+# system("gsutil -m cp -r gs://for_transfer/wham/CAN /mnt/disks/pdisk/bg-can/int_data/wham_pred/")
 
 #### END ####
 
 #### GET PATH NAMES TO MAKE SEQUENCES ####
-# paths <- list.files("./raw_data/text/", pattern = "*.zip", full.names = T)
-# paths <- paths[grepl("2019|2020|2021|2022|2023", paths)]
-# paths_done <- list.files("./int_data/sequences/", pattern = "*.rds", full.names = F) %>%
-#   gsub("sequences_", "", .) %>% gsub(".rds", "", .) %>% unique
-# paths_done <- paths_done[grepl("2019|2020|2021|2022|2023", paths_done)]
-# paths_check <- list.files("./raw_data/text/", pattern = "*.zip", full.names = T) %>%
-#   str_sub(., -21, -5)
-# paths_check <- paths_check[grepl("2019|2020|2021|2022|2023", paths_check)]
-# paths_check[!(paths_check %in% paths_done)]
-# paths <- paths[!(paths_check %in% paths_done)]
-# remove(list = c("paths_check", "paths_done"))
-# 
-# paths
+paths <- list.files("./raw_data/text/", pattern = "*.zip", full.names = T)
+paths <- paths[grepl("2019|2020|2021|2022|2023", paths)]
+paths_done <- list.files("./int_data/sequences/", pattern = "*.rds", full.names = F) %>%
+  gsub("sequences_", "", .) %>% gsub(".rds", "", .) %>% unique
+paths_done <- paths_done[grepl("2019|2020|2021|2022|2023", paths_done)]
+paths_check <- list.files("./raw_data/text/", pattern = "*.zip", full.names = T) %>%
+  str_sub(., -21, -5)
+paths_check <- paths_check[grepl("2019|2020|2021|2022|2023", paths_check)]
+paths_check[!(paths_check %in% paths_done)]
+paths <- paths[!(paths_check %in% paths_done)]
+remove(list = c("paths_check", "paths_done"))
+
+paths
 #### /END ####
 
 #### READ XML NAD MAKE SEQUENCES ####
-# paths
-# source("/mnt/disks/pdisk/bgt_code_repo/old/safe_mclapply.R")
-# 
-# safe_mclapply(1:length(paths), function(i) {
-#   
-#   name <- str_sub(paths[i], -21, -5)
-#   name
-#   warning(paste0("\nBEGIN: ",i,"  '",name,"'"))
-#   cat(paste0("\nBEGIN: ",i,"  '",name,"'"))
-#   system(paste0("unzip -n ",paths[i]," -d ./raw_data/text/"))
-#   xml_path = gsub(".zip", ".xml", paths[i])
-#   xml_path
-#   try( {
-#     df_xml <- read_xml(xml_path) %>%
-#       xml_find_all(., ".//Job")
-#     
-#     df_job_id <- xml_find_all(df_xml, ".//JobID") %>% xml_text
-#     df_job_title <- xml_find_all(df_xml, ".//CleanJobTitle") %>% xml_text
-#     df_job_text <- xml_find_all(df_xml, ".//JobText") %>% xml_text
-#     
-#     remove("df_xml")
-#     
-#     df_title <- data.table(job_id = df_job_id, seq_id = paste0(df_job_id,"_0000"), sequence = df_job_title) %>%
-#       .[, nchar := nchar(sequence)] %>%
-#       .[, nfeat := str_count(sequence, '\\w+')]
-#     
-#     df_ads <- data.table(job_id = df_job_id, job_text = df_job_text) %>%
-#       .[, nchar := nchar(job_text)] %>%
-#       .[, nfeat := str_count(job_text, '\\w+')]
-#     
-#     remove(list = c("df_job_id","df_job_title","df_job_text"))
-#     
-#     df_ads <- setDT(df_ads)
-#     
-#     # Sequence Tokeniser
-#     df_chunked <- df_ads %>%
-#       .[str_count(job_text, '\\w+')>5] %>%
-#       .[, job_text_clean := job_text] %>%
-#       .[, job_text_clean := replace_html(job_text_clean, symbol = F)] %>% # Remove HTML tags - preserves line breaks
-#       .[, job_text_clean := stringi::stri_replace_all_fixed(str = job_text_clean,
-#                                                             pattern = corpus::abbreviations_en,
-#                                                             replacement = gsub("\\.", "", corpus::abbreviations_en, perl = T),
-#                                                             vectorize_all=FALSE)] %>%
-#       .[, job_text_clean := gsub("([\r\n])", "\\\n", job_text_clean)] %>%
-#       .[, job_text_clean := gsub("\\n\\s+\\n", "\\\n\\\n", job_text_clean)] %>%
-#       .[, job_text_clean := gsub("\\n{2,}", "\\\n\\\n", job_text_clean)] %>%
-#       .[, job_text_clean := gsub("\n", " +|+ ", job_text_clean, fixed = T)] %>%
-#       .[, para := strsplit(as.character(job_text_clean), " +|+ ", fixed = T, )] %>%
-#       unnest(cols = para) %>%
-#       setDT(.)
-#     
-#     df_chunked <- df_chunked %>%
-#       .[, para := str_squish(para)] %>%
-#       #.[nchar(para) > 0] %>%
-#       select(job_id, para) %>%
-#       .[, nchar := nchar(para)] %>%
-#       .[, nfeat := str_count(para, '\\w+')] %>%
-#       .[, id_real := 1:.N, by = job_id] %>%
-#       .[, id := ifelse(nfeat < 20 & id_real != 1, NA, id_real)] %>%
-#       #.[, id := ifelse(is.na(id), shift(id)+1, id), by = job_id] %>%
-#       .[, id := nafill(id, type = "locf"), by = job_id] %>%
-#       .[, id := nafill(id, type = "nocb"), by = job_id] %>%
-#       .[, cs := cumsum(nfeat) %/% 100, by = .(job_id, id)] %>%
-#       .[, id := id+(cs/100)] %>%
-#       .[, .(para = paste0(para, collapse = "\n")), by = .(job_id, id)] %>%
-#       .[, nchar := nchar(para)] %>%
-#       .[, nfeat := str_count(para, '\\w+')] %>%
-#       .[, large := ifelse(nfeat > 200, TRUE, FALSE)] %>%
-#       .[, sequence := ifelse(large == TRUE, strsplit(as.character(para), "(?<=[\\.?!\\n])", perl = T), para)] %>%
-#       unnest(cols = sequence) %>%
-#       setDT(.) 
-#     
-#     df_chunked <- df_chunked %>%
-#       select(job_id, large, sequence) %>%
-#       .[, nchar := nchar(sequence)] %>%
-#       .[, nfeat := str_count(sequence, '\\w+')] %>%
-#       .[, id_real := 1:.N, by = job_id] %>%
-#       .[, id := ifelse(nfeat < 100 & large == TRUE & id_real != 1, NA, id_real)] %>%
-#       #.[, id := ifelse(is.na(id), shift(id)+1, id), by = job_id] %>%
-#       .[, id := nafill(id, type = "locf"), by = job_id] %>%
-#       .[, id := nafill(id, type = "nocb"), by = job_id] %>%
-#       .[, cs := cumsum(nfeat) %/% 200, by = .(job_id, id)] %>%
-#       .[, id := id+(cs/100)] %>%
-#       .[, .(sequence = paste0(sequence, collapse = " "), n = .N), by = .(job_id, id, large)] %>%
-#       .[, nchar := nchar(sequence)] %>%
-#       .[, nfeat := str_count(sequence, '\\w+')] %>%
-#       .[, large := ifelse(nfeat > 200, TRUE, FALSE)] %>%
-#       .[, sequence := ifelse(large == TRUE, strsplit(as.character(sequence), "(?<=[\\.?!\\n\\*,])", perl = T), sequence)] %>%
-#       unnest(cols = sequence) %>%
-#       setDT(.)
-#     
-#     df_chunked <- df_chunked %>%
-#       select(job_id, large, sequence) %>%
-#       .[, nchar := nchar(sequence)] %>%
-#       .[, nfeat := str_count(sequence, '\\w+')] %>%
-#       .[, id_real := 1:.N, by = job_id] %>%
-#       .[, id := ifelse(nfeat < 100 & large == TRUE & id_real != 1, NA, id_real)] %>%
-#       #.[, id := ifelse(is.na(id), shift(id)+1, id), by = job_id] %>%
-#       .[, id := nafill(id, type = "locf"), by = job_id] %>%
-#       .[, id := nafill(id, type = "nocb"), by = job_id] %>%
-#       .[, cs := cumsum(nfeat) %/% 200, by = .(job_id, id)] %>%
-#       .[, id := id+(cs/100)] %>%
-#       .[, .(sequence = paste0(sequence, collapse = " "), n = .N), by = .(job_id, id, large)] %>%
-#       .[, nchar := nchar(sequence)] %>%
-#       .[, nfeat := str_count(sequence, '\\w+')] %>%
-#       .[, id_real := 1:.N, by = job_id] %>%
-#       .[, id := ifelse(nfeat < 10, NA, id_real)] %>%
-#       .[, id := nafill(id, type = "locf"), by = job_id] %>%
-#       .[, id := nafill(id, type = "nocb"), by = job_id] %>%
-#       .[, .(sequence = paste0(sequence, collapse = " "), n = .N), by = .(job_id, id)] %>%
-#       .[, nchar := nchar(sequence)] %>%
-#       .[, nfeat := str_count(sequence, '\\w+')] %>%
-#       .[, id_real := 1:.N, by = job_id] %>%
-#       .[, seq_id := paste0(job_id,"_",sprintf("%04d", as.numeric(id_real)))] %>%
-#       select(job_id, seq_id, sequence, nfeat, nchar)
-#     
-#     df_chunked <- setDT(bind_rows(df_chunked, df_title)) %>% .[order(seq_id)]
-#     
-#     saveRDS(df_chunked, file = paste0("./int_data/sequences/sequences_",name,".rds"))
-#   })
-#   
-#   unlink(xml_path)
-#   
-#   warning(paste0("SUCCESS: ",i))
-#   cat(paste0("\nSUCCESS: ",i,"\n"))
-#   return("")
-# }, mc.cores = 2)
-# 
-# #sink()
+paths
+source("/mnt/disks/pdisk/bgt_code_repo/old/safe_mclapply.R")
+
+safe_mclapply(1:length(paths), function(i) {
+
+  name <- str_sub(paths[i], -21, -5)
+  name
+  warning(paste0("\nBEGIN: ",i,"  '",name,"'"))
+  cat(paste0("\nBEGIN: ",i,"  '",name,"'"))
+  system(paste0("unzip -n ",paths[i]," -d ./raw_data/text/"))
+  xml_path = gsub(".zip", ".xml", paths[i])
+  xml_path
+  try( {
+    df_xml <- read_xml(xml_path) %>%
+      xml_find_all(., ".//Job")
+
+    df_job_id <- xml_find_all(df_xml, ".//JobID") %>% xml_text
+    df_job_title <- xml_find_all(df_xml, ".//CleanJobTitle") %>% xml_text
+    df_job_text <- xml_find_all(df_xml, ".//JobText") %>% xml_text
+
+    remove("df_xml")
+
+    df_title <- data.table(job_id = df_job_id, seq_id = paste0(df_job_id,"_0000"), sequence = df_job_title) %>%
+      .[, nchar := nchar(sequence)] %>%
+      .[, nfeat := str_count(sequence, '\\w+')]
+
+    df_ads <- data.table(job_id = df_job_id, job_text = df_job_text) %>%
+      .[, nchar := nchar(job_text)] %>%
+      .[, nfeat := str_count(job_text, '\\w+')]
+
+    remove(list = c("df_job_id","df_job_title","df_job_text"))
+
+    df_ads <- setDT(df_ads)
+
+    # Sequence Tokeniser
+    df_chunked <- df_ads %>%
+      .[str_count(job_text, '\\w+')>5] %>%
+      .[, job_text_clean := job_text] %>%
+      .[, job_text_clean := replace_html(job_text_clean, symbol = F)] %>% # Remove HTML tags - preserves line breaks
+      .[, job_text_clean := stringi::stri_replace_all_fixed(str = job_text_clean,
+                                                            pattern = corpus::abbreviations_en,
+                                                            replacement = gsub("\\.", "", corpus::abbreviations_en, perl = T),
+                                                            vectorize_all=FALSE)] %>%
+      .[, job_text_clean := gsub("([\r\n])", "\\\n", job_text_clean)] %>%
+      .[, job_text_clean := gsub("\\n\\s+\\n", "\\\n\\\n", job_text_clean)] %>%
+      .[, job_text_clean := gsub("\\n{2,}", "\\\n\\\n", job_text_clean)] %>%
+      .[, job_text_clean := gsub("\n", " +|+ ", job_text_clean, fixed = T)] %>%
+      .[, para := strsplit(as.character(job_text_clean), " +|+ ", fixed = T, )] %>%
+      unnest(cols = para) %>%
+      setDT(.)
+
+    df_chunked <- df_chunked %>%
+      .[, para := str_squish(para)] %>%
+      #.[nchar(para) > 0] %>%
+      select(job_id, para) %>%
+      .[, nchar := nchar(para)] %>%
+      .[, nfeat := str_count(para, '\\w+')] %>%
+      .[, id_real := 1:.N, by = job_id] %>%
+      .[, id := ifelse(nfeat < 20 & id_real != 1, NA, id_real)] %>%
+      #.[, id := ifelse(is.na(id), shift(id)+1, id), by = job_id] %>%
+      .[, id := nafill(id, type = "locf"), by = job_id] %>%
+      .[, id := nafill(id, type = "nocb"), by = job_id] %>%
+      .[, cs := cumsum(nfeat) %/% 100, by = .(job_id, id)] %>%
+      .[, id := id+(cs/100)] %>%
+      .[, .(para = paste0(para, collapse = "\n")), by = .(job_id, id)] %>%
+      .[, nchar := nchar(para)] %>%
+      .[, nfeat := str_count(para, '\\w+')] %>%
+      .[, large := ifelse(nfeat > 200, TRUE, FALSE)] %>%
+      .[, sequence := ifelse(large == TRUE, strsplit(as.character(para), "(?<=[\\.?!\\n])", perl = T), para)] %>%
+      unnest(cols = sequence) %>%
+      setDT(.)
+
+    df_chunked <- df_chunked %>%
+      select(job_id, large, sequence) %>%
+      .[, nchar := nchar(sequence)] %>%
+      .[, nfeat := str_count(sequence, '\\w+')] %>%
+      .[, id_real := 1:.N, by = job_id] %>%
+      .[, id := ifelse(nfeat < 100 & large == TRUE & id_real != 1, NA, id_real)] %>%
+      #.[, id := ifelse(is.na(id), shift(id)+1, id), by = job_id] %>%
+      .[, id := nafill(id, type = "locf"), by = job_id] %>%
+      .[, id := nafill(id, type = "nocb"), by = job_id] %>%
+      .[, cs := cumsum(nfeat) %/% 200, by = .(job_id, id)] %>%
+      .[, id := id+(cs/100)] %>%
+      .[, .(sequence = paste0(sequence, collapse = " "), n = .N), by = .(job_id, id, large)] %>%
+      .[, nchar := nchar(sequence)] %>%
+      .[, nfeat := str_count(sequence, '\\w+')] %>%
+      .[, large := ifelse(nfeat > 200, TRUE, FALSE)] %>%
+      .[, sequence := ifelse(large == TRUE, strsplit(as.character(sequence), "(?<=[\\.?!\\n\\*,])", perl = T), sequence)] %>%
+      unnest(cols = sequence) %>%
+      setDT(.)
+
+    df_chunked <- df_chunked %>%
+      select(job_id, large, sequence) %>%
+      .[, nchar := nchar(sequence)] %>%
+      .[, nfeat := str_count(sequence, '\\w+')] %>%
+      .[, id_real := 1:.N, by = job_id] %>%
+      .[, id := ifelse(nfeat < 100 & large == TRUE & id_real != 1, NA, id_real)] %>%
+      #.[, id := ifelse(is.na(id), shift(id)+1, id), by = job_id] %>%
+      .[, id := nafill(id, type = "locf"), by = job_id] %>%
+      .[, id := nafill(id, type = "nocb"), by = job_id] %>%
+      .[, cs := cumsum(nfeat) %/% 200, by = .(job_id, id)] %>%
+      .[, id := id+(cs/100)] %>%
+      .[, .(sequence = paste0(sequence, collapse = " "), n = .N), by = .(job_id, id, large)] %>%
+      .[, nchar := nchar(sequence)] %>%
+      .[, nfeat := str_count(sequence, '\\w+')] %>%
+      .[, id_real := 1:.N, by = job_id] %>%
+      .[, id := ifelse(nfeat < 10, NA, id_real)] %>%
+      .[, id := nafill(id, type = "locf"), by = job_id] %>%
+      .[, id := nafill(id, type = "nocb"), by = job_id] %>%
+      .[, .(sequence = paste0(sequence, collapse = " "), n = .N), by = .(job_id, id)] %>%
+      .[, nchar := nchar(sequence)] %>%
+      .[, nfeat := str_count(sequence, '\\w+')] %>%
+      .[, id_real := 1:.N, by = job_id] %>%
+      .[, seq_id := paste0(job_id,"_",sprintf("%04d", as.numeric(id_real)))] %>%
+      select(job_id, seq_id, sequence, nfeat, nchar)
+
+    df_chunked <- setDT(bind_rows(df_chunked, df_title)) %>% .[order(seq_id)]
+
+    saveRDS(df_chunked, file = paste0("./int_data/sequences/sequences_",name,".rds"))
+  })
+
+  unlink(xml_path)
+
+  warning(paste0("SUCCESS: ",i))
+  cat(paste0("\nSUCCESS: ",i,"\n"))
+  return("")
+}, mc.cores = 2)
+
+#sink()
 # system("echo sci2007! | sudo -S shutdown -h now")
 #### END ####
 
 #### EXTRACT SOURCE AND URL AND SAVE ####
-# remove(list = ls())
-# paths <- list.files("./raw_data/text/", pattern = "*.zip", full.names = T)
-# source("/mnt/disks/pdisk/bgt_code_repo/old/safe_mclapply.R")
-# 
-# safe_mclapply(1:length(paths), function(i) {
-#     name <- str_sub(paths[i], -21, -5)
-#     name
-#     warning(paste0("\nBEGIN: ",i,"  '",name,"'"))
-#     cat(paste0("\nBEGIN: ",i,"  '",name,"'"))
-#     system(paste0("unzip -o ",paths[i]," -d ./raw_data/text/"))
-#     xml_path = gsub(".zip", ".xml", paths[i])
-#     xml_path
-#     #try( {
-#     df_xml <- read_xml(xml_path) %>%
-#       xml_find_all(., ".//Job")
-# 
-#     df_job_id <- xml_find_all(df_xml, ".//JobID") %>% xml_text
-#     df_job_domain <- xml_find_all(df_xml, ".//JobDomain") %>% xml_text
-# 
-#     remove("df_xml")
-# 
-#     df <- data.table(job_id = df_job_id, job_domain = df_job_domain, stringsAsFactors = FALSE)
-# 
-#     unlink(xml_path)
-#     fwrite(df, file = paste0("./int_data/sources/can_src_",name,"_wfh.csv"))    
-#     warning(paste0("SUCCESS: ",i))
-#     cat(paste0("\nSUCCESS: ",i,"\n"))
-#     return("")
-#   }, mc.cores = 6)
+remove(list = ls())
+paths <- list.files("./raw_data/text/", pattern = "*.zip", full.names = T)
+paths <- paths[grepl("2019|2020|2021|2022|2023", paths)]
+paths_done <- list.files("./int_data/sources/", pattern = "*.csv", full.names = F) %>%
+  gsub("can_src_", "", .) %>% gsub("_wfh.csv", "", .) %>% unique
+paths_done <- paths_done[grepl("2019|2020|2021|2022|2023", paths_done)]
+paths_check <- list.files("./raw_data/text/", pattern = "*.zip", full.names = T) %>%
+  str_sub(., -21, -5)
+paths_check <- paths_check[grepl("2019|2020|2021|2022|2023", paths_check)]
+paths_check
+paths_done
+paths_check[!(paths_check %in% paths_done)]
+paths <- paths[!(paths_check %in% paths_done)]
+remove(list = c("paths_check", "paths_done"))
+
+paths
+
+#lapply(1:length(paths), function(i) {
+#  file.rename(from = paths[i], to = gsub("uk_src", "us_src", paths[i]))
+#})
+
+paths
+source("/mnt/disks/pdisk/bgt_code_repo/old/safe_mclapply.R")
+
+safe_mclapply(1:length(paths), function(i) {
+  name <- str_sub(paths[i], -21, -5)
+  name
+  warning(paste0("\nBEGIN: ",i,"  '",name,"'"))
+  cat(paste0("\nBEGIN: ",i,"  '",name,"'"))
+  system(paste0("unzip -o ",paths[i]," -d ./raw_data/text/"))
+  xml_path = gsub(".zip", ".xml", paths[i])
+  xml_path
+  #try( {
+  df_xml <- read_xml(xml_path) %>%
+    xml_find_all(., ".//Job")
+  
+  df_job_id <- xml_find_all(df_xml, ".//JobID") %>% xml_text
+  df_job_domain <- xml_find_all(df_xml, ".//JobDomain") %>% xml_text
+  
+  remove("df_xml")
+  
+  df <- data.table(job_id = df_job_id, job_domain = df_job_domain, stringsAsFactors = FALSE)
+  
+  unlink(xml_path)
+  fwrite(df, file = paste0("./int_data/sources/can_src_",name,"_wfh.csv"))
+  warning(paste0("SUCCESS: ",i))
+  cat(paste0("\nSUCCESS: ",i,"\n"))
+  return("")
+}, mc.cores = 4)
 
 #sink()
-# system("echo sci2007! | sudo -S shutdown -h now")
+system("echo sci2007! | sudo -S shutdown -h now")
 #### /END ####
 
 #### AGGREGATE WHAM TO JOB AD LEVEL ####
@@ -293,10 +312,10 @@ df_wham <- df_wham %>%
   rename(wfh_wham_prob = wfh_prob,
          wfh_wham = wfh)
 
-nrow(df_wham) # 21,255,350
+nrow(df_wham) # 21,967,718
 df_wham <- df_wham %>%
   unique(., by = "job_id")
-nrow(df_wham) # 21,255,350
+nrow(df_wham) # 21,967,718
 #### /END ####
 
 #### LOAD SRC ####
@@ -310,10 +329,10 @@ df_src <- safe_mclapply(1:length(paths), function(i) {
 }, mc.cores = 8) %>%
   rbindlist(.)
 
-nrow(df_src) # 31,597,306
+nrow(df_src) # 33,545,405
 df_src <- df_src %>%
   unique(., by = "job_id")
-nrow(df_src) # 31,234,415
+nrow(df_src) # 33,545,405
 
 #### END ####
 ls()
@@ -325,7 +344,7 @@ source("/mnt/disks/pdisk/bgt_code_repo/old/safe_mclapply.R")
 
 #colnames(fread(cmd = paste0('unzip -p ', paths[102]), nThread = 8, colClasses = "character", stringsAsFactors = FALSE, nrow = 100))
 
-safe_mclapply(2023:2023, function(x) {
+safe_mclapply(2022:2023, function(x) {
   paths_year <- paths[grepl(x, paths)]
   df_stru <- safe_mclapply(1:length(paths_year), function(i) {
     

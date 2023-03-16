@@ -165,6 +165,7 @@ daily_data_old <- daily_data
 
 daily_data <- bind_rows(daily_data, daily_data_national)
 
+
 thresh_cities <- daily_data %>%
   .[as.yearmon(year_month) >= as.yearmon(ymd("20190101")) & as.yearmon(year_month) <= as.yearmon(ymd("20230101"))] %>%
   .[, .(count_for_thresh = sum(N)), by = .(country, city_state)] %>%
@@ -237,6 +238,8 @@ ts_for_plot <- ts_for_plot %>%
 #View(head(ts_for_plot, 1000))
 
 fwrite(ts_for_plot, file = "./aux_data/city_level_ts.csv")
+
+unique(ts_for_plot$country)
 
 Sys.time()
 

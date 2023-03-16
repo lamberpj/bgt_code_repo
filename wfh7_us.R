@@ -37,7 +37,7 @@ remove(list = ls())
 
 #### PREPARE DATA ####
 # system("gsutil -m cp -r gs://for_transfer/data_ingest/bgt_upload/US_stru /mnt/disks/pdisk/bg-us/raw_data/main/")
-# system("gsutil -m cp -r gs://for_transfer/data_ingest/bgt_upload/US_raw /mnt/disks/pdisk/bg-us/raw_data/text/")
+#system("gsutil -m cp -r gs://for_transfer/data_ingest/bgt_upload/US_raw /mnt/disks/pdisk/bg-us/raw_data/text/")
 #system("gsutil -m cp -r gs://for_transfer/wham/US /mnt/disks/pdisk/bg-us/int_data/wham_pred/")
   
 #system("gsutil -m cp -r gs://for_transfer/dict_us /mnt/disks/pdisk/bg-us/int_data/dict/")
@@ -61,7 +61,7 @@ remove(list = ls())
 #system("zip -r /mnt/disks/pdisk/bg-us/int_data/us_sequences.zip /mnt/disks/pdisk/bg-us/int_data/sequences/")
 
 # Upload Sequences
-#system("gsutil -m cp -r /mnt/disks/pdisk/bg-us/int_data/sequences/sequences_20230209_20230215.rds gs://for_transfer/sequences_us/sequences/")
+# system("gsutil -m cp -r /mnt/disks/pdisk/bg-us/int_data/sequences/sequences_20230216_20230222.rds gs://for_transfer/sequences_us/sequences/")
 
 # Download WHAM Predictions
 #system("gsutil -m cp -r gs://for_transfer/wham/US /mnt/disks/pdisk/bg-us/int_data/wham_pred")
@@ -100,33 +100,33 @@ safe_mclapply(1:length(paths), function(i) {
   #try( {
     df_xml <- read_xml(xml_path) %>%
       xml_find_all(., ".//Job")
-    
+
     df_job_id <- xml_find_all(df_xml, ".//JobID") %>% xml_text
     df_job_title <- xml_find_all(df_xml, ".//CleanJobTitle") %>% xml_text
     df_job_text <- xml_find_all(df_xml, ".//JobText") %>% xml_text
-    
+
     remove("df_xml")
-    
+
     df_title <- data.table(job_id = df_job_id, seq_id = paste0(df_job_id,"_0000"), sequence = df_job_title) %>%
       .[, nchar := nchar(sequence)] %>%
       .[, nfeat := str_count(sequence, '\\w+')]
-    
+
     df_ads <- data.table(job_id = df_job_id, job_text = df_job_text) %>%
       .[, nchar := nchar(job_text)] %>%
       .[, nfeat := str_count(job_text, '\\w+')]
-    
+
     remove(list = c("df_job_id","df_job_title","df_job_text"))
-    
+
     df_ads <- setDT(df_ads)
-    
+
     df_ads <- df_ads %>% .[, group := as.character(.I %/% 50000)]
     df_ads <- split(df_ads, by = "group")
-    
+
     # Sequence Tokeniser
     df_chunked <- safe_mclapply(1:length(df_ads), function(j) {
-      
+
       #warning(paste0("\nSTART: ",100*round(j/length(df_ads))))
-      
+
       df_chunked <- df_ads[[j]] %>%
         .[str_count(job_text, '\\w+')>5] %>%
         .[, job_text_clean := job_text] %>%
@@ -142,7 +142,7 @@ safe_mclapply(1:length(paths), function(i) {
         .[, para := strsplit(as.character(job_text_clean), " +|+ ", fixed = T, )] %>%
         unnest(cols = para) %>%
         setDT(.)
-      
+
       df_chunked <- df_chunked %>%
         .[, para := str_squish(para)] %>%
         #.[nchar(para) > 0] %>%
@@ -162,8 +162,8 @@ safe_mclapply(1:length(paths), function(i) {
         .[, large := ifelse(nfeat > 200, TRUE, FALSE)] %>%
         .[, sequence := ifelse(large == TRUE, strsplit(as.character(para), "(?<=[\\.?!\\n])", perl = T), para)] %>%
         unnest(cols = sequence) %>%
-        setDT(.) 
-      
+        setDT(.)
+
       df_chunked <- df_chunked %>%
         select(job_id, large, sequence) %>%
         .[, nchar := nchar(sequence)] %>%
@@ -182,7 +182,7 @@ safe_mclapply(1:length(paths), function(i) {
         .[, sequence := ifelse(large == TRUE, strsplit(as.character(sequence), "(?<=[\\.?!\\n\\*,])", perl = T), sequence)] %>%
         unnest(cols = sequence) %>%
         setDT(.)
-      
+
       df_chunked <- df_chunked %>%
         select(job_id, large, sequence) %>%
         .[, nchar := nchar(sequence)] %>%
@@ -207,29 +207,29 @@ safe_mclapply(1:length(paths), function(i) {
         .[, id_real := 1:.N, by = job_id] %>%
         .[, seq_id := paste0(job_id,"_",sprintf("%04d", as.numeric(id_real)))] %>%
         select(job_id, seq_id, sequence, nfeat, nchar)
-      
+
       warning(paste0("\ndone: ",i,": ",100*round(j/length(df_ads), 2)))
-      
+
       return(df_chunked)
-      
-    }, mc.cores = 1)
-    
+
+    }, mc.cores = 4)
+
     df_chunked <- rbindlist(df_chunked)
-    
+
     df_chunked <- setDT(bind_rows(df_chunked, df_title)) %>% .[order(seq_id)]
-    
+
     saveRDS(df_chunked, file = paste0("./int_data/sequences/sequences_",name,".rds"))
   #})
-  
+
   unlink(xml_path)
-  
+
   warning(paste0("SUCCESS: ",i))
   cat(paste0("\nSUCCESS: ",i,"\n"))
   return("")
-}, mc.cores = 2)
-
-#sink()
-system("echo sci2007! | sudo -S shutdown -h now")
+}, mc.cores = 1)
+# 
+# #sink()
+# system("echo sci2007! | sudo -S shutdown -h now")
 #### END ####
 
 #### EXTRACT SOURCE AND URL AND SAVE ####
@@ -360,7 +360,7 @@ source("/mnt/disks/pdisk/bgt_code_repo/old/safe_mclapply.R")
 df_wham$job_id <- as.numeric(df_wham$job_id)
 df_src$job_id <- as.numeric(df_src$job_id)
 
-safe_mclapply(2014:2023, function(x) {
+safe_mclapply(2022:2023, function(x) {
 
   paths_year <- paths[grepl(x, paths)]
   df_stru <- safe_mclapply(1:length(paths_year), function(i) {
@@ -400,133 +400,131 @@ safe_mclapply(2014:2023, function(x) {
 #### END ####
 
 #### EXTRACT ANNUAL HARMONISED DATA, manually changing year ####
-remove(list = ls())
-df_us_stru_2023 <- fread("../bg-us/int_data/us_stru_2023_wfh.csv", nThread = 8) %>% .[!is.na(wfh_wham) & wfh_wham != ""]
-
-df_all_us <- df_us_stru_2023
-
-remove(list = setdiff(ls(),"df_all_us"))
-
-colnames(df_all_us)
-
-#View(as.data.table(table(as.yearmon(df_all_us[!is.na(wfh_wham) & wfh_wham != ""]$job_ymd))))
-
-df_all_us <- df_all_us %>%
-  .[, year_quarter := as.yearqtr(job_ymd)] %>%
-  .[, year_month := as.yearmon(job_ymd)]
-
-w_us_2019 <- fread("../bg_combined/aux_data/emp_weights/w_us_2019.csv") %>%
-  .[, us_soc18 := str_sub(us_soc18, 1, 5)] %>%
-  .[, .(tot_emp = sum(tot_emp, na.rm = T)), by = us_soc18] %>%
-  .[, emp_share := tot_emp / sum(tot_emp, na.rm = T)]
-
-soc10_soc18_xwalk <- readxl::read_xlsx("../bg_combined/aux_data/emp_weights/us_weights/soc_2010_to_2018_crosswalk.xlsx", skip = 8) %>%
-  clean_names %>%
-  select(x2010_soc_code, x2018_soc_code)
-
-#soc10_soc18_xwalk
-
-nrow(df_all_us) # 145,969,778
-df_all_us <- df_all_us %>%
-  merge(x = ., y = soc10_soc18_xwalk, by.x = "soc", by.y = "x2010_soc_code", all.x = TRUE, all.y = FALSE, allow.cartesian=TRUE)
-nrow(df_all_us) # 188,713,932
-
-#w_us_2019
-
-df_all_us <- df_all_us %>%
-  .[, us_soc18 := str_sub(x2018_soc_code, 1, 5)] %>%
-  .[!is.na(us_soc18)] %>%
-  .[, country := "US"] %>%
-  merge(x = ., y = w_us_2019, by = "us_soc18", all.x = TRUE, all.y = FALSE) %>%
-  setDT(.) %>%
-  .[!is.na(emp_share) & !is.na(tot_emp)]
-
-# Apportion employment across (weighted) vacancies
-df_all_us <- df_all_us %>%
-  setDT(.) %>%
-  .[, job_id_weight := 1/.N, by = job_id] %>%
-  setDT(.) %>%
-  .[, tot_emp_ad := (tot_emp*job_id_weight)/sum(tot_emp*job_id_weight), by = .(year_month, us_soc18)]
-
-# Check how problematic the extensive margin is
-df_all_us <- df_all_us %>%
-  select(job_id,country,year_month,job_date,wfh_wham_prob,wfh_wham,state,city,msa,fips,county,
-         employer,exp, max_exp,degree,min_salary,job_hours,bgt_occ,
-         onet,sector_name,tot_emp_ad,job_id_weight, job_domain)
-
-# Remove Cannon
-colnames(df_all_us) <- gsub("canon_","", colnames(df_all_us))
-
-# Experience - call this disjoint_exp_max, and disjoint_degree_level
-df_all_us <- df_all_us %>% rename(disjoint_exp_max = max_exp, disjoint_exp_min = exp)
-
-# Min Degree - call this disjoint_degree_name, and disjoint_degree_level
-df_all_us <- df_all_us %>% rename(disjoint_degree_name = degree)
-
-# Need to cluster properly, for now let's just make them all "disjoint_sector"
-df_all_us <- df_all_us %>% rename(disjoint_sector = sector_name)
-
-# Min Salary (call this disjoint_salary")
-df_all_us <- df_all_us %>% rename(disjoint_salary = min_salary)
-
-# Final Subset
-df_all_us <- df_all_us %>% select(job_id, country, state, msa, county, fips, city, year_month, job_date, wfh_wham_prob,wfh_wham,employer, bgt_occ, onet,  disjoint_exp_max, disjoint_exp_min, job_hours, disjoint_sector, disjoint_degree_name, disjoint_salary, tot_emp_ad, job_id_weight, job_domain)
-df_all_us$year <- year(df_all_us$year_month)
-df_all_us$month <- str_sub(as.character(df_all_us$year_month), 1, 3)
-df_all_us$month <- factor(df_all_us$month, levels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"))
-
-df_all_us$disjoint_salary <- as.numeric(df_all_us$disjoint_salary)
-df_all_us$disjoint_salary <- ifelse(df_all_us$disjoint_salary<0, NA, df_all_us$disjoint_salary)
-
-df_all_us <- setDT(df_all_us)
-
-#### MZ CODE 
-#table(df_all_us$disjoint_degree_name)
-df_all_us$bach_or_higher<-grepl("bachelor|master|doctor|PhD", df_all_us$disjoint_degree_name, ignore.case = T)
-
-# df_all_us$bach_or_higher<-ifelse(df_all_us$bach_or_higher==FALSE & 
-#                                 df_all_us$disjoint_degree_level >=16 & ! is.na(df_all_us$disjoint_degree_level), 
-#                               TRUE, df_all_us$bach_or_higher)
-
-#df_all_us$bach_or_higher<-ifelse(is.na(df_all_us$disjoint_degree_level) & df_all_us$disjoint_degree_name == "",
-#                              NA, df_all_us$bach_or_higher)
-#df_all_us$bach_or_higher<-ifelse(df_all_us$bach_or_higher == TRUE, 1, ifelse(df_all_us$bach_or_higher == FALSE, 0, NA))
-
-df_all_us$sector_clustered<-ifelse(df_all_us$disjoint_sector %in% c("Wholesale Trade", "Retail Trade", "WHOLESALE AND RETAIL TRADE; REPAIR OF MOTOR VEHICLES AND MOTORCYCLES"), "Wholesale and Retail Trade",
-                                ifelse(df_all_us$disjoint_sector %in% c("Accommodation and Food Services","ACCOMMODATION AND FOOD SERVICE ACTIVITIES"),"Accomodation and Food Services",
-                                       ifelse(df_all_us$disjoint_sector %in% c("Electricity, Gas, Water and Waste Services","WATER SUPPLY; SEWERAGE, WASTE MANAGEMENT AND REMEDIATION ACTIVITIES", "Utilities", "ELECTRICITY, GAS, STEAM AND AIR CONDITIONING SUPPLY"), "Utility Services",
-                                              ifelse(df_all_us$disjoint_sector %in% c("Administrative and Support Services","Administrative and Support and Waste Management and Remediation Services","ADMINISTRATIVE AND SUPPORT SERVICE ACTIVITIES"),"Administrative and Support",
-                                                     ifelse(df_all_us$disjoint_sector %in% c("Professional, Scientific and Technical Services","Professional, Scientific, and Technical Services", "PROFESSIONAL, SCIENTIFIC AND TECHNICAL ACTIVITIES"),"Technical Services",
-                                                            ifelse(df_all_us$disjoint_sector %in% c("Other Services", "Other Services (except Public Administration)", "OTHER SERVICE ACTIVITIES"), "Other Services",
-                                                                   ifelse(df_all_us$disjoint_sector %in% c("Education and Training", "Educational Services", "EDUCATION"), "Education",
-                                                                          ifelse(df_all_us$disjoint_sector %in% c("Health Care and Social Assistance", "HUMAN HEALTH AND SOCIAL WORK ACTIVITIES"), "Healthcare",
-                                                                                 ifelse(df_all_us$disjoint_sector %in% c("Public Administration and Safety", "Public Administration", "PUBLIC ADMINISTRATION AND DEFENCE; COMPULSORY SOCIAL SECURITY"), "Public Administration",
-                                                                                        ifelse(df_all_us$disjoint_sector %in% c("Financial and Insurance Services", "Financial and Insurance", "FINANCIAL AND INSURANCE ACTIVITIES"), "Finance and Insurance",
-                                                                                               ifelse(df_all_us$disjoint_sector %in% c("Information Media and Telecommunications", "Information", "INFORMATION AND COMMUNICATION"), "Information and Communication",
-                                                                                                      ifelse(df_all_us$disjoint_sector %in% c("Manufacturing", "MANUFACTURING"), "Manufacturing",
-                                                                                                             ifelse(df_all_us$disjoint_sector %in% c("Construction", "CONSTRUCTION"), "Construction",
-                                                                                                                    ifelse(df_all_us$disjoint_sector %in% c("Rental, Hiring and Real Estate Services","Real Estate and Rental and Leasing",  "REAL ESTATE ACTIVITIES"), "Real Estate",
-                                                                                                                           ifelse(df_all_us$disjoint_sector %in% c("Agriculture, Forestry and Fishing",  "Agriculture, Forestry, Fishing and Hunting","AGRICULTURE, FORESTRY AND FISHING"),"Agriculture",
-                                                                                                                                  ifelse(df_all_us$disjoint_sector %in% c("Transport, Postal and Warehousing", "Transportation and Warehousing","TRANSPORTATION AND STORAGE"), "Transportation",
-                                                                                                                                         ifelse(df_all_us$disjoint_sector %in% c("Arts and Recreation Services","Arts, Entertainment, and Recreation",  "ARTS, ENTERTAINMENT AND RECREATION"), "Arts and Entertainment",
-                                                                                                                                                ifelse(df_all_us$disjoint_sector %in% c("Mining", "Mining, Quarrying, and Oil and Gas Extraction","MINING AND QUARRYING"), "Mining", NA))))))))))))))))))
-
-# CLUSTER EXP #
-df_all_us <- df_all_us %>%
-  .[, disjoint_exp_min := ifelse(disjoint_exp_min == -999, NA, disjoint_exp_min)] %>%
-  .[, disjoint_exp_max := ifelse(disjoint_exp_max == -999, NA, disjoint_exp_max)]
-
-df_all_us <- df_all_us %>%
-  .[, exp_max := disjoint_exp_max] %>%
-  select(-c(disjoint_exp_min, disjoint_exp_max))
-
-# ARRANGE #
-df_all_us <- df_all_us %>%
-  setDT(.) %>%
-  .[order(job_date, job_id)]
-
-# SAVE #
-fwrite(df_all_us, file = "./int_data/df_us_2023_standardised.csv")
+lapply(c(2022:2023), function(yearm) {
+  df_all_us <- fread(input = paste0("../bg-us/int_data/us_stru_",yearm,"_wfh.csv"), nThread = 8) %>% .[!is.na(wfh_wham) & wfh_wham != ""]
+  
+  colnames(df_all_us)
+  
+  #View(as.data.table(table(as.yearmon(df_all_us[!is.na(wfh_wham) & wfh_wham != ""]$job_ymd))))
+  
+  df_all_us <- df_all_us %>%
+    .[, year_quarter := as.yearqtr(job_ymd)] %>%
+    .[, year_month := as.yearmon(job_ymd)]
+  
+  w_us_2019 <- fread("../bg_combined/aux_data/emp_weights/w_us_2019.csv") %>%
+    .[, us_soc18 := str_sub(us_soc18, 1, 5)] %>%
+    .[, .(tot_emp = sum(tot_emp, na.rm = T)), by = us_soc18] %>%
+    .[, emp_share := tot_emp / sum(tot_emp, na.rm = T)]
+  
+  soc10_soc18_xwalk <- readxl::read_xlsx("../bg_combined/aux_data/emp_weights/us_weights/soc_2010_to_2018_crosswalk.xlsx", skip = 8) %>%
+    clean_names %>%
+    select(x2010_soc_code, x2018_soc_code)
+  
+  #soc10_soc18_xwalk
+  
+  nrow(df_all_us) # 145,969,778
+  df_all_us <- df_all_us %>%
+    merge(x = ., y = soc10_soc18_xwalk, by.x = "soc", by.y = "x2010_soc_code", all.x = TRUE, all.y = FALSE, allow.cartesian=TRUE)
+  nrow(df_all_us) # 188,713,932
+  
+  #w_us_2019
+  
+  df_all_us <- df_all_us %>%
+    .[, us_soc18 := str_sub(x2018_soc_code, 1, 5)] %>%
+    .[!is.na(us_soc18)] %>%
+    .[, country := "US"] %>%
+    merge(x = ., y = w_us_2019, by = "us_soc18", all.x = TRUE, all.y = FALSE) %>%
+    setDT(.) %>%
+    .[!is.na(emp_share) & !is.na(tot_emp)]
+  
+  # Apportion employment across (weighted) vacancies
+  df_all_us <- df_all_us %>%
+    setDT(.) %>%
+    .[, job_id_weight := 1/.N, by = job_id] %>%
+    setDT(.) %>%
+    .[, tot_emp_ad := (tot_emp*job_id_weight)/sum(tot_emp*job_id_weight), by = .(year_month, us_soc18)]
+  
+  # Check how problematic the extensive margin is
+  df_all_us <- df_all_us %>%
+    select(job_id,country,year_month,job_date,wfh_wham_prob,wfh_wham,state,city,msa,fips,county,
+           employer,exp, max_exp,degree,min_salary,job_hours,bgt_occ,
+           onet,sector_name,tot_emp_ad,job_id_weight, job_domain)
+  
+  # Remove Cannon
+  colnames(df_all_us) <- gsub("canon_","", colnames(df_all_us))
+  
+  # Experience - call this disjoint_exp_max, and disjoint_degree_level
+  df_all_us <- df_all_us %>% rename(disjoint_exp_max = max_exp, disjoint_exp_min = exp)
+  
+  # Min Degree - call this disjoint_degree_name, and disjoint_degree_level
+  df_all_us <- df_all_us %>% rename(disjoint_degree_name = degree)
+  
+  # Need to cluster properly, for now let's just make them all "disjoint_sector"
+  df_all_us <- df_all_us %>% rename(disjoint_sector = sector_name)
+  
+  # Min Salary (call this disjoint_salary")
+  df_all_us <- df_all_us %>% rename(disjoint_salary = min_salary)
+  
+  # Final Subset
+  df_all_us <- df_all_us %>% select(job_id, country, state, msa, county, fips, city, year_month, job_date, wfh_wham_prob,wfh_wham,employer, bgt_occ, onet,  disjoint_exp_max, disjoint_exp_min, job_hours, disjoint_sector, disjoint_degree_name, disjoint_salary, tot_emp_ad, job_id_weight, job_domain)
+  df_all_us$year <- year(df_all_us$year_month)
+  df_all_us$month <- str_sub(as.character(df_all_us$year_month), 1, 3)
+  df_all_us$month <- factor(df_all_us$month, levels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"))
+  
+  df_all_us$disjoint_salary <- as.numeric(df_all_us$disjoint_salary)
+  df_all_us$disjoint_salary <- ifelse(df_all_us$disjoint_salary<0, NA, df_all_us$disjoint_salary)
+  
+  df_all_us <- setDT(df_all_us)
+  
+  #### MZ CODE 
+  #table(df_all_us$disjoint_degree_name)
+  df_all_us$bach_or_higher<-grepl("bachelor|master|doctor|PhD", df_all_us$disjoint_degree_name, ignore.case = T)
+  
+  # df_all_us$bach_or_higher<-ifelse(df_all_us$bach_or_higher==FALSE & 
+  #                                 df_all_us$disjoint_degree_level >=16 & ! is.na(df_all_us$disjoint_degree_level), 
+  #                               TRUE, df_all_us$bach_or_higher)
+  
+  #df_all_us$bach_or_higher<-ifelse(is.na(df_all_us$disjoint_degree_level) & df_all_us$disjoint_degree_name == "",
+  #                              NA, df_all_us$bach_or_higher)
+  #df_all_us$bach_or_higher<-ifelse(df_all_us$bach_or_higher == TRUE, 1, ifelse(df_all_us$bach_or_higher == FALSE, 0, NA))
+  
+  df_all_us$sector_clustered<-ifelse(df_all_us$disjoint_sector %in% c("Wholesale Trade", "Retail Trade", "WHOLESALE AND RETAIL TRADE; REPAIR OF MOTOR VEHICLES AND MOTORCYCLES"), "Wholesale and Retail Trade",
+                                  ifelse(df_all_us$disjoint_sector %in% c("Accommodation and Food Services","ACCOMMODATION AND FOOD SERVICE ACTIVITIES"),"Accomodation and Food Services",
+                                         ifelse(df_all_us$disjoint_sector %in% c("Electricity, Gas, Water and Waste Services","WATER SUPPLY; SEWERAGE, WASTE MANAGEMENT AND REMEDIATION ACTIVITIES", "Utilities", "ELECTRICITY, GAS, STEAM AND AIR CONDITIONING SUPPLY"), "Utility Services",
+                                                ifelse(df_all_us$disjoint_sector %in% c("Administrative and Support Services","Administrative and Support and Waste Management and Remediation Services","ADMINISTRATIVE AND SUPPORT SERVICE ACTIVITIES"),"Administrative and Support",
+                                                       ifelse(df_all_us$disjoint_sector %in% c("Professional, Scientific and Technical Services","Professional, Scientific, and Technical Services", "PROFESSIONAL, SCIENTIFIC AND TECHNICAL ACTIVITIES"),"Technical Services",
+                                                              ifelse(df_all_us$disjoint_sector %in% c("Other Services", "Other Services (except Public Administration)", "OTHER SERVICE ACTIVITIES"), "Other Services",
+                                                                     ifelse(df_all_us$disjoint_sector %in% c("Education and Training", "Educational Services", "EDUCATION"), "Education",
+                                                                            ifelse(df_all_us$disjoint_sector %in% c("Health Care and Social Assistance", "HUMAN HEALTH AND SOCIAL WORK ACTIVITIES"), "Healthcare",
+                                                                                   ifelse(df_all_us$disjoint_sector %in% c("Public Administration and Safety", "Public Administration", "PUBLIC ADMINISTRATION AND DEFENCE; COMPULSORY SOCIAL SECURITY"), "Public Administration",
+                                                                                          ifelse(df_all_us$disjoint_sector %in% c("Financial and Insurance Services", "Financial and Insurance", "FINANCIAL AND INSURANCE ACTIVITIES"), "Finance and Insurance",
+                                                                                                 ifelse(df_all_us$disjoint_sector %in% c("Information Media and Telecommunications", "Information", "INFORMATION AND COMMUNICATION"), "Information and Communication",
+                                                                                                        ifelse(df_all_us$disjoint_sector %in% c("Manufacturing", "MANUFACTURING"), "Manufacturing",
+                                                                                                               ifelse(df_all_us$disjoint_sector %in% c("Construction", "CONSTRUCTION"), "Construction",
+                                                                                                                      ifelse(df_all_us$disjoint_sector %in% c("Rental, Hiring and Real Estate Services","Real Estate and Rental and Leasing",  "REAL ESTATE ACTIVITIES"), "Real Estate",
+                                                                                                                             ifelse(df_all_us$disjoint_sector %in% c("Agriculture, Forestry and Fishing",  "Agriculture, Forestry, Fishing and Hunting","AGRICULTURE, FORESTRY AND FISHING"),"Agriculture",
+                                                                                                                                    ifelse(df_all_us$disjoint_sector %in% c("Transport, Postal and Warehousing", "Transportation and Warehousing","TRANSPORTATION AND STORAGE"), "Transportation",
+                                                                                                                                           ifelse(df_all_us$disjoint_sector %in% c("Arts and Recreation Services","Arts, Entertainment, and Recreation",  "ARTS, ENTERTAINMENT AND RECREATION"), "Arts and Entertainment",
+                                                                                                                                                  ifelse(df_all_us$disjoint_sector %in% c("Mining", "Mining, Quarrying, and Oil and Gas Extraction","MINING AND QUARRYING"), "Mining", NA))))))))))))))))))
+  
+  # CLUSTER EXP #
+  df_all_us <- df_all_us %>%
+    .[, disjoint_exp_min := ifelse(disjoint_exp_min == -999, NA, disjoint_exp_min)] %>%
+    .[, disjoint_exp_max := ifelse(disjoint_exp_max == -999, NA, disjoint_exp_max)]
+  
+  df_all_us <- df_all_us %>%
+    .[, exp_max := disjoint_exp_max] %>%
+    select(-c(disjoint_exp_min, disjoint_exp_max))
+  
+  # ARRANGE #
+  df_all_us <- df_all_us %>%
+    setDT(.) %>%
+    .[order(job_date, job_id)]
+  
+  # SAVE #
+  fwrite(df_all_us, file = paste0("./int_data/df_us_", yearm, "_standardised.csv"))
+  
+})
 
 
 
