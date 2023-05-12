@@ -38,26 +38,15 @@ remove(list = ls())
 
 #### PREPARE DATA ####
 
-#system("gsutil -m cp -r gs://for_transfer/data_ingest/bgt_upload/UK_stru /mnt/disks/pdisk/bg-uk/raw_data/main/")
-#system("gsutil -m cp -r gs://for_transfer/data_ingest/bgt_upload/UK_raw /mnt/disks/pdisk/bg-uk/raw_data/text/")
-#system("gsutil -m cp -r gs://for_transfer/wham/UK /mnt/disks/pdisk/bg-uk/int_data/wham_pred/")
+#system("gsutil -m cp -n gs://for_transfer/data_ingest/bgt_upload/UK_stru/* /mnt/disks/pdisk/bg-uk/raw_data/main/")
+#system("gsutil -m cp -n gs://for_transfer/data_ingest/bgt_upload/UK_raw/* /mnt/disks/pdisk/bg-uk/raw_data/text/")
+#system("gsutil -m cp -n gs://for_transfer/wham/UK/* /mnt/disks/pdisk/bg-uk/int_data/wham_pred/")
 
-#
-#library(filesstrings)
-#paths <- list.files("/mnt/disks/pdisk/bg-uk/raw_data/main/", full.names = T, pattern = ".zip", recursive = T)
-#paths
-#
-#lapply(1:length(paths), function(i) {
-#  system(paste0("unzip -n ",paths[i]," -d ./raw_data/main"))
-#  unlink(paths[i])
-#})
-
-# system("gsutil -m cp -r /mnt/disks/pdisk/bg-uk/int_data/sequences/sequences_20230226_20230304.rds gs://for_transfer/sequences_uk/")
-# system("gsutil -m cp -r /mnt/disks/pdisk/bg-uk/int_data/sequences/sequences_20221126_20221202.rds gs://for_transfer/sequences_uk/")
-# system("gsutil -m cp -r /mnt/disks/pdisk/bg-uk/int_data/sequences/sequences_20221119_20221125.rds gs://for_transfer/sequences_uk/")
+# Upload Sequences
+# system("gsutil -m cp -n /mnt/disks/pdisk/bg-uk/int_data/sequences/* gs://for_transfer/sequences_uk/sequences/")
 
 # Download WHAM Predictions
-#system("gsutil -m cp -r gs://for_transfer/wham/UK /mnt/disks/pdisk/bg-uk/int_data/wham_pred")
+# system("gsutil -m cp -n gs://for_transfer/wham/UK/* /mnt/disks/pdisk/bg-uk/int_data/wham_pred/")
 
 #### END ####
 
@@ -201,13 +190,13 @@ safe_mclapply(1:length(paths), function(i) {
   warning(paste0("SUCCESS: ",i))
   cat(paste0("\nSUCCESS: ",i,"\n"))
   return("")
-}, mc.cores = 12)
+}, mc.cores = 8)
 
 #sink()
-system("echo sci2007! | sudo -S shutdown -h now")
+#system("echo sci2007! | sudo -S shutdown -h now")
 
 # Send sequences to bucket
-system("gsutil -m cp -r /mnt/disks/pdisk/bg-uk/int_data/sequences/ gs://for_transfer/sequences_uk/")
+#system("gsutil -m cp -r /mnt/disks/pdisk/bg-uk/int_data/sequences/sequences_20230305_20230311.rds gs://for_transfer/sequences_uk/")
 
 #### END ####
 
@@ -260,7 +249,7 @@ safe_mclapply(1:length(paths), function(i) {
   warning(paste0("SUCCESS: ",i))
   cat(paste0("\nSUCCESS: ",i,"\n"))
   return("")
-}, mc.cores = 4)
+}, mc.cores = 3)
 
 #sink()
 system("echo sci2007! | sudo -S shutdown -h now")
@@ -269,7 +258,7 @@ system("echo sci2007! | sudo -S shutdown -h now")
 #### AGGREGATE WHAM TO JOB AD LEVEL ####
 remove(list = ls())
 paths <- list.files("./int_data/wham_pred", pattern = "*.txt", full.names = T)
-paths <- paths[grepl("2014|2015|2016|2017|2018|2019|2020|2021|2022|2023", paths)]
+paths <- paths[grepl("2022|2023", paths)]
 paths
 source("/mnt/disks/pdisk/bgt_code_repo/old/safe_mclapply.R")
 
@@ -283,19 +272,21 @@ df_wham <- safe_mclapply(1:length(paths), function(i) {
 
 df_wham <- rbindlist(df_wham)
 
-df_wham_old <- fread("/mnt/disks/pdisk/bg_combined/int_data/subsample_wham/df_ss_wham.csv") %>%
-  .[country == "UK"] %>%
-  .[year %in% c(2014:2018)]
+df_wham
 
+# df_wham_old <- fread("/mnt/disks/pdisk/bg_combined/int_data/subsample_wham/df_ss_wham.csv") %>%
+#   .[country == "UK"] %>%
+#   .[year %in% c(2014:2018)]
+# 
 df_wham <- df_wham %>%
   .[, job_id := as.numeric(job_id)]
+# 
+# df_wham_old <- df_wham_old %>%
+#   .[, job_id := as.numeric(job_id)]
+# 
+# df_wham <- bind_rows(df_wham_old, df_wham) %>% setDT(.)
 
-df_wham_old <- df_wham_old %>%
-  .[, job_id := as.numeric(job_id)]
-
-df_wham <- bind_rows(df_wham_old, df_wham) %>% setDT(.)
-
-rm(df_wham_old)
+# rm(df_wham_old)
 
 df_wham <- df_wham %>%
   .[, wfh := as.numeric(wfh_prob>0.5)] %>%
@@ -312,7 +303,7 @@ df_wham <- df_wham %>%
 
 #### LOAD SRC ####
 paths <- list.files("./int_data/sources/", pattern = "*.csv", full.names = T)
-paths <- paths[grepl("2014|2015|2016|2017|2018|2019|2020|2021|2022|2023", paths)]
+paths <- paths[grepl("2022|2023", paths)]
 source("/mnt/disks/pdisk/bgt_code_repo/old/safe_mclapply.R")
 
 df_src <- safe_mclapply(1:length(paths), function(i) {
@@ -327,6 +318,8 @@ df_src <- df_src %>%
   unique(., by = "job_id")
 nrow(df_src) # 79,212,744
 
+head(df_src)
+
 #### END ####
 ls()
 #### MERGE WHAM PREDICTIONS INTO THE STRUCTURED DATA AND RESAVE ####
@@ -336,7 +329,6 @@ paths
 source("/mnt/disks/pdisk/bgt_code_repo/old/safe_mclapply.R")
 
 safe_mclapply(2023:2023, function(x) {
-
   paths_year <- paths[grepl(x, paths)]
   
   df_stru <- safe_mclapply(1:length(paths_year), function(i) {
@@ -376,17 +368,17 @@ safe_mclapply(2023:2023, function(x) {
   df_stru <- setDT(df_stru)
   
   fwrite(df_stru, file = paste0("./int_data/uk_stru_",x,"_wfh.csv"), nThread = 8)
-  
+  fwrite(df_stru, file = paste0("./int_data/uk_stru_md_",x,"_wfh.csv.gz"), nThread = 8)
   return("")
   
 }, mc.cores = 1)
 
 #### END ####
 
-#### EXTRACT QUARTERLY DATA ####
+#### MAKE STANDARDISED ####
 remove(list = ls())
 
-lapply(c(2014:2023), function(m) {
+lapply(c(2023:2023), function(m) {
   df_all_uk <- fread(input = paste0("../bg-uk/int_data/uk_stru_",m,"_wfh.csv"), nThread = 8) %>% .[!is.na(wfh_wham) & wfh_wham != ""]
   
   df_all_uk <- df_all_uk %>%
@@ -503,6 +495,11 @@ lapply(c(2014:2023), function(m) {
   
   # SAVE #
   fwrite(df_all_uk, file = paste0("./int_data/df_uk_",m,"_standardised.csv"))
+  m <- 2023
+  file.copy(from = paste0("./int_data/df_uk_", m, "_standardised.csv"),
+            to = paste0("../bg_combined/int_data/df_uk_", m, "_standardised.csv"), overwrite = T)
+  
+  unlink("./int_data/df_uk_2023_standardised.csv")
   
 })
 

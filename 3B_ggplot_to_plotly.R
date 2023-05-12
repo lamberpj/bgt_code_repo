@@ -68,7 +68,7 @@ setwd("/mnt/disks/pdisk/bg_combined/")
 #### 1 REMOTE WORK ACROSS COUNTRIES ####
 remove(list = ls())
 
-# Plot unweighted
+# Plot US Vacancy Weighted
 ts_for_plot <- readRDS(file = "./int_data/country_ts_combined_weights.rds")
 
 unique(ts_for_plot$weight)

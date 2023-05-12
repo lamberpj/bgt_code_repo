@@ -51,7 +51,10 @@ setwd("/mnt/disks/pdisk/bg_combined/")
 # df_nz <- fread("./int_data/df_nz_standardised.csv", nThread = 8, integer64 = "numeric") %>% select(job_id_weight, country, state, city, year, bgt_occ, job_date, wfh_wham, job_domain) %>% mutate(country = "NZ") %>% setDT()
 # df_aus <- fread("./int_data/df_aus_standardised.csv", nThread = 8, integer64 = "numeric") %>% select(job_id_weight, country, state, city, year, bgt_occ, job_date, wfh_wham, job_domain) %>% mutate(country = "Australia") %>% setDT()
 # df_can <- fread("./int_data/df_can_standardised.csv", nThread = 8, integer64 = "numeric") %>% select(job_id_weight, country, state, city, year, bgt_occ, job_date, wfh_wham, job_domain) %>% mutate(country = "Canada") %>% setDT()
-# df_uk <- fread("./int_data/df_uk_standardised.csv", nThread = 8, integer64 = "numeric") %>% select(job_id_weight, country, state, city, year, bgt_occ, job_date, wfh_wham, job_domain) %>% mutate(country = "UK") %>% setDT()
+# df_uk_2019 <- fread("./int_data/df_uk_2019_standardised.csv", nThread = 8, integer64 = "numeric") %>% select(job_id_weight, country, state, city, year, bgt_occ, job_date, wfh_wham, job_domain) %>% mutate(country = "UK") %>% setDT()
+# df_uk_2021 <- fread("./int_data/df_uk_2021_standardised.csv", nThread = 8, integer64 = "numeric") %>% select(job_id_weight, country, state, city, year, bgt_occ, job_date, wfh_wham, job_domain) %>% mutate(country = "UK") %>% setDT()
+# df_uk_2022 <- fread("./int_data/df_uk_2022_standardised.csv", nThread = 8, integer64 = "numeric") %>% select(job_id_weight, country, state, city, year, bgt_occ, job_date, wfh_wham, job_domain) %>% mutate(country = "UK") %>% setDT()
+# df_uk_2023 <- fread("./int_data/df_uk_2023_standardised.csv", nThread = 8, integer64 = "numeric") %>% select(job_id_weight, country, state, city, year, bgt_occ, job_date, wfh_wham, job_domain) %>% mutate(country = "UK") %>% setDT()
 # df_us_2019 <- fread("./int_data/df_us_2019_standardised.csv", nThread = 8, integer64 = "numeric") %>% select(job_id_weight, country, state, city, year, bgt_occ, job_date, wfh_wham, job_domain) %>% mutate(country = "US") %>% setDT()
 # df_us_2021 <- fread("./int_data/df_us_2021_standardised.csv", nThread = 8, integer64 = "numeric") %>% select(job_id_weight, country, state, city, year, bgt_occ, job_date, wfh_wham, job_domain) %>% mutate(country = "US") %>% setDT()
 # df_us_2022 <- fread("./int_data/df_us_2022_standardised.csv", nThread = 8, integer64 = "numeric") %>% select(job_id_weight, country, state, city, year, bgt_occ, job_date, wfh_wham, job_domain) %>% mutate(country = "US") %>% setDT()
@@ -396,7 +399,6 @@ save(p, file = "./ppt/ggplots/wfh_pre_post_by_city.RData")
 
 #### END ####
 
-
 #### CITY TIME SERIES PLOTS - US ####
 # City-level comparisons
 
@@ -477,10 +479,16 @@ pal
 
 saveRDS(ts_for_plot_cit, file = "./int_data/city_ts_for_plotly.rds")
 
-p = ts_for_plot_cit %>%
+ts_for_plot_cit_filter <- ts_for_plot_cit %>%
   mutate(lab = ifelse(year_month == max(year_month), paste0("bold(",gsub(" ","",city),")"), NA_character_)) %>%
   .[year(as.Date(as.yearmon(year_month)))>= 2019] %>%
-  filter(region %in% c("Northeast", "West", "South") | city_state == "08 US National") %>%
+  filter(region %in% c("Northeast", "West", "South") | city_state == "08 US National")
+
+colnames(ts_for_plot_cit_filter)
+
+fwrite(ts_for_plot_cit_filter, file = "city_level_for_cesifo.csv")
+
+p = ts_for_plot_cit_filter %>%
   ggplot(., aes(x = as.Date(as.yearmon(year_month)), y = 100*value, colour = city_state)) +
   #stat_smooth (geom="line", alpha=0.8, size=2, span=0.2) +
   #stat_smooth(span = 0.1, alpha=0.5, se=FALSE, size = 2) +
@@ -492,7 +500,7 @@ p = ts_for_plot_cit %>%
   scale_x_date(breaks = as.Date(c("2019-01-01", "2019-04-01", "2019-07-01", "2019-10-01","2020-01-01", "2020-04-01", "2020-07-01", "2020-10-01",
                                   "2021-01-01", "2021-04-01", "2021-07-01", "2021-10-01", "2022-01-01", "2022-04-01", "2022-07-01", "2022-10-01", "2023-01-01")),
                date_labels = '%Y-%m',
-               limits = as.Date(c("2019-01-01", "2023-01-01"))) +
+               limits = as.Date(c("2019-01-01", "2023-02-01"))) +
   scale_y_continuous(labels = scales::number_format(accuracy = 1),  breaks = seq(0,100,5)) +
   coord_cartesian(ylim = c(0, 30)) +
   scale_color_manual(values = pal) +
@@ -581,10 +589,10 @@ remove(ts_for_plot)
 
 uk_city_list <- c("Manchester, England",
                   "London, England",
-                  "Glasgow, Scotland",
+                  "Hull, England",
                   "Edinburgh, Scotland",
-                  "Cardiff, Wales",
-                  "Aberdeen, Scotland")
+                  "Aberdeen, Scotland",
+                  "Hemel Hempstead, England")
 
 ts_for_plot_cit <- ts_for_plot_cit %>%
   setDT(.) %>%
@@ -600,6 +608,8 @@ pal[1] <- "black"
 
 pal
 
+ts_for_plot_cit
+
 p = ts_for_plot_cit %>%
   mutate(lab = ifelse(year_month == max(year_month), paste0("bold(",gsub(" ","",city),")"), NA_character_)) %>%
   .[year(as.Date(as.yearmon(year_month)))>= 2019] %>%
@@ -611,10 +621,10 @@ p = ts_for_plot_cit %>%
   ylab("Percentage") +
   xlab("Date") +
   #labs(title = "Share of Postings Advertising Remote Work (%)", subtitle = paste0("Unweighted, Outliers Removed. Removed ")) +
-  scale_x_date(breaks = as.Date(c("2019-01-01", "2019-04-01", "2019-07-01", "2019-10-01","2020-01-01", "2020-04-01", "2020-07-01", "2020-10-01",
-                                  "2021-01-01", "2021-04-01", "2021-07-01", "2021-10-01", "2022-01-01", "2022-04-01", "2022-07-01", "2022-10-01", "2023-01-01")),
+  scale_x_date(breaks = as.Date(c("2019-01-01","2019-07-01", "2020-01-01", "2020-07-01", 
+                                  "2021-01-01", "2021-07-01", "2022-01-01", "2022-07-01", "2023-01-01")),
                date_labels = '%Y-%m',
-               limits = as.Date(c("2019-01-01", "2023-01-01"))) +
+               limits = as.Date(c("2019-01-01", "2023-03-01"))) +
   scale_y_continuous(labels = scales::number_format(accuracy = 1),  breaks = seq(0,100,5)) +
   #coord_cartesian(ylim = c(0, 20)) +
   scale_shape_manual(values=c(15,16,17,18,19,15,16,17,18,19)) +

@@ -38,34 +38,12 @@ remove(list = ls())
 
 #### PREPARE DATA ####
 
-#system("gsutil -m cp -r gs://for_transfer/data_ingest/bgt_upload/CAN_raw/CAN_XML_Postings_AddFeed_20230201_20230228.zip /mnt/disks/pdisk/bg-can/raw_data/text/")
-#system("gsutil -m cp -r gs://for_transfer/data_ingest/bgt_upload/CAN_stru/Main_2023_02.zip /mnt/disks/pdisk/bg-can/raw_data/main")
-#system("gsutil -m cp -r gs://for_transfer/wham/CAN /mnt/disks/pdisk/bg-can/int_data/wham_pred")
-
-#
-#library(filesstrings)
-#paths <- list.files("/mnt/disks/pdisk/bg-can/raw_data/main/", full.names = T, pattern = ".zip", recursive = T)
-#paths
-#lapply(paths, function(x) {
-#  file.move(x, "/mnt/disks/pdisk/bg-anz/raw_data/text")
-#})
-
-#lapply(1:length(paths), function(i) {
-#  system(paste0("unzip -n ",paths[i]," -d ./raw_data/main"))
-#})
-
-#lapply(1:length(paths), function(i) {
-#  unlink(paths[i])
-#})
-
-#system("zip -r /mnt/disks/pdisk/bg-can/int_data/us_sequences.zip /mnt/disks/pdisk/bg-can/int_data/sequences/")
+# system("gsutil -m cp -n gs://for_transfer/data_ingest/bgt_upload/CAN_raw/* /mnt/disks/pdisk/bg-can/raw_data/text/")
+# system("gsutil -m cp -n gs://for_transfer/data_ingest/bgt_upload/CAN_stru/* /mnt/disks/pdisk/bg-can/raw_data/main/")
+# system("gsutil -m cp -n gs://for_transfer/wham/CAN/* /mnt/disks/pdisk/bg-can/int_data/wham_pred/")
 
 # Upload Sequences
-#system("gsutil -m cp -r /mnt/disks/pdisk/bg-can/int_data/sequences/sequences_20230201_20230228.rds gs://for_transfer/sequences_can")
-#system("gsutil -m cp -r /mnt/disks/pdisk/bg-can/int_data/wham_pred /sequences_20230101_20230131.rds gs://for_transfer/sequences_can/sequences/")
-
-# Download WHAM
-# system("gsutil -m cp -r gs://for_transfer/wham/CAN /mnt/disks/pdisk/bg-can/int_data/wham_pred/")
+#system("gsutil -m cp -n /mnt/disks/pdisk/bg-can/int_data/sequences/* gs://for_transfer/sequences_can/sequences/")
 
 #### END ####
 
@@ -276,7 +254,6 @@ system("echo sci2007! | sudo -S shutdown -h now")
 #### AGGREGATE WHAM TO JOB AD LEVEL ####
 remove(list = ls())
 paths <- list.files("./int_data/wham_pred", pattern = "*.txt", full.names = T)
-paths <- paths[grepl("2014|2015|2016|2017|2018|2019|2020|2021|2022|2023", paths)]
 paths
 source("/mnt/disks/pdisk/bgt_code_repo/old/safe_mclapply.R")
 
@@ -298,10 +275,9 @@ df_wham <- df_wham %>%
   .[, job_id := as.numeric(job_id)]
 
 df_wham_old <- df_wham_old %>%
-  .[, job_id := as.numeric(job_id)]
+ .[, job_id := as.numeric(job_id)]
 
 df_wham <- bind_rows(df_wham_old, df_wham) %>% setDT(.)
-
 rm(df_wham_old)
 
 df_wham <- df_wham %>%
@@ -344,7 +320,7 @@ source("/mnt/disks/pdisk/bgt_code_repo/old/safe_mclapply.R")
 
 #colnames(fread(cmd = paste0('unzip -p ', paths[102]), nThread = 8, colClasses = "character", stringsAsFactors = FALSE, nrow = 100))
 
-safe_mclapply(2022:2023, function(x) {
+safe_mclapply(2023:2023, function(x) {
   paths_year <- paths[grepl(x, paths)]
   df_stru <- safe_mclapply(1:length(paths_year), function(i) {
     
@@ -380,7 +356,7 @@ safe_mclapply(2022:2023, function(x) {
     return(df)
   }, mc.cores = 1)
   ls()
-  df_stru <- rbindlist(df_stru)
+  df_stru <- rbindlist(df_stru, use.names = T, fill = T)
   df_stru <- setDT(df_stru)
   
   fwrite(df_stru, file = paste0("./int_data/can_stru_",x,"_wfh.csv"), nThread = 8)
@@ -531,6 +507,11 @@ head(df_all_can)
 # SAVE #
 colnames(df_all_can)
 fwrite(df_all_can, file = "./int_data/df_can_standardised.csv")
+
+file.copy(from = "./int_data/df_can_standardised.csv",
+          to = "../bg_combined/int_data/df_can_standardised.csv", overwrite = T)
+
+unlink("./int_data/df_can_standardised.csv")
 
 #### END ####
 

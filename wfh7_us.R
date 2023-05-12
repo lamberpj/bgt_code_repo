@@ -36,35 +36,14 @@ remove(list = ls())
 #### end ####
 
 #### PREPARE DATA ####
-# system("gsutil -m cp -r gs://for_transfer/data_ingest/bgt_upload/US_stru /mnt/disks/pdisk/bg-us/raw_data/main/")
-#system("gsutil -m cp -r gs://for_transfer/data_ingest/bgt_upload/US_raw /mnt/disks/pdisk/bg-us/raw_data/text/")
-#system("gsutil -m cp -r gs://for_transfer/wham/US /mnt/disks/pdisk/bg-us/int_data/wham_pred/")
-  
-#system("gsutil -m cp -r gs://for_transfer/dict_us /mnt/disks/pdisk/bg-us/int_data/dict/")
-
-#
-#library(filesstrings)
-#paths <- list.files("/mnt/disks/pdisk/bg-us/raw_data/main/", full.names = T, pattern = ".zip", recursive = T)
-#paths
-#lapply(paths, function(x) {
-#  file.move(x, "/mnt/disks/pdisk/bg-anz/raw_data/text")
-#})
-
-#lapply(1:length(paths), function(i) {
-#  system(paste0("unzip -n ",paths[i]," -d ./raw_data/main"))
-#})
-
-#lapply(1:length(paths), function(i) {
-#  unlink(paths[i])
-#})
-
-#system("zip -r /mnt/disks/pdisk/bg-us/int_data/us_sequences.zip /mnt/disks/pdisk/bg-us/int_data/sequences/")
+#system("gsutil -m cp -n gs://for_transfer/data_ingest/bgt_upload/US_stru/* /mnt/disks/pdisk/bg-us/raw_data/main/")
+#system("gsutil -m cp -n gs://for_transfer/data_ingest/bgt_upload/US_raw/* /mnt/disks/pdisk/bg-us/raw_data/text/")
 
 # Upload Sequences
-# system("gsutil -m cp -r /mnt/disks/pdisk/bg-us/int_data/sequences/sequences_20230216_20230222.rds gs://for_transfer/sequences_us/sequences/")
+# system("gsutil -m cp -n /mnt/disks/pdisk/bg-us/int_data/sequences/* gs://for_transfer/sequences_us/sequences/")
 
 # Download WHAM Predictions
-#system("gsutil -m cp -r gs://for_transfer/wham/US /mnt/disks/pdisk/bg-us/int_data/wham_pred")
+# system("gsutil -m cp -n gs://for_transfer/wham/US/* /mnt/disks/pdisk/bg-us/int_data/wham_pred/")
 
 #### END ####
 
@@ -281,7 +260,7 @@ safe_mclapply(1:length(paths), function(i) {
     warning(paste0("SUCCESS: ",i))
     cat(paste0("\nSUCCESS: ",i,"\n"))
     return("")
-  }, mc.cores = 4)
+  }, mc.cores = 3)
 
 #sink()
 system("echo sci2007! | sudo -S shutdown -h now")
@@ -303,18 +282,18 @@ df_wham <- safe_mclapply(1:length(paths), function(i) {
 }, mc.cores = 4)
 
 df_wham <- rbindlist(df_wham)
-
-df_wham_old <- fread("/mnt/disks/pdisk/bg_combined/int_data/subsample_wham/df_ss_wham.csv") %>%
-  .[country == "US"] %>%
-  .[year %in% c(2014:2018)]
+# 
+# df_wham_old <- fread("/mnt/disks/pdisk/bg_combined/int_data/subsample_wham/df_ss_wham.csv") %>%
+#   .[country == "US"] %>%
+#   .[year %in% c(2014:2018)]
 
 df_wham <- df_wham %>%
   .[, job_id := as.numeric(job_id)]
-
-df_wham_old <- df_wham_old %>%
-  .[, job_id := as.numeric(job_id)]
-
-df_wham <- bind_rows(df_wham_old, df_wham) %>% setDT(.)
+# 
+# df_wham_old <- df_wham_old %>%
+#   .[, job_id := as.numeric(job_id)]
+# 
+# df_wham <- bind_rows(df_wham_old, df_wham) %>% setDT(.)
 
 rm(df_wham_old)
 
@@ -332,6 +311,7 @@ df_wham <- df_wham %>%
 
 #### LOAD SRC ####
 paths <- list.files("./int_data/sources/", pattern = "*.csv", full.names = T)
+paths <- paths[grepl("2022|2023", paths)]
 source("/mnt/disks/pdisk/bgt_code_repo/old/safe_mclapply.R")
 
 df_src <- safe_mclapply(1:length(paths), function(i) {
@@ -360,7 +340,7 @@ source("/mnt/disks/pdisk/bgt_code_repo/old/safe_mclapply.R")
 df_wham$job_id <- as.numeric(df_wham$job_id)
 df_src$job_id <- as.numeric(df_src$job_id)
 
-safe_mclapply(2022:2023, function(x) {
+safe_mclapply(2023:2023, function(x) {
 
   paths_year <- paths[grepl(x, paths)]
   df_stru <- safe_mclapply(1:length(paths_year), function(i) {
@@ -400,7 +380,7 @@ safe_mclapply(2022:2023, function(x) {
 #### END ####
 
 #### EXTRACT ANNUAL HARMONISED DATA, manually changing year ####
-lapply(c(2022:2023), function(yearm) {
+lapply(c(2023:2023), function(yearm) {
   df_all_us <- fread(input = paste0("../bg-us/int_data/us_stru_",yearm,"_wfh.csv"), nThread = 8) %>% .[!is.na(wfh_wham) & wfh_wham != ""]
   
   colnames(df_all_us)
@@ -523,6 +503,11 @@ lapply(c(2022:2023), function(yearm) {
   
   # SAVE #
   fwrite(df_all_us, file = paste0("./int_data/df_us_", yearm, "_standardised.csv"))
+  
+  file.copy(from = paste0("./int_data/df_us_", yearm, "_standardised.csv"),
+            to = paste0("../bg_combined/int_data/df_us_", yearm, "_standardised.csv"), overwrite = T)
+  
+  unlink("./int_data/df_us_2023_standardised.csv")
   
 })
 
