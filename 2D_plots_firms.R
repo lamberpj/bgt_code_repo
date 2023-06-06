@@ -83,6 +83,11 @@ df_air_man <- df_us %>%
       factor(employer,
              levels = rev(c("The Boeing Company","Lockheed Martin Corporation","Northrop Grumman","Spacex")))]
 
+colnames(df_air_man)
+for_wsj <- df_air_man %>% select(employer, period, wfh_share)
+
+fwrite(for_wsj, "./aux_data/aerospace_employers_for_wsj.csv")
+
 p = df_air_man %>%
   ggplot(aes(x = employer_ord, y = wfh_share+0.2, fill = as.factor(period)), group = employer_ord) +
   geom_bar(stat = "identity", width=0.7, position = position_dodge(width=0.7))  +

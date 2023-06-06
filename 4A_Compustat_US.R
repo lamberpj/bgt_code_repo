@@ -139,9 +139,11 @@ df_us_large_emp <- df_us_large_emp %>%
   .[, .N, by = .(employer, naics2, naics2_m, naics2_cm, naics3, naics3_m, naics3_cm, naics4, naics4_m, naics4_cm, fips)]
 nrow(df_us_large_emp) # 9,163,351
 
-db_cs_2021 <- read_dta("./int_data/d_and_b/DB-Compustat_data_2021.dta") %>% clean_names() %>%
-  setDT(.) %>%
-  .[, primarysic := as.numeric(primarysic)]
+db_cs_2021 <- read_dta("./int_data/d_and_b/DB-Compustat_data_2021.dta") %>% clean_names() %>% setDT(.) %>% .[, primarysic := as.numeric(primarysic)]
+db_cs_2020 <- read_dta("./int_data/d_and_b/DB-Compustat_data_2020.dta") %>% clean_names() %>% setDT(.) %>% .[, primarysic := as.numeric(primarysic)]
+db_cs_2019 <- read_dta("./int_data/d_and_b/DB-Compustat_data_2019.dta") %>% clean_names() %>% setDT(.) %>% .[, primarysic := as.numeric(primarysic)]
+df_cs <- rbindlist(list(db_cs_2019, db_cs_2020, db_cs_2021))
+rm(list = c("db_cs_2019", "db_cs_2020", "db_cs_2021"))
 
 df_sic_naics <- fread("./aux_data/sic_to_naics.csv") %>% clean_names() %>% rename(primarysic = sic_code) %>%
   .[, primarysic := as.numeric(primarysic)] %>%
@@ -149,14 +151,16 @@ df_sic_naics <- fread("./aux_data/sic_to_naics.csv") %>% clean_names() %>% renam
   select(primarysic, naics4) %>%
   unique(.)
 
-nrow(db_cs_2021) # 511,693
-db_cs_2021 <- db_cs_2021 %>%
+nrow(df_cs) # 1,486,847
+df_cs <- df_cs %>%
   left_join(df_sic_naics, multiple = "all") %>%
   setDT(.)
-nrow(db_cs_2021) # 1,042,164
+nrow(df_cs) # 3,072,195
 
-db_cs_2021 <- db_cs_2021 %>% select(dbrowid, companyname, secondaryname, physicalstatecode, dbstatecode, dbcountycode, physicalstreetaddress, naics4)
-db_cs_2021 <- db_cs_2021 %>% .[, dbcountycode_full := paste0(dbstatecode,dbcountycode)]
+colnames(df_cs)
+
+df_cs <- df_cs %>% select(ult_gvkey, ultimateduns, subsid_dunsnumber, companyname, secondaryname, physicalstatecode, dbstatecode, dbcountycode, physicalstreetaddress, naics4)
+df_cs <- df_cs %>% .[, dbcountycode_full := paste0(dbstatecode,dbcountycode)]
 
 fips_us_county_codes <- read_xls("./aux_data/fips_us_county_codes.xls", skip = 4) %>% clean_names() %>%
   mutate(fips = paste0(state_code, code_value)) %>% select(-c(state_code, code_value))
@@ -173,10 +177,18 @@ rm(dnb_us_county_codes)
 df_us_large_emp$fips <- as.numeric(df_us_large_emp$fips)
 fips_us_county_codes$fips <- as.numeric(fips_us_county_codes$fips)
 
-nrow(df_us_large_emp) # 109,593,805
+head(df_cs)
+head(fips_us_county_codes)
+
+nrow(df_cs) # 3,072,195
+df_cs <- df_cs %>%
+  left_join(fips_us_county_codes)
+nrow(df_cs) # 3072195
+
+nrow(df_us_large_emp) # 9,163,351
 df_us_large_emp <- df_us_large_emp %>%
   left_join(fips_us_county_codes)
-nrow(df_us_large_emp) # 109,593,805
+nrow(df_us_large_emp) # 9,163,351
 
 # CLEAN STRING NAMES
 clean_business_name <- function(business_names) {
@@ -204,9 +216,9 @@ df_us_large_emp <- df_us_large_emp %>%
   left_join(clean_unqiue_dt) %>% setDT(.)
 rm(clean_unqiue_dt)
 
-clean_unqiue_dt <- db_cs_2021 %>% select(companyname) %>% unique(.)
+clean_unqiue_dt <- df_cs %>% select(companyname) %>% unique(.)
 clean_unqiue_dt$clean_name <- mclapply(clean_unqiue_dt$companyname, clean_business_name, mc.cores = 8)
-db_cs_2021 <- db_cs_2021 %>%
+df_cs <- df_cs %>%
   left_join(clean_unqiue_dt) %>% setDT(.)
 rm(clean_unqiue_dt)
 
@@ -228,36 +240,35 @@ replace_non_dictionary_words <- function(input_string) {
   return(output_string)
 }
 
-# replace_non_dictionary_words("special ed therapy")
-
+replace_non_dictionary_words("special ed therapy")
 abrv_unqiue_dt <- df_us_large_emp %>% select(clean_name) %>% distinct(clean_name)
 abrv_unqiue_dt$clean_name_abv <- mclapply(abrv_unqiue_dt$clean_name, replace_non_dictionary_words, mc.cores = 8)
 df_us_large_emp <- df_us_large_emp %>%
   left_join(abrv_unqiue_dt) %>% setDT(.)
 rm(abrv_unqiue_dt)
 
-abrv_unqiue_dt <- db_cs_2021 %>% select(clean_name) %>% distinct(clean_name)
+abrv_unqiue_dt <- df_cs %>% select(clean_name) %>% distinct(clean_name)
 abrv_unqiue_dt$clean_name_abv <- mclapply(abrv_unqiue_dt$clean_name, replace_non_dictionary_words, mc.cores = 8)
-db_cs_2021 <- db_cs_2021 %>%
+df_cs <- df_cs %>%
   left_join(abrv_unqiue_dt) %>% setDT(.)
 rm(abrv_unqiue_dt)
 
 # Check exact matches
-mean(unique(db_cs_2021$clean_name_abv) %in% unique(df_us_large_emp$clean_name_abv))*100 # 4.824431
-mean(unique(df_us_large_emp$clean_name_abv) %in% unique(db_cs_2021$clean_name_abv))*100 # 1.490731
+mean(unique(df_cs$clean_name_abv) %in% unique(df_us_large_emp$clean_name_abv))*100 # 5.415676
+mean(unique(df_us_large_emp$clean_name_abv) %in% unique(df_cs$clean_name_abv))*100 # 1.640784
 
 mean(is.na(df_us_large_emp$clean_name_abv))
-mean(is.na(db_cs_2021$clean_name_abv))
+mean(is.na(df_cs$clean_name_abv))
 
 # Remove strings where it will be impossible to do fuzzy matching
 df_us_large_emp <- df_us_large_emp %>% .[!is.na(clean_name_abv)]
-db_cs_2021 <- db_cs_2021 %>% .[!is.na(clean_name_abv)]
+df_cs <- df_cs %>% .[!is.na(clean_name_abv)]
 
 df_us_large_emp <- df_us_large_emp %>% .[clean_name_abv!=""]
-db_cs_2021 <- db_cs_2021 %>% .[clean_name_abv!=""]
+df_cs <- df_cs %>% .[clean_name_abv!=""]
 
 df_us_large_emp <- df_us_large_emp %>% .[nchar(clean_name_abv)>2]
-db_cs_2021 <- db_cs_2021 %>% .[nchar(clean_name_abv)>2]
+df_cs <- df_cs %>% .[nchar(clean_name_abv)>2]
 
 # Fingerprint
 generate_2gram_fingerprint <- function(input_string) {
@@ -273,9 +284,9 @@ df_us_large_emp <- df_us_large_emp %>%
   left_join(fp_unique_dt) %>% setDT(.)
 rm(fp_unique_dt)
 
-fp_unique_dt <- db_cs_2021 %>% select(clean_name_abv) %>% distinct(clean_name_abv)
+fp_unique_dt <- df_cs %>% select(clean_name_abv) %>% distinct(clean_name_abv)
 fp_unique_dt$fp2 <- mclapply(fp_unique_dt$clean_name_abv, generate_2gram_fingerprint, mc.cores = 8)
-db_cs_2021 <- db_cs_2021 %>%
+df_cs <- df_cs %>%
   left_join(fp_unique_dt) %>% setDT(.)
 rm(fp_unique_dt)
 
@@ -293,19 +304,91 @@ df_us_large_emp <- df_us_large_emp %>%
   left_join(metaph_unique_dt) %>% setDT(.)
 rm(metaph_unique_dt)
 
-metaph_unique_dt <- db_cs_2021 %>% select(clean_name_abv) %>% distinct(clean_name_abv)
+metaph_unique_dt <- df_cs %>% select(clean_name_abv) %>% distinct(clean_name_abv)
 metaph_unique_dt$double_metaphone <- mclapply(metaph_unique_dt$clean_name_abv, double_metaphone_multi_word, mc.cores = 8)
-db_cs_2021 <- db_cs_2021 %>%
+df_cs <- df_cs %>%
   left_join(metaph_unique_dt) %>% setDT(.)
 rm(metaph_unique_dt)
 
 fwrite(df_us_large_emp, "./int_data/us_stru_2019_2023_clean_names.csv")
-fwrite(db_cs_2021, "./int_data/db_compustat_data_2021_clean_names.csv")
-
-View(tail(df_us_large_emp, 10000))
+fwrite(df_cs, "./int_data/db_compustat_data_2019_2021_clean_names.csv")
 
 #### END ####
 
+#### USE RECLIN" ####
+remove(list = ls())
+library("reclin2")
+
+df_us_large_emp <- fread("./int_data/us_stru_2019_2023_clean_names.csv")
+df_cs <- fread("./int_data/db_compustat_data_2019_2021_clean_names.csv")
+
+head(df_us_large_emp)
+head(df_cs)
+
+colnames(df_us_large_emp)
+colnames(df_cs)
+
+df_us_large_emp <- df_us_large_emp %>% select(employer, naics3_m, fips, clean_name, clean_name_abv, fp2, double_metaphone) %>% distinct() %>% setDT(.)
+df_cs <- df_cs %>% mutate(naics3_m = str_sub(naics4, 1, 3)) %>% select(companyname, subsid_dunsnumber, naics3_m, fips, clean_name, clean_name_abv, fp2, double_metaphone)  %>% distinct() %>% setDT(.)
+
+df_us_large_emp <- df_us_large_emp %>% .[, fips_naics := paste0(fips,"_",naics3_m)]
+df_cs <- df_cs %>% .[, fips_naics := paste0(fips,"_",naics3_m)]
+
+df_us_large_emp <- df_us_large_emp %>% .[, c("clean_name2", "clean_name_abv2", "fp22", "double_metaphone2") := .(clean_name, clean_name_abv, fp2, double_metaphone)]
+df_cs <- df_cs %>% .[, c("clean_name2", "clean_name_abv2", "fp22", "double_metaphone2") := .(clean_name, clean_name_abv, fp2, double_metaphone)]
+
+colnames(df_us_large_emp)
+
+nrow(df_us_large_emp) # 5,413,307
+nrow(df_cs) # 1,060,545
+
+df_us_large_emp <- df_us_large_emp[fips_naics %in% df_cs$fips_naics]
+df_cs <- df_cs[fips_naics %in% df_us_large_emp$fips_naics]
+
+nrow(df_us_large_emp) # 4,368,254
+nrow(df_cs) # 1,020,063
+
+uniqueN(df_us_large_emp$employer) # 344,228
+uniqueN(df_cs$companyname) # 106,752
+
+setDTthreads(2)
+cl <- makeCluster(8)
+pairs <- cluster_pair_blocking(cl, df_us_large_emp, df_cs, "fips_naics")
+
+compare_pairs(pairs, on = c("clean_name", "clean_name_abv",  "fp2", "double_metaphone", "clean_name2", "clean_name_abv2", "fp22", "double_metaphone2"), 
+              comparators = list(
+                "clean_name" = jaro_winkler(0.75),
+                "clean_name_abv" = jaro_winkler(0.75),
+                "fp2" = jaro_winkler(0.75),
+                "double_metaphone" = jaro_winkler(0.75),
+                "clean_name2" = lcs(0.5),
+                "clean_name_abv2" = lcs(0.5),
+                "fp22" = lcs(0.5),
+                "double_metaphone2" = lcs(0.5)
+              ), inplace = TRUE)
+
+m <- problink_em(~clean_name + clean_name_abv + fp2 + double_metaphone + clean_name2 + clean_name_abv2 + fp22 + double_metaphone2, data = pairs)
+
+pairs <- predict(m, pairs = pairs, add = TRUE)
+
+pairs <- select_threshold(pairs, "threshold", score = "weights",  threshold = 3)
+pairs <- cluster_collect(pairs, "threshold", clear = TRUE)
+
+quantile(pairs$weights, probs = c(0.25, 0.5, 0.75, 0.9, 0.95, 0.99, 0.999, 1))
+
+pairs <- select_greedy(pairs, "weights", variable = "greedy", threshold = 0)
+pairs <- pairs %>% setDT(.) %>% .[greedy == 1]
+linked_data_set <- link(pairs)
+
+nrow(linked_data_set) # 239,812
+
+head(linked_data_set)
+linked_data_set <- linked_data_set %>% setDT() %>% select(".x", ".y", employer, companyname, subsid_dunsnumber)
+linked_data_set <- linked_data_set %>%
+  left_join(pairs %>% select(".x", ".y", "weights")) %>%
+  setDT()
+fwrite(linked_data_set, paste0("./int_data/linked_data_set_",yr,".csv"))
+stopCluster(cl)
 
 
 

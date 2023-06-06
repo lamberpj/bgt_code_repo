@@ -38,9 +38,9 @@ remove(list = ls())
 
 #### PREPARE DATA ####
 
-#system("gsutil -m cp -n gs://for_transfer/data_ingest/bgt_upload/UK_stru/* /mnt/disks/pdisk/bg-uk/raw_data/main/")
-#system("gsutil -m cp -n gs://for_transfer/data_ingest/bgt_upload/UK_raw/* /mnt/disks/pdisk/bg-uk/raw_data/text/")
-#system("gsutil -m cp -n gs://for_transfer/wham/UK/* /mnt/disks/pdisk/bg-uk/int_data/wham_pred/")
+# system("gsutil -m cp -n gs://for_transfer/data_ingest/bgt_upload/UK_stru/* /mnt/disks/pdisk/bg-uk/raw_data/main/")
+# system("gsutil -m cp -n gs://for_transfer/data_ingest/bgt_upload/UK_raw/* /mnt/disks/pdisk/bg-uk/raw_data/text/")
+# system("gsutil -m cp -n gs://for_transfer/wham/UK/* /mnt/disks/pdisk/bg-uk/int_data/wham_pred/")
 
 # Upload Sequences
 # system("gsutil -m cp -n /mnt/disks/pdisk/bg-uk/int_data/sequences/* gs://for_transfer/sequences_uk/sequences/")
@@ -203,13 +203,10 @@ safe_mclapply(1:length(paths), function(i) {
 #### EXTRACT SOURCE AND URL AND SAVE ####
 remove(list = ls())
 paths <- list.files("./raw_data/text/", pattern = "*.zip", full.names = T)
-paths <- paths[grepl("2019|2020|2021|2022|2023", paths)]
 paths_done <- list.files("./int_data/sources/", pattern = "*.csv", full.names = F) %>%
   gsub("uk_src_", "", .) %>% gsub("_wfh.csv", "", .) %>% unique
-paths_done <- paths_done[grepl("2019|2020|2021|2022|2023", paths_done)]
 paths_check <- list.files("./raw_data/text/", pattern = "*.zip", full.names = T) %>%
   str_sub(., -21, -5)
-paths_check <- paths_check[grepl("2019|2020|2021|2022|2023", paths_check)]
 paths_check
 paths_done
 paths_check[!(paths_check %in% paths_done)]
@@ -258,7 +255,6 @@ system("echo sci2007! | sudo -S shutdown -h now")
 #### AGGREGATE WHAM TO JOB AD LEVEL ####
 remove(list = ls())
 paths <- list.files("./int_data/wham_pred", pattern = "*.txt", full.names = T)
-paths <- paths[grepl("2022|2023", paths)]
 paths
 source("/mnt/disks/pdisk/bgt_code_repo/old/safe_mclapply.R")
 
@@ -274,19 +270,19 @@ df_wham <- rbindlist(df_wham)
 
 df_wham
 
-# df_wham_old <- fread("/mnt/disks/pdisk/bg_combined/int_data/subsample_wham/df_ss_wham.csv") %>%
-#   .[country == "UK"] %>%
-#   .[year %in% c(2014:2018)]
-# 
+df_wham_old <- fread("/mnt/disks/pdisk/bg_combined/int_data/subsample_wham/df_ss_wham.csv") %>%
+  .[country == "UK"] %>%
+  .[year %in% c(2014:2018)]
+
 df_wham <- df_wham %>%
   .[, job_id := as.numeric(job_id)]
-# 
-# df_wham_old <- df_wham_old %>%
-#   .[, job_id := as.numeric(job_id)]
-# 
-# df_wham <- bind_rows(df_wham_old, df_wham) %>% setDT(.)
+ 
+df_wham_old <- df_wham_old %>%
+  .[, job_id := as.numeric(job_id)]
 
-# rm(df_wham_old)
+df_wham <- bind_rows(df_wham_old, df_wham) %>% setDT(.)
+
+rm(df_wham_old)
 
 df_wham <- df_wham %>%
   .[, wfh := as.numeric(wfh_prob>0.5)] %>%
@@ -303,7 +299,6 @@ df_wham <- df_wham %>%
 
 #### LOAD SRC ####
 paths <- list.files("./int_data/sources/", pattern = "*.csv", full.names = T)
-paths <- paths[grepl("2022|2023", paths)]
 source("/mnt/disks/pdisk/bgt_code_repo/old/safe_mclapply.R")
 
 df_src <- safe_mclapply(1:length(paths), function(i) {
@@ -328,7 +323,7 @@ paths <- list.files("/mnt/disks/pdisk/bg-uk/raw_data/main", pattern = ".zip", fu
 paths
 source("/mnt/disks/pdisk/bgt_code_repo/old/safe_mclapply.R")
 
-safe_mclapply(2023:2023, function(x) {
+safe_mclapply(2014:2023, function(x) {
   paths_year <- paths[grepl(x, paths)]
   
   df_stru <- safe_mclapply(1:length(paths_year), function(i) {
@@ -368,7 +363,6 @@ safe_mclapply(2023:2023, function(x) {
   df_stru <- setDT(df_stru)
   
   fwrite(df_stru, file = paste0("./int_data/uk_stru_",x,"_wfh.csv"), nThread = 8)
-  fwrite(df_stru, file = paste0("./int_data/uk_stru_md_",x,"_wfh.csv.gz"), nThread = 8)
   return("")
   
 }, mc.cores = 1)
@@ -378,8 +372,8 @@ safe_mclapply(2023:2023, function(x) {
 #### MAKE STANDARDISED ####
 remove(list = ls())
 
-lapply(c(2023:2023), function(m) {
-  df_all_uk <- fread(input = paste0("../bg-uk/int_data/uk_stru_",m,"_wfh.csv"), nThread = 8) %>% .[!is.na(wfh_wham) & wfh_wham != ""]
+lapply(c(2014:2023), function(m) {
+  df_all_uk <- fread(input = paste0("../bg-uk/int_data/uk_stru_",m,"_wfh.csv"), nThread = 4) %>% .[!is.na(wfh_wham) & wfh_wham != ""]
   
   df_all_uk <- df_all_uk %>%
     .[, year_quarter := as.yearqtr(job_ymd)] %>%
@@ -495,11 +489,11 @@ lapply(c(2023:2023), function(m) {
   
   # SAVE #
   fwrite(df_all_uk, file = paste0("./int_data/df_uk_",m,"_standardised.csv"))
-  m <- 2023
+
   file.copy(from = paste0("./int_data/df_uk_", m, "_standardised.csv"),
             to = paste0("../bg_combined/int_data/df_uk_", m, "_standardised.csv"), overwrite = T)
   
-  unlink("./int_data/df_uk_2023_standardised.csv")
+  unlink(paste0("./int_data/df_uk_", m, "_standardised.csv"))
   
 })
 

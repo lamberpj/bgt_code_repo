@@ -34,41 +34,19 @@ setwd("/mnt/disks/pdisk/bg-anz/")
 #setDTthreads(1)
 
 remove(list = ls())
-#### end ####
+#### END ####
 
 #### PREPARE DATA ####
 
-#system("gsutil -m cp -r gs://for_transfer/data_ingest/bgt_upload/ANZ_raw/ANZ_XML_Postings_AddFeed_20230201_20230228.zip /mnt/disks/pdisk/bg-anz/raw_data/text/")
-#system("gsutil -m cp -r gs://for_transfer/data_ingest/bgt_upload/ANZ_stru/Main_2023_02.zip /mnt/disks/pdisk/bg-anz/raw_data/main/")
-#system("gsutil -m cp -r gs://for_transfer/data_ingest/bgt_upload/ANZ_raw /mnt/disks/pdisk/bg-anz/raw_data/text")
-#system("gsutil -m cp -r gs://for_transfer/data_ingest/bgt_upload/ANZ_raw/ANZ_XML_Postings_AddFeed_20221101_20221130.zip /mnt/disks/pdisk/bg-anz/raw_data/text")
-#system("gsutil -m cp -r gs://for_transfer/data_ingest/bgt_upload/ANZ_stru /mnt/disks/pdisk/bg-anz/raw_data/main")
-#system("gsutil -m cp -r gs://for_transfer/wham/ANZ /mnt/disks/pdisk/bg-anz/int_data/wham_pred")
-
-#
-#library(filesstrings)
-#paths <- list.files("/mnt/disks/pdisk/bg-anz/raw_data/main/", full.names = T, pattern = ".zip", recursive = T)
-#paths
-#lapply(paths, function(x) {
-#  file.move(x, "/mnt/disks/pdisk/bg-anz/raw_data/text")
-#})
-
-#lapply(1:length(paths), function(i) {
-#  system(paste0("unzip -n ",paths[i]," -d ./raw_data/main"))
-#})
-
-#lapply(1:length(paths), function(i) {
-#  unlink(paths[i])
-#})
-
-#system("zip -r /mnt/disks/pdisk/bg-anz/int_data/us_sequences.zip /mnt/disks/pdisk/bg-anz/int_data/sequences/")
+#system("gsutil -m cp -n gs://for_transfer/data_ingest/bgt_upload/ANZ_stru/* /mnt/disks/pdisk/bg-anz/raw_data/main/")
+#system("gsutil -m cp -n gs://for_transfer/data_ingest/bgt_upload/ANZ_raw/* /mnt/disks/pdisk/bg-anz/raw_data/text/")
+#system("gsutil -m cp -n gs://for_transfer/wham/ANZ/* /mnt/disks/pdisk/bg-anz/int_data/wham_pred/")
 
 # Upload Sequences
-#system("gsutil -m cp -r /mnt/disks/pdisk/bg-anz/int_data/sequences/sequences_20230201_20230228.rds gs://for_transfer/sequences_anz/")
-# system("gsutil -m cp -r /mnt/disks/pdisk/bg-anz/int_data/sequences/sequences_20221101_20221130.rds gs://for_transfer/sequences_anz/")
+#system("gsutil -m cp -n /mnt/disks/pdisk/bg-anz/int_data/sequences/* gs://for_transfer/sequences_anz/sequences/")
 
 # Download WHAM
-system("gsutil -m cp -r gs://for_transfer/wham/ANZ /mnt/disks/pdisk/bg-anz/int_data/wham_pred/")
+#system("gsutil -m cp -r gs://for_transfer/wham/ANZ /mnt/disks/pdisk/bg-anz/int_data/wham_pred/")
 
 #### END ####
 
@@ -240,13 +218,6 @@ paths_check[!(paths_check %in% paths_done)]
 paths <- paths[!(paths_check %in% paths_done)]
 remove(list = c("paths_check", "paths_done"))
 
-paths
-
-#lapply(1:length(paths), function(i) {
-#  file.rename(from = paths[i], to = gsub("uk_src", "us_src", paths[i]))
-#})
-
-paths
 source("/mnt/disks/pdisk/bgt_code_repo/old/safe_mclapply.R")
 
 safe_mclapply(1:length(paths), function(i) {
@@ -285,7 +256,7 @@ paths <- list.files("./int_data/wham_pred", pattern = "*.txt", full.names = T)
 paths <- paths[grepl("2014|2015|2016|2017|2018|2019|2020|2021|2022|2023", paths)]
 paths
 source("/mnt/disks/pdisk/bgt_code_repo/old/safe_mclapply.R")
-paths
+
 df_wham <- safe_mclapply(1:length(paths), function(i) {
   df <- fread(paths[i])  %>%
     .[, job_id := str_sub(seq_id,1, -6)] %>%
@@ -348,7 +319,7 @@ paths <- list.files("/mnt/disks/pdisk/bg-anz/raw_data/main", pattern = ".zip", f
 paths
 source("/mnt/disks/pdisk/bgt_code_repo/old/safe_mclapply.R")
 
-safe_mclapply(2022:2023, function(x) {
+safe_mclapply(2014:2023, function(x) {
   paths_year <- paths[grepl(x, paths)]
   
   df_stru <- safe_mclapply(1:length(paths_year), function(i) {
@@ -395,7 +366,6 @@ safe_mclapply(2022:2023, function(x) {
 }, mc.cores = 1)
 
 #### END ####
-
 
 #### EXTRACT QUARTERLY DATA - AUSTRALIA ####
 remove(list = ls())
@@ -531,9 +501,6 @@ head(df_all_aus)
 fwrite(df_all_aus, file = "./int_data/df_aus_standardised.csv")
 
 #### END AUSTRALIA ####
-
-
-
 
 #### EXTRACT QUARTERLY DATA - NZ ####
 remove(list = ls())

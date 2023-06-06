@@ -320,7 +320,7 @@ source("/mnt/disks/pdisk/bgt_code_repo/old/safe_mclapply.R")
 
 #colnames(fread(cmd = paste0('unzip -p ', paths[102]), nThread = 8, colClasses = "character", stringsAsFactors = FALSE, nrow = 100))
 
-safe_mclapply(2023:2023, function(x) {
+safe_mclapply(2014:2023, function(x) {
   paths_year <- paths[grepl(x, paths)]
   df_stru <- safe_mclapply(1:length(paths_year), function(i) {
     
@@ -512,8 +512,4 @@ file.copy(from = "./int_data/df_can_standardised.csv",
           to = "../bg_combined/int_data/df_can_standardised.csv", overwrite = T)
 
 unlink("./int_data/df_can_standardised.csv")
-
 #### END ####
-
-
-
