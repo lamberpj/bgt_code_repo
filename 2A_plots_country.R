@@ -10,7 +10,7 @@ library("janitor")
 library("lubridate")
 library("doParallel")
 library("tmaptools")
-
+library("rmarkdown")
 #library("textclean")
 #install.packages("qdapRegex")
 #library("quanteda")
@@ -36,7 +36,7 @@ library(fixest)
 # font_import()
 #loadfonts(device="postscript")
 #fonts()
-
+#install.packages("httpgd")
 ##### GITHUB RUN ####
 # cd /mnt/disks/pdisk/bgt_code_repo
 # git init
@@ -87,11 +87,11 @@ df_can <- df_can %>% .[, city_state := paste0(city,"_",state)] # No city found?
 df_uk <- df_uk %>% .[, city_state := paste0(city,"_",state)]
 df_us <- df_us %>% .[, city_state := paste0(city,"_",state)]
 
-sum(df_nz[!is.na(job_domain) & job_domain != ""]$job_id_weight)/sum(df_nz$job_id_weight) # 0.9999867
-sum(df_aus[!is.na(job_domain) & job_domain != ""]$job_id_weight)/sum(df_aus$job_id_weight) # 0.9998609
-sum(df_can[!is.na(job_domain) & job_domain != ""]$job_id_weight)/sum(df_can$job_id_weight) # 0.9979549
-sum(df_uk[!is.na(job_domain) & job_domain != ""]$job_id_weight)/sum(df_uk$job_id_weight) # 0.9998301
-sum(df_us[!is.na(job_domain) & job_domain != ""]$job_id_weight)/sum(df_us$job_id_weight) # 0.9998896
+sum(df_nz[!is.na(job_domain) & job_domain != ""]$job_id_weight)/sum(df_nz$job_id_weight) # 0.999985
+sum(df_aus[!is.na(job_domain) & job_domain != ""]$job_id_weight)/sum(df_aus$job_id_weight) # 0.9998597
+sum(df_can[!is.na(job_domain) & job_domain != ""]$job_id_weight)/sum(df_can$job_id_weight) # 0.9999893
+sum(df_uk[!is.na(job_domain) & job_domain != ""]$job_id_weight)/sum(df_uk$job_id_weight) # 0.9998906
+sum(df_us[!is.na(job_domain) & job_domain != ""]$job_id_weight)/sum(df_us$job_id_weight) # 0.9998994
 
 df_nz <- df_nz[!is.na(job_domain) & job_domain != ""]
 df_aus <- df_aus[!is.na(job_domain) & job_domain != ""]
@@ -105,53 +105,45 @@ df_can <- df_can %>% .[!grepl("careerjet", job_domain)]
 df_uk <- df_uk %>% .[!grepl("jobisjob", job_domain)]
 df_us <- df_us %>% .[!grepl("careerbuilder", job_domain)]
 
-uniqueN(df_nz$job_id) # 178,3508
-uniqueN(df_aus$job_id) # 8,975,451
-uniqueN(df_can$job_id) # 12,308,599
-uniqueN(df_uk$job_id) # 45,543,811 # Big step backwards!?!?!
-uniqueN(df_us$job_id) # 173,504,256
-sum(c(uniqueN(df_nz$job_id),uniqueN(df_aus$job_id),uniqueN(df_can$job_id),uniqueN(df_uk$job_id),uniqueN(df_us$job_id)))
+uniqueN(df_nz$job_id) # 1,221,398
+uniqueN(df_aus$job_id) # 6,297,711
+uniqueN(df_can$job_id) # 9,219,837
+uniqueN(df_uk$job_id) # 47,651,508
+uniqueN(df_us$job_id) # 178,679,693
+sum(c(uniqueN(df_nz$job_id),uniqueN(df_aus$job_id),uniqueN(df_can$job_id),uniqueN(df_uk$job_id),uniqueN(df_us$job_id))) # 243,070,147
 
-# 242,115,625
-uniqueN(df_nz$employer) # 40,371
-uniqueN(df_aus$employer) # 212,588
-uniqueN(df_can$employer) # 721,126
-uniqueN(df_uk$employer) # 707,433
-uniqueN(df_us$employer) # 3,631,693
-sum(c(uniqueN(df_nz$employer),uniqueN(df_aus$employer),uniqueN(df_can$employer),uniqueN(df_uk$employer),uniqueN(df_us$employer)))
-# 5,313,211
+uniqueN(df_nz$employer) # 34,733
+uniqueN(df_aus$employer) # 183,626
+uniqueN(df_can$employer) # 183,626
+uniqueN(df_uk$employer) # 736,654
+uniqueN(df_us$employer) # 3,724,184
+sum(c(uniqueN(df_nz$employer),uniqueN(df_aus$employer),uniqueN(df_can$employer),uniqueN(df_uk$employer),uniqueN(df_us$employer))) # 5,311,774
+
 uniqueN(df_nz$city_state) # 77
-uniqueN(df_aus$city_state) # 133
-uniqueN(df_can$city_state) # 3,701
-uniqueN(df_uk$city_state) # 2,262
-uniqueN(df_us$city_state) # 37,829
-sum(c(uniqueN(df_nz$city_state),uniqueN(df_aus$city_state),uniqueN(df_can$city_state),uniqueN(df_uk$city_state),uniqueN(df_us$city_state)))
-
-df_uk <- df_uk[, year_month := as.yearmon(job_date)]
-table(df_uk$year_month)
-
-# 37,720
+uniqueN(df_aus$city_state) # 132
+uniqueN(df_can$city_state) # 3,671
+uniqueN(df_uk$city_state) # 2,263
+uniqueN(df_us$city_state) # 31,662
+sum(c(uniqueN(df_nz$city_state),uniqueN(df_aus$city_state),uniqueN(df_can$city_state),uniqueN(df_uk$city_state),uniqueN(df_us$city_state))) # 37,805
 
 df_all_list <- list(df_nz,df_aus,df_can,df_uk,df_us)
 remove(list = setdiff(ls(), "df_all_list"))
-#### END ####
 
 df_all_list <- lapply(df_all_list, function(x) {
   x <- x %>% select(country, state, wfh_wham, job_date, bgt_occ, month, job_id_weight, tot_emp_ad)
   return(x)
 })
 
-
 df_all_list <- lapply(df_all_list, function(x) {
-  x %>% setDT(.) %>% .[as.yearmon(job_date) <= as.yearmon(ymd("20230401"))]
+  x %>% setDT(.) %>% .[as.yearmon(job_date) <= as.yearmon(ymd("20230601"))]
 })
 
 save(df_all_list, file = "./aux_data/df_all_list.RData")
-remove(list = ls())
-load(file = "./aux_data/df_all_list.RData")
 #### END ####
 
 #### PREPARE UNWEIGHTED DATA ####
+remove(list = ls())
+load(file = "./aux_data/df_all_list.RData")
 
 # Make Unweighted daily shares
 wfh_daily_share_list <- lapply(df_all_list, function(x) {
@@ -183,7 +175,7 @@ wfh_daily_share <- readRDS(file = "./int_data/country_daily_wfh.rds")
 table(wfh_daily_share$country)
 ts_for_plot <- wfh_daily_share %>%
   .[, job_date := ymd(job_date)] %>%
-  .[as.yearmon(year_month) <= as.yearmon(ymd("20230401"))] %>%
+  .[as.yearmon(year_month) <= as.yearmon(ymd("20230601"))] %>%
   .[, l1o_monthly_mean := (sum(daily_share*N)-daily_share*N)/(sum(N) - N), by = .(country, year_month)] %>%
   .[, monthly_mean := sum(daily_share*N)/(sum(N)), by = .(country, year_month)] %>%
   .[, l1o_keep := ifelse(abs(monthly_mean - l1o_monthly_mean) > 0.02 | abs(log(monthly_mean/l1o_monthly_mean)) > 0.10, 0, 1)] %>%
@@ -456,7 +448,7 @@ head(ts_for_plot)
 # Unweighted
 p = ts_for_plot %>%
   filter(weight == "Unweighted") %>%
-  filter(year_month <= as.yearmon(ymd("20230401"))) %>%
+  filter(year_month <= as.yearmon(ymd("20230601"))) %>%
   filter(!(year_month == as.yearmon(ymd("20230301")) & country %in% c("Australia", "Canada", "NZ"))) %>%
   mutate(Date = as.Date(as.yearmon(year_month)),
          Percent = 100*value,
@@ -496,7 +488,7 @@ remove(p)
 cbbPalette <- c("#E69F00", "#009E73", "#CC79A7", "#0072B2", "#D55E00")
 p = ts_for_plot %>%
   filter(weight == "US 2019 Vacancy") %>%
-  filter(year_month <= as.yearmon(ymd("20230401"))) %>%
+  filter(year_month <= as.yearmon(ymd("20230601"))) %>%
   mutate(Date = as.Date(as.yearmon(year_month)),
          Percent = 100*value,
          Country = country) %>%
@@ -535,7 +527,7 @@ remove(p)
 cbbPalette <- c("#E69F00", "#009E73", "#CC79A7", "#0072B2", "#D55E00")
 p = ts_for_plot %>%
   filter(weight == "Global 2019 Employment") %>%
-  filter(year_month <= as.yearmon(ymd("20230401"))) %>%
+  filter(year_month <= as.yearmon(ymd("20230601"))) %>%
   mutate(Date = as.Date(as.yearmon(year_month)),
          Percent = 100*value,
          Country = country) %>%

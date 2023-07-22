@@ -74,7 +74,11 @@ wfh_across_country <- readRDS(file = "./int_data/country_ts_combined_weights.rds
   ungroup() %>%
   filter(weight == "US 2019 Vacancy") %>%
   filter(year_month >= as.yearmon(ymd("20190101"))) %>%
-  filter(!(year_month == as.yearmon(ymd("20230301")) & country %in% c("Australia", "Canada", "NZ"))) %>%
+  mutate(value = ifelse(year_month == as.yearmon(ymd("20230301")) & country %in% c("Australia", "Canada", "NZ"), NA, value)) %>%
+  mutate(value_3ma = ifelse(year_month == as.yearmon(ymd("20230301")) & country %in% c("Australia", "Canada", "NZ"), NA, value_3ma)) %>%
+  group_by(country, weight) %>%
+  fill(value, value_3ma, .direction = "down") %>%
+  ungroup() %>%
   arrange(desc(country), year_month) %>%
   select(country, year_month, value) %>%
   rename(Percent = value, Country = country)
@@ -95,8 +99,11 @@ wfh_across_country_wide <- wfh_across_country %>%
   group_by(`Year-Month`) %>%
   pivot_wider(values_from = Percent, names_from = Country)
 
-fwrite(wfh_across_country_wide, file = "./public_data/country_by_month_wfh_share_wide.csv")
+wfh_across_country_wide <- wfh_across_country_wide %>%
+  ungroup() %>%
+  fill(everything(), .direction = "down")
 
+fwrite(wfh_across_country_wide, file = "./public_data/country_by_month_wfh_share_wide.csv")
 
 #### END ####
 
@@ -121,7 +128,7 @@ df_us <- df_us %>% .[!is.na(soc) & soc != ""]
 df_us <- df_us %>% .[!is.na(wfh_wham) & wfh_wham != ""]
 df_us <- df_us %>% .[, soc_2_digit := str_sub(soc, 1, 2)]
 df_us <- df_us %>% .[, year_month := as.yearmon(job_date)]
-df_us <- df_us %>% .[year_month <= as.yearmon(ymd("20230401"))] # Up to March 2023
+df_us <- df_us %>% .[year_month <= as.yearmon(ymd("20230601"))] # Up to March 2023
 df_us <- df_us %>% .[year_month >= as.yearmon(ymd("20190101"))] # From Jan 2018
 df_us_soc_year_month <- df_us %>% .[, .(percent = mean(wfh_wham), N = .N), by = .(soc_2_digit, year_month)]
 df_us_soc_year_month$soc_2_digit <- as.numeric(df_us_soc_year_month$soc_2_digit)
@@ -177,7 +184,7 @@ fwrite(df_us_soc_year_month, file = "./public_data/us_soc2digit_by_month_wfh_sha
 # unique(df_uk$uksoc_sub_major_group)
 # 
 # df_uk <- df_uk %>% .[, year_month := as.yearmon(job_date)]
-# df_uk <- df_uk %>% .[year_month <= as.yearmon(ymd("20230401"))] # Up to Jan 2023
+# df_uk <- df_uk %>% .[year_month <= as.yearmon(ymd("20230601"))] # Up to Jan 2023
 # df_uk <- df_uk %>% .[year_month >= as.yearmon(ymd("20190101"))] # From Jan 2018
 # df_uk_soc_year_month <- df_uk %>% .[, .(percent = mean(wfh_wham), N = .N), by = .(soc_2_digit, year_month, uksoc_sub_major_group)]
 # df_uk_soc_year_month$soc_2_digit <- as.numeric(df_uk_soc_year_month$soc_2_digit)
@@ -238,9 +245,6 @@ df_us_city_year_month <- df_us_city_year_month %>%
   .[(ma_flag == 1 & name == "monthly_mean_3ma_l1o") | (ma_flag == 0 & name == "monthly_mean_l1o")] %>%
   .[, measurement := ifelse(name == "monthly_mean_3ma_l1o", "3 Month Average", "1 Month Average")]
 
-# df_us_city_2022 <- df_us_city_year_month %>% .[, year := year(as.yearmon(year_month))] %>% .[year == 2022] %>% .[, .(N = sum(N)), by = .(city, state_code, city_state)] %>% .[order(desc(N))]
-# View(df_us_city_2022)
-
 df_us_city_year_month <- df_us_city_year_month %>% setDT(.) %>% .[, city := ifelse(city_state == "US", "UNITED STATES - NATIONAL", city)]
 df_us_city_year_month <- df_us_city_year_month %>% select(year_month, city, region, division, state_code, value, N, measurement)
 df_us_city_year_month <- df_us_city_year_month %>% arrange(division, region, state_code, city, year_month)
@@ -260,7 +264,6 @@ df_us_city_year_month <- df_us_city_year_month %>% setDT(.) %>% .[, mean := mean
 
 setwd("/mnt/disks/pdisk/bg_combined/")
 fwrite(df_us_city_year_month, file = "./public_data/us_city_by_month_wfh_share.csv")
-tail(df_us_city_year_month)
 
 class(df_us_city_year_month$year_month)
 
@@ -270,7 +273,6 @@ us_city_list <- c("Boston, MA","Cleveland, OH",
                   "New York, NY","Des Moines, IA","San Francisco, CA",
                   "Savannah, GA","Wichita, KS","Miami Beach, FL",
                   "Houston, TX", "Phoenix, AZ","Denver, CO")
-
 
 class(df_us_city_year_month$year_month)
 
@@ -289,7 +291,7 @@ df_us_city_year_month_plot <- df_us_city_year_month %>%
   group_by(year_month) %>%
   pivot_wider(names_from = city_state, values_from = percent)
 
-df_us_city_year_month_plot
+tail(df_us_city_year_month_plot)
 
 fwrite(df_us_city_year_month_plot, file = "./public_data/df_us_city_year_month_plot.csv")
 
@@ -315,8 +317,6 @@ nrow(df_us_county_year_month)
 df_us_county_year_month <- df_us_county_year_month %>% .[!is.na(state_code)]
 nrow(df_us_county_year_month)
 class(df_us_county_year_month$year_month)
-
-head(df_us_county_year_month)
 
 # Drop cities with fewer than 500 postings in any year_month cell
 df_us_county_year_month <- df_us_county_year_month %>%
@@ -349,11 +349,97 @@ df_us_county_year_month <- df_us_county_year_month %>% rename(county = county,
                                                           state = state_code,
                                                           n = N)
 
-View(df_us_county_year_month)
-
 setwd("/mnt/disks/pdisk/bg_combined/")
 fwrite(df_us_county_year_month, file = "./public_data/us_county_by_month_wfh_share.csv")
 tail(df_us_county_year_month)
+#### END ####
+
+#### 4. US County-level results for MAP ####
+remove(list = ls())
+df_us_county_year_month <- fread(file = "./aux_data/county_level_ts.csv")
+
+df_us_county_year_month <- df_us_county_year_month %>% .[country == "US"] %>% .[name %in% c("monthly_mean_l1o")]
+divisions <- fread(file = "./aux_data/us census bureau regions and divisions.csv") %>% clean_names
+unique(df_us_county_year_month$state)
+nrow(df_us_county_year_month) # 171348
+df_us_county_year_month <- df_us_county_year_month %>%
+  left_join(divisions)
+nrow(df_us_county_year_month) # 171348
+uniqueN(df_us_county_year_month$county) # 1930
+df_us_county_year_month <- df_us_county_year_month %>%
+  .[, state_code := ifelse(county_state == "US", "-", state_code)] %>%
+  .[, region := ifelse(county_state == "US", "-", region)] %>%
+  .[, division := ifelse(county_state == "US", "-", division)] %>%
+  .[, county := gsub(" city", "", county)]
+nrow(df_us_county_year_month) # 171,348
+uniqueN(df_us_county_year_month$county) # 1914
+df_us_county_year_month <- df_us_county_year_month %>% .[!is.na(state_code)]
+nrow(df_us_county_year_month) # 161,911
+class(df_us_county_year_month$year_month)
+
+head(df_us_county_year_month)
+
+df_us_county_year_month <- df_us_county_year_month %>% mutate(county = gsub(" city", "", county)) %>% mutate(county = gsub("^Saint ", "St. ", county))
+df_us_county_year_month <- df_us_county_year_month %>% mutate(county = gsub("Wrangell City and Borough", "Wrangell", county))
+df_us_county_year_month <- df_us_county_year_month %>% mutate(county = gsub("Sainte Genevieve", "Ste. Genevieve", county))
+df_us_county_year_month <- df_us_county_year_month %>% mutate(county = gsub("Dona Ana", "Doña Ana", county))
+
+df_us_county_year_month <- df_us_county_year_month %>%
+  .[job_date >= ymd("2022-07-01")] %>%
+  .[name == "monthly_mean_l1o"] %>%
+  .[!is.na(value) & !is.na(N)] %>%
+  .[, .(N = sum(N), value = sum(N*value)/sum(N)), by = .(county, state_code)]
+
+df_us_county_year_month <- df_us_county_year_month %>% select(state_code, county, value, N)
+df_us_county_year_month <- df_us_county_year_month %>% mutate(percent = round(100*value, 2))
+df_us_county_year_month <- df_us_county_year_month %>% select(state_code, county, percent, N)
+
+# Load official data
+df_county_names <- fread("./aux_data/Spreadsheet us-all-all-highres.geo.csv")
+
+df_county_names <- df_county_names %>%
+  .[, state_code := toupper(str_sub(`hc-key`, 4, 5))]
+
+head(df_us_county_year_month)
+head(df_county_names)
+
+mean(df_us_county_year_month$county %in% df_county_names$name) # 0.9987265
+mean(df_us_county_year_month$state_code %in% df_county_names$state_code) # 1
+
+mean(df_county_names$name %in% df_us_county_year_month$county) # 0.9987265
+mean(df_county_names$state_code %in% df_us_county_year_month$state_code) # 1
+
+df_us_county_year_month <- df_us_county_year_month %>%
+  rename(name = county)
+
+df_county_names <- df_county_names %>%
+  setDT(.) %>%
+  .[, N_cells := .N, by = .(state_code, name)]
+
+df_us_county_year_month <- df_us_county_year_month %>%
+  setDT(.) %>%
+  .[, N_cells := .N, by = .(state_code, name)]
+
+df_county_names <- df_county_names %>% select(-N_cells)
+df_us_county_year_month <- df_us_county_year_month %>% select(-N_cells)
+
+nrow(df_county_names) # 3,143
+df_county_names <- df_county_names %>%
+  left_join(df_us_county_year_month)
+nrow(df_county_names) # 3,153
+
+View(df_county_names)
+
+df_county_names <- df_county_names %>%
+  mutate(Value = ifelse(N > 1000, percent, NA))
+
+View(df_county_names)
+
+df_county_names <- df_county_names %>%
+  select(-c(state_code, percent, N))
+
+fwrite(df_county_names, file = "./public_data/us_county_by_last12mon_wfh_share_map.csv")
+
 #### END ####
 
 #### 4. US State-level results ####
@@ -411,16 +497,9 @@ df_us_state_year_month <- df_us_state_year_month %>% rename(state = state,
 
 df_us_state_year_month <- df_us_state_year_month %>% setDT(.) %>% .[, mean := mean(n, na.rm = T), by = .(state, state_code, region, division, state)] %>% .[order(-mean, state_code, year_month)]
 
-View(df_us_state_year_month)
-
 setwd("/mnt/disks/pdisk/bg_combined/")
 fwrite(df_us_state_year_month, file = "./public_data/us_state_by_month_wfh_share.csv")
 tail(df_us_state_year_month)
-
-nrow(df_us_state_year_month)
-df_us_state_year_month <- df_us_state_year_month %>%
-  .[state %in% states]
-nrow(df_us_state_year_month)
 
 df_us_state_year_month_map <- df_us_state_year_month %>%
   .[as.numeric(year_month) >= max(year_month)-1] %>%
@@ -546,7 +625,7 @@ df_us <- df_us %>% .[!grepl("careerbuilder", job_domain)]
 df_us <- df_us %>% .[!is.na(sector) & sector != ""]
 df_us <- df_us %>% .[!is.na(wfh_wham) & wfh_wham != ""]
 df_us <- df_us %>% .[, year_month := as.yearmon(job_date)]
-df_us <- df_us %>% .[year_month <= as.yearmon(ymd("20230401"))] # Up to Jan 2023
+df_us <- df_us %>% .[year_month <= as.yearmon(ymd("20230601"))] # Up to Jan 2023
 df_us <- df_us %>% .[year_month >= as.yearmon(ymd("20190101"))] # From Jan 2018
 
 df_us_naics2_year_month <- df_us %>% .[, .(percent = mean(wfh_wham), N = .N), by = .(sector, sector_name, year_month)]
@@ -567,13 +646,12 @@ df_us_naics2_year_month <- df_us_naics2_year_month %>% .[, measurement := "1 Mon
 head(df_us_naics2_year_month)
 tail(df_us_naics2_year_month)
 
-
 fwrite(df_us_naics2_year_month, file = "./public_data/us_naics_2digit_by_month_wfh_share.csv")
 
 uniqueN(df_us_naics2_year_month$naics_name)
 
 df_us_naics2_year_month_bar <- df_us_naics2_year_month %>%
-  .[year %in% c(2019, 2022)] %>%
+  .[year %in% c(2019, 2022, 2023)] %>%
   .[, .(percent = sum(percent*n)/sum(n), n = sum(n)), by = .(year, naics_name)] %>%
   .[, percent := round(percent, 1)] %>%
   select(-n) %>%
@@ -582,7 +660,7 @@ df_us_naics2_year_month_bar <- df_us_naics2_year_month %>%
 
 df_us_naics2_year_month_bar
 
-df_us_naics2_year_month_bar <- df_us_naics2_year_month_bar %>% setDT(.) %>% .[order(-`2022`)] %>% select(naics_name, `2022`, `2019`) %>% setDT()
+df_us_naics2_year_month_bar <- df_us_naics2_year_month_bar %>% setDT(.) %>% .[order(-`2023`)] %>% select(naics_name, `2023`, `2022`, `2019`) %>% setDT()
 
 df_us_naics2_year_month_bar <- df_us_naics2_year_month_bar %>%
   mutate(naics_name = case_when(
@@ -636,7 +714,7 @@ fwrite(df_us_naics2_year_month_bar, file = "./public_data/us_naics_2digit_by_mon
 # df_uk <- df_uk %>% .[!is.na(wfh_wham) & wfh_wham != ""]
 # 
 # df_uk <- df_uk %>% .[, year_month := as.yearmon(job_date)]
-# df_uk <- df_uk %>% .[year_month <= as.yearmon(ymd("20230401"))] # Up to Jan 2023
+# df_uk <- df_uk %>% .[year_month <= as.yearmon(ymd("20230601"))] # Up to Jan 2023
 # df_uk <- df_uk %>% .[year_month >= as.yearmon(ymd("20190101"))] # From Jan 2018
 # df_uk_sic_section_year_month <- df_uk %>% .[, .(percent = mean(wfh_wham), N = .N), by = .(sic_section, year_month)]
 # df_uk_sic_section_year_month$sic_section <- str_to_title(df_uk_sic_section_year_month$sic_section)

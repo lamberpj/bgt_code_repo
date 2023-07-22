@@ -1,0 +1,25 @@
+library("ggpmisc")
+ggthemr('flat')
+library(egg)
+library("extrafont")
+library(fixest)
+library(haven)
+library(phonics)
+library(PGRdup)
+library(qdapDictionaries)
+# font_import()
+#loadfonts(device="postscript")
+#fonts()
+
+setDTthreads(8)
+getDTthreads()
+#quanteda_options(threads = 1)
+setwd("/mnt/disks/pdisk/bg-uk/")
+
+#### LOAD "US BGT" ####
+df_us_2019 <- fread("./int_data/uk_stru_2019_wfh.csv", nThread = 8, integer64 = "numeric") %>% .[!is.na(bgt_occ) & bgt_occ != ""] %>% .[!is.na(wfh_wham) & wfh_wham != ""] %>% mutate(country = "UK") %>% setDT()
+df_us_2020 <- fread("./int_data/uk_stru_2020_wfh.csv", nThread = 8, integer64 = "numeric") %>% .[!is.na(bgt_occ) & bgt_occ != ""] %>% .[!is.na(wfh_wham) & wfh_wham != ""] %>% mutate(country = "UK") %>% setDT()
+df_us_2021 <- fread("./int_data/uk_stru_2021_wfh.csv", nThread = 8, integer64 = "numeric") %>% .[!is.na(bgt_occ) & bgt_occ != ""] %>% .[!is.na(wfh_wham) & wfh_wham != ""] %>% mutate(country = "UK") %>% setDT()
+df_us_2022 <- fread("./int_data/uk_stru_2022_wfh.csv", nThread = 8, integer64 = "numeric") %>% .[!is.na(bgt_occ) & bgt_occ != ""] %>% .[!is.na(wfh_wham) & wfh_wham != ""] %>% mutate(country = "UK") %>% setDT()
+df_us_2023 <- fread("./int_data/uk_stru_2023_wfh.csv", nThread = 8, integer64 = "numeric") %>% .[!is.na(bgt_occ) & bgt_occ != ""] %>% .[!is.na(wfh_wham) & wfh_wham != ""] %>% mutate(country = "UK") %>% setDT()
+

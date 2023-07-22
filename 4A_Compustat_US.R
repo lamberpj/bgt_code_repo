@@ -30,13 +30,13 @@ library("ggpubr")
 library("ggthemr")
 library("ggpmisc")
 ggthemr('flat')
-library(egg)
-library(extrafont)
-library(fixest)
-library(haven)
-library(phonics)
-library(PGRdup)
-library(qdapDictionaries)
+library("egg")
+library("extrafont")
+library("fixest")
+library("haven")
+library("phonics")
+library("PGRdup")
+library("qdapDictionaries")
 # font_import()
 #loadfonts(device="postscript")
 #fonts()
@@ -52,12 +52,6 @@ df_us_2020 <- fread("./int_data/us_stru_2020_wfh.csv", nThread = 8, integer64 = 
 df_us_2021 <- fread("./int_data/us_stru_2021_wfh.csv", nThread = 8, integer64 = "numeric") %>% .[!is.na(bgt_occ) & bgt_occ != ""] %>% .[!is.na(wfh_wham) & wfh_wham != ""] %>% mutate(country = "US") %>% setDT() %>% .[!is.na(employer) & employer != ""]
 df_us_2022 <- fread("./int_data/us_stru_2022_wfh.csv", nThread = 8, integer64 = "numeric") %>% .[!is.na(bgt_occ) & bgt_occ != ""] %>% .[!is.na(wfh_wham) & wfh_wham != ""] %>% mutate(country = "US") %>% setDT() %>% .[!is.na(employer) & employer != ""]
 df_us_2023 <- fread("./int_data/us_stru_2023_wfh.csv", nThread = 8, integer64 = "numeric") %>% .[!is.na(bgt_occ) & bgt_occ != ""] %>% .[!is.na(wfh_wham) & wfh_wham != ""] %>% mutate(country = "US") %>% setDT() %>% .[!is.na(employer) & employer != ""]
-
-df_us_2019 <- df_us_2019 %>% select(-year)
-df_us_2020 <- df_us_2020 %>% select(-year)
-df_us_2021 <- df_us_2021 %>% select(-year)
-df_us_2022 <- df_us_2022 %>% select(-year)
-#df_us_2023 <- df_us_2023 %>% select(-year)
 
 df_us <- rbindlist(list(df_us_2019,df_us_2020,df_us_2021,df_us_2022,df_us_2023), use.names = T)
 remove(list = c("df_us_2019","df_us_2020","df_us_2021","df_us_2022","df_us_2023"))
@@ -75,9 +69,28 @@ remove(list = setdiff(ls(), "df_us"))
 ls()
 colnames(df_us)
 
-df_us <- df_us %>% select(job_id, job_date, employer, sector, naics3, naics4, city, state, city_state, county, fips, msa)
+df_us <- df_us %>% select(job_id, job_date, wfh_wham, employer, soc, sector, naics3, naics4, city, state, city_state, county, fips, msa)
 df_us <- df_us %>% mutate(naics2 = str_sub(sector, 1, 2))
-df_us <- df_us %>% select(job_id, job_date, employer, naics2, naics3, naics4, city, state, city_state, county, fips, msa)
+df_us <- df_us %>% mutate(soc2 = str_sub(soc, 1, 2))
+df_us <- df_us %>% select(job_id, job_date, wfh_wham, employer, soc, naics2, naics3, naics4, city, state, city_state, county, fips, msa)
+
+class(df_us$job_date)
+
+# Extract for DAVID AUTOR #
+df_us_autor <- df_us %>%
+  setDT(.) %>%
+  .[, year_month := as.yearmon(job_date)] %>%
+  .[, .(wfh_share = mean(wfh_wham), n = .N), by = .(naics2, soc2, county, fips, year_month)] %>%
+  .[, year := year(year_month)] %>%
+  .[, month := month(year_month)] %>%
+  select(year, month, year_month, soc2, naics2, county, fips, wfh_share, n)
+  
+df_us_autor <- df_us_autor %>%
+  .[order(year, month, year_month, soc2, naics2, county, fips)]
+
+fwrite(df_us_autor, "./int_data/extract_autor_et_al.csv")
+
+View(df_us_autor)
 
 df_us <- df_us %>% .[!is.na(employer) & employer != ""]
 
@@ -387,8 +400,10 @@ linked_data_set <- linked_data_set %>% setDT() %>% select(".x", ".y", employer, 
 linked_data_set <- linked_data_set %>%
   left_join(pairs %>% select(".x", ".y", "weights")) %>%
   setDT()
-fwrite(linked_data_set, paste0("./int_data/linked_data_set_",yr,".csv"))
+fwrite(linked_data_set, paste0("./int_data/linked_data_set.csv"))
 stopCluster(cl)
+
+View(linked_data_set)
 
 
 

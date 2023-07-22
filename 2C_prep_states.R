@@ -118,7 +118,7 @@ daily_data <- lapply(1:length(df_all_list), function(i) {
   df_all_list[[i]] %>%
     .[, .(daily_share = mean(wfh_wham, na.rm = T), N = .N), by = .(country, state, year_month, job_date)] %>%
     .[, job_date := ymd(job_date)] %>%
-    .[as.yearmon(year_month) >= as.yearmon(ymd("20170101")) & as.yearmon(year_month) <= as.yearmon(ymd("20230401"))]
+    .[as.yearmon(year_month) >= as.yearmon(ymd("20170101")) & as.yearmon(year_month) <= as.yearmon(ymd("20230601"))]
 }) %>%
   rbindlist(.)
 
@@ -137,7 +137,7 @@ check <- daily_data %>%
 
 ts_for_plot <- daily_data %>%
   .[, job_date := ymd(job_date)] %>%
-  .[as.yearmon(year_month) >= as.yearmon(ymd("20180901")) & as.yearmon(year_month) <= as.yearmon(ymd("20230401"))] %>%
+  .[as.yearmon(year_month) >= as.yearmon(ymd("20180901")) & as.yearmon(year_month) <= as.yearmon(ymd("20230601"))] %>%
   #.[count_for_thresh >= 150000] %>%
   .[, l1o_monthly_mean := (sum(daily_share*N)-daily_share*N)/(sum(N) - N), by = .(country, state, year_month)] %>%
   .[, monthly_mean := sum(daily_share*N)/(sum(N)), by = .(country, state, year_month)] %>%
@@ -165,7 +165,7 @@ ts_for_plot <- ts_for_plot %>%
   #.[, monthly_mean_l1o := ifelse(as.yearmon(year_month) %in% as.yearmon(ymd(c("20200301", "20200401", "20200501", "20200601"))), monthly_mean, monthly_mean_l1o)] %>%
   #.[, monthly_mean_3ma := ifelse(as.yearmon(year_month) %in% as.yearmon(ymd(c("20200301", "20200401", "20200501", "20200601"))), monthly_mean, monthly_mean_3ma)] %>%
   #.[, monthly_mean_3ma_l1o := ifelse(as.yearmon(year_month) %in% as.yearmon(ymd(c("20200301", "20200401", "20200501", "20200601"))), monthly_mean, monthly_mean_3ma_l1o)] %>%
-  .[as.yearmon(year_month) >= as.yearmon(ymd("20190101")) & as.yearmon(year_month) <= as.yearmon(ymd("20230401"))]
+  .[as.yearmon(year_month) >= as.yearmon(ymd("20190101")) & as.yearmon(year_month) <= as.yearmon(ymd("20230601"))]
 
 ts_for_plot <- ts_for_plot %>%
   group_by(state, year_month, job_date, N) %>%

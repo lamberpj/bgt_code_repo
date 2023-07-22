@@ -2,7 +2,7 @@
 remove(list = ls())
 
 library("devtools")
-install_github("trinker/textclean")
+#install_github("trinker/textclean")
 library("textclean")
 library("data.table")
 library("tidyverse")
@@ -24,12 +24,18 @@ library("readxl")
 library("ggplot2")
 library("scales")
 library("ggpubr")
+#devtools::install_github('Mikata-Project/ggthemr')
 library("ggthemr")
 ggthemr('flat')
 
-setDTthreads(1)
+# tmp <- tempfile()
+# system2("git", c("clone", "--recursive",
+#                  shQuote("https://github.com/patperry/r-corpus.git"), shQuote(tmp)))
+# devtools::install(tmp)
+
+setDTthreads(4)
 getDTthreads()
-quanteda_options(threads = 1)
+quanteda_options(threads = 4)
 setwd("/mnt/disks/pdisk/bg-uk/")
 #setDTthreads(1)
 
@@ -46,7 +52,7 @@ remove(list = ls())
 # system("gsutil -m cp -n /mnt/disks/pdisk/bg-uk/int_data/sequences/* gs://for_transfer/sequences_uk/sequences/")
 
 # Download WHAM Predictions
-# system("gsutil -m cp -n gs://for_transfer/wham/UK/* /mnt/disks/pdisk/bg-uk/int_data/wham_pred/")
+system("gsutil -m cp -n gs://for_transfer/wham/UK/* /mnt/disks/pdisk/bg-uk/int_data/wham_pred/")
 
 #### END ####
 
@@ -190,7 +196,7 @@ safe_mclapply(1:length(paths), function(i) {
   warning(paste0("SUCCESS: ",i))
   cat(paste0("\nSUCCESS: ",i,"\n"))
   return("")
-}, mc.cores = 8)
+}, mc.cores = 2)
 
 #sink()
 #system("echo sci2007! | sudo -S shutdown -h now")
@@ -246,7 +252,7 @@ safe_mclapply(1:length(paths), function(i) {
   warning(paste0("SUCCESS: ",i))
   cat(paste0("\nSUCCESS: ",i,"\n"))
   return("")
-}, mc.cores = 3)
+}, mc.cores = 2)
 
 #sink()
 system("echo sci2007! | sudo -S shutdown -h now")
@@ -293,6 +299,9 @@ df_wham <- df_wham %>%
          wfh_wham = wfh)
 
 df_wham <- df_wham %>%
+  select(job_id, wfh_wham_prob, wfh_wham)
+
+df_wham <- df_wham %>%
   unique(., by = "job_id")
 
 #### /END ####
@@ -323,7 +332,7 @@ paths <- list.files("/mnt/disks/pdisk/bg-uk/raw_data/main", pattern = ".zip", fu
 paths
 source("/mnt/disks/pdisk/bgt_code_repo/old/safe_mclapply.R")
 
-safe_mclapply(2014:2023, function(x) {
+safe_mclapply(2022:2023, function(x) {
   paths_year <- paths[grepl(x, paths)]
   
   df_stru <- safe_mclapply(1:length(paths_year), function(i) {
@@ -372,7 +381,7 @@ safe_mclapply(2014:2023, function(x) {
 #### MAKE STANDARDISED ####
 remove(list = ls())
 
-lapply(c(2014:2023), function(m) {
+lapply(c(2022:2023), function(m) {
   df_all_uk <- fread(input = paste0("../bg-uk/int_data/uk_stru_",m,"_wfh.csv"), nThread = 4) %>% .[!is.na(wfh_wham) & wfh_wham != ""]
   
   df_all_uk <- df_all_uk %>%
@@ -488,12 +497,7 @@ lapply(c(2014:2023), function(m) {
   head(df_all_uk)
   
   # SAVE #
-  fwrite(df_all_uk, file = paste0("./int_data/df_uk_",m,"_standardised.csv"))
-
-  file.copy(from = paste0("./int_data/df_uk_", m, "_standardised.csv"),
-            to = paste0("../bg_combined/int_data/df_uk_", m, "_standardised.csv"), overwrite = T)
-  
-  unlink(paste0("./int_data/df_uk_", m, "_standardised.csv"))
+  fwrite(df_all_uk, file = paste0("../bg_combined/int_data/df_uk_", m, "_standardised.csv"))
   
 })
 

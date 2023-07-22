@@ -110,6 +110,8 @@ df_us_2021 <- fread("./int_data/df_us_2021_standardised.csv", nThread = 8, integ
 df_us_2022 <- fread("./int_data/df_us_2022_standardised.csv", nThread = 8, integer64 = "numeric") %>% .[!is.na(bgt_occ) & bgt_occ != ""] %>% .[!is.na(wfh_wham) & wfh_wham != ""] %>% mutate(country = "US") %>% setDT()
 df_us_2023 <- fread("./int_data/df_us_2023_standardised.csv", nThread = 8, integer64 = "numeric") %>% .[!is.na(bgt_occ) & bgt_occ != ""] %>% .[!is.na(wfh_wham) & wfh_wham != ""] %>% mutate(country = "US") %>% setDT()
 
+table(as.yearmon(df_us_2023$year_month))
+
 df_uk <- rbindlist(list(df_uk_2014, df_uk_2015, df_uk_2016, df_uk_2017, df_uk_2018,df_uk_2019,df_uk_2020,df_uk_2021,df_uk_2022,df_uk_2023))
 remove(list = c("df_uk_2014", "df_uk_2015", "df_uk_2016", "df_uk_2017", "df_uk_2018","df_uk_2019","df_uk_2020","df_uk_2021","df_uk_2022","df_uk_2023"))
 
@@ -160,7 +162,7 @@ daily_data <- lapply(1:length(df_all_list), function(i) {
     .[city != "" & !is.na(city)] %>%
     .[, .(daily_share = sum(job_id_weight*wfh_wham, na.rm = T)/sum(job_id_weight, na.rm = T), N = sum(job_id_weight)), by = .(country, state, city, year_month, job_date)] %>%
     .[, job_date := ymd(job_date)] %>%
-    .[as.yearmon(year_month) >= as.yearmon(ymd("20170101")) & as.yearmon(year_month) <= as.yearmon(ymd("20230401"))] %>%
+    .[as.yearmon(year_month) >= as.yearmon(ymd("20170101")) & as.yearmon(year_month) <= as.yearmon(ymd("20230601"))] %>%
     .[, city_state := paste0(city, ", ", state)]
 }) %>%
   rbindlist(.)
@@ -169,7 +171,7 @@ daily_data_national <- lapply(1:length(df_all_list), function(i) {
   df_all_list[[i]] %>%
     .[, .(daily_share = sum(job_id_weight*wfh_wham, na.rm = T)/sum(job_id_weight, na.rm = T), N = sum(job_id_weight)), by = .(country, year_month, job_date)] %>%
     .[, job_date := ymd(job_date)] %>%
-    .[as.yearmon(year_month) >= as.yearmon(ymd("20170101")) & as.yearmon(year_month) <= as.yearmon(ymd("20230401"))] %>%
+    .[as.yearmon(year_month) >= as.yearmon(ymd("20170101")) & as.yearmon(year_month) <= as.yearmon(ymd("20230601"))] %>%
     .[, city_state := country]
 }) %>%
   rbindlist(.)
@@ -179,7 +181,7 @@ daily_data_old <- daily_data
 daily_data <- bind_rows(daily_data, daily_data_national)
 
 thresh_cities <- daily_data %>%
-  .[as.yearmon(year_month) >= as.yearmon(ymd("20190101")) & as.yearmon(year_month) <= as.yearmon(ymd("20230401"))] %>%
+  .[as.yearmon(year_month) >= as.yearmon(ymd("20190101")) & as.yearmon(year_month) <= as.yearmon(ymd("20230601"))] %>%
   .[, .(count_for_thresh = sum(N)), by = .(country, city_state)] %>%
   .[order(country, desc(count_for_thresh))] %>%
   .[, rank := 1:.N, by = country] %>%
@@ -205,12 +207,14 @@ log_threshold <- 0.1 # absolute deviation in level of log(raw mean) and log(trim
 remove(list = ls())
 daily_data <- fread(file = "./aux_data/all_cities_daily.csv")
 
+table(as.yearmon(daily_data$year_month))
+
 check <- daily_data %>%
   .[, .(.N), by = .(country, city_state, rank)]
 
 ts_for_plot <- daily_data %>%
   .[, job_date := ymd(job_date)] %>%
-  .[as.yearmon(year_month) >= as.yearmon(ymd("20180901")) & as.yearmon(year_month) <= as.yearmon(ymd("20230401"))] %>%
+  .[as.yearmon(year_month) >= as.yearmon(ymd("20180901")) & as.yearmon(year_month) <= as.yearmon(ymd("20230601"))] %>%
   #.[count_for_thresh >= 150000] %>%
   .[, l1o_monthly_mean := (sum(daily_share*N)-daily_share*N)/(sum(N) - N), by = .(country, city, state, city_state, year_month)] %>%
   .[, monthly_mean := sum(daily_share*N)/(sum(N)), by = .(country, city, state, city_state, year_month)] %>%
@@ -238,7 +242,7 @@ ts_for_plot <- ts_for_plot %>%
   #.[, monthly_mean_l1o := ifelse(as.yearmon(year_month) %in% as.yearmon(ymd(c("20200301", "20200401", "20200501", "20200601"))), monthly_mean, monthly_mean_l1o)] %>%
   #.[, monthly_mean_3ma := ifelse(as.yearmon(year_month) %in% as.yearmon(ymd(c("20200301", "20200401", "20200501", "20200601"))), monthly_mean, monthly_mean_3ma)] %>%
   #.[, monthly_mean_3ma_l1o := ifelse(as.yearmon(year_month) %in% as.yearmon(ymd(c("20200301", "20200401", "20200501", "20200601"))), monthly_mean, monthly_mean_3ma_l1o)] %>%
-  .[as.yearmon(year_month) >= as.yearmon(ymd("20190101")) & as.yearmon(year_month) <= as.yearmon(ymd("20230401"))]
+  .[as.yearmon(year_month) >= as.yearmon(ymd("20190101")) & as.yearmon(year_month) <= as.yearmon(ymd("20230601"))]
 
 ts_for_plot <- ts_for_plot %>%
   group_by(city, state, city_state, year_month, job_date, N) %>%

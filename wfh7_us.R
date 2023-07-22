@@ -2,7 +2,7 @@
 remove(list = ls())
 
 library("devtools")
-install_github("trinker/textclean")
+#install_github("trinker/textclean")
 library("textclean")
 library("data.table")
 library("tidyverse")
@@ -17,19 +17,25 @@ library("stringi")
 #library("readtext")
 library("rvest")
 library("xml2")
-#library("DescTools")
+library("DescTools")
 library("zoo")
 library("stargazer")
 library("readxl")
 library("ggplot2")
 library("scales")
 library("ggpubr")
+#devtools::install_github('Mikata-Project/ggthemr')
 library("ggthemr")
 ggthemr('flat')
 
+# tmp <- tempfile()
+# system2("git", c("clone", "--recursive",
+#                  shQuote("https://github.com/patperry/r-corpus.git"), shQuote(tmp)))
+# devtools::install(tmp)
+
 setDTthreads(4)
 getDTthreads()
-#quanteda_options(threads = 1)
+quanteda_options(threads = 4)
 setwd("/mnt/disks/pdisk/bg-us/")
 #setDTthreads(1)
 remove(list = ls())
@@ -191,7 +197,7 @@ safe_mclapply(1:length(paths), function(i) {
 
       return(df_chunked)
 
-    }, mc.cores = 4)
+    }, mc.cores = 2)
 
     df_chunked <- rbindlist(df_chunked)
 
@@ -272,6 +278,7 @@ remove(list = ls())
 paths <- list.files("./int_data/wham_pred", pattern = "*.txt", full.names = T)
 paths
 source("/mnt/disks/pdisk/bgt_code_repo/old/safe_mclapply.R")
+paths <- paths[!grepl("sequences_20230427_20230503_jobs.txt", paths)]
 
 df_wham <- safe_mclapply(1:length(paths), function(i) {
   df <- fread(paths[i])  %>%
@@ -279,7 +286,7 @@ df_wham <- safe_mclapply(1:length(paths), function(i) {
     .[, .(wfh_prob = max(wfh_prob)), by = job_id]
   warning(paste0("\nDONE: ",i/length(paths)))
   return(df)
-}, mc.cores = 4)
+}, mc.cores = 8)
 
 df_wham <- rbindlist(df_wham)
 
@@ -306,6 +313,9 @@ df_wham <- df_wham %>%
          wfh_wham = wfh)
 
 df_wham <- df_wham %>%
+  select(job_id, wfh_wham_prob, wfh_wham)
+
+df_wham <- df_wham %>%
   unique(., by = "job_id")
 #### /END ####
 
@@ -317,16 +327,16 @@ df_src <- safe_mclapply(1:length(paths), function(i) {
   df <- fread(paths[i])
   warning(paste0("\nDONE: ",i/length(paths)))
   return(df)
-}, mc.cores = 4) %>%
+}, mc.cores = 8) %>%
   rbindlist(.)
 
 df_src <- df_src %>%
   .[, job_id := as.numeric(job_id)]
 
-nrow(df_src) # 314,555,427
+nrow(df_src) # 329,396,586
 df_src <- df_src %>%
   unique(., by = "job_id")
-nrow(df_src) # 314,404,819
+nrow(df_src) # 329,396,586
 
 #### END ####
 ls()
@@ -339,7 +349,7 @@ source("/mnt/disks/pdisk/bgt_code_repo/old/safe_mclapply.R")
 df_wham$job_id <- as.numeric(df_wham$job_id)
 df_src$job_id <- as.numeric(df_src$job_id)
 
-safe_mclapply(2014:2023, function(x) {
+safe_mclapply(2022:2023, function(x) {
 
   paths_year <- paths[grepl(x, paths)]
   df_stru <- safe_mclapply(1:length(paths_year), function(i) {
@@ -379,7 +389,7 @@ safe_mclapply(2014:2023, function(x) {
 #### END ####
 
 #### EXTRACT ANNUAL HARMONISED DATA, manually changing year ####
-lapply(c(2014:2023), function(yearm) {
+lapply(c(2022:2023), function(yearm) {
   df_all_us <- fread(input = paste0("../bg-us/int_data/us_stru_",yearm,"_wfh.csv"), nThread = 8) %>% .[!is.na(wfh_wham) & wfh_wham != ""]
   
   colnames(df_all_us)
@@ -501,12 +511,7 @@ lapply(c(2014:2023), function(yearm) {
     .[order(job_date, job_id)]
   
   # SAVE #
-  fwrite(df_all_us, file = paste0("./int_data/df_us_", yearm, "_standardised.csv"))
-  
-  file.copy(from = paste0("./int_data/df_us_", yearm, "_standardised.csv"),
-            to = paste0("../bg_combined/int_data/df_us_", yearm, "_standardised.csv"), overwrite = T)
-  
-  unlink(paste0("./int_data/df_us_", yearm, "_standardised.csv"))
+  fwrite(df_all_us, file = paste0("../bg_combined/int_data/df_us_", yearm, "_standardised.csv"))
   
 })
 

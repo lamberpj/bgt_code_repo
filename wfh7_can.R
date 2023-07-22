@@ -2,7 +2,7 @@
 remove(list = ls())
 
 library("devtools")
-install_github("trinker/textclean")
+#install_github("trinker/textclean")
 library("textclean")
 library("data.table")
 library("tidyverse")
@@ -25,9 +25,14 @@ library("ggplot2")
 library("scales")
 library("ggpubr")
 library("ggthemr")
+library("tm")
 ggthemr('flat')
+# tmp <- tempfile()
+# system2("git", c("clone", "--recursive",
+#                  shQuote("https://github.com/patperry/r-corpus.git"), shQuote(tmp)))
+# devtools::install(tmp)
 
-setDTthreads(2)
+setDTthreads(4)
 getDTthreads()
 quanteda_options(threads = 1)
 setwd("/mnt/disks/pdisk/bg-can/")
@@ -37,17 +42,24 @@ remove(list = ls())
 #### end ####
 
 #### PREPARE DATA ####
+# This section loads any relevant data from the Google Cloud Bucket.  Bot that use of "-n" will skip existing files,
+# which reduced load time substantially and should be used unless we think data has been historicalyl updated.
 
-# system("gsutil -m cp -n gs://for_transfer/data_ingest/bgt_upload/CAN_raw/* /mnt/disks/pdisk/bg-can/raw_data/text/")
-# system("gsutil -m cp -n gs://for_transfer/data_ingest/bgt_upload/CAN_stru/* /mnt/disks/pdisk/bg-can/raw_data/main/")
-# system("gsutil -m cp -n gs://for_transfer/wham/CAN/* /mnt/disks/pdisk/bg-can/int_data/wham_pred/")
+# system("gsutil -m cp gs://for_transfer/data_ingest/bgt_upload/CAN_stru/* /mnt/disks/pdisk/bg-can/raw_data/main/")
+# system("gsutil -m cp gs://for_transfer/data_ingest/bgt_upload/CAN_raw/* /mnt/disks/pdisk/bg-can/raw_data/text/")
+# system("gsutil -m cp gs://for_transfer/wham/CAN/* /mnt/disks/pdisk/bg-can/int_data/wham_pred/")
 
 # Upload Sequences
-#system("gsutil -m cp -n /mnt/disks/pdisk/bg-can/int_data/sequences/* gs://for_transfer/sequences_can/sequences/")
+# system("gsutil -m cp -n /mnt/disks/pdisk/bg-can/int_data/sequences/* gs://for_transfer/sequences_can/sequences/")
 
 #### END ####
 
 #### GET PATH NAMES TO MAKE SEQUENCES ####
+# This section gets the path names of the XML files that need to be processed.  It then checks which files have already
+# been processed and removes them from the list.  This is done to allow for the fact that the process may be interrupted
+# and restarted.  The list of files to be processed is then saved as an object called "paths" and the other objects are
+# removed from memory.
+
 paths <- list.files("./raw_data/text/", pattern = "*.zip", full.names = T)
 paths <- paths[grepl("2019|2020|2021|2022|2023", paths)]
 paths_done <- list.files("./int_data/sequences/", pattern = "*.rds", full.names = F) %>%
@@ -64,6 +76,10 @@ paths
 #### /END ####
 
 #### READ XML NAD MAKE SEQUENCES ####
+# This section reads the XML files and makes sequences.  It uses the "safe_mclapply" function to run the process in
+# parallel.  This function is a modified version of the "mclapply" function that is designed to handle errors and
+# warnings.  The function is saved in the "safe_mclapply.R" file in the "old" folder of the BGT code repository.
+
 paths
 source("/mnt/disks/pdisk/bgt_code_repo/old/safe_mclapply.R")
 
@@ -197,6 +213,8 @@ safe_mclapply(1:length(paths), function(i) {
 #### END ####
 
 #### EXTRACT SOURCE AND URL AND SAVE ####
+# This section extracts the source and url from the raw data and saves it to a csv file.
+
 remove(list = ls())
 paths <- list.files("./raw_data/text/", pattern = "*.zip", full.names = T)
 paths <- paths[grepl("2019|2020|2021|2022|2023", paths)]
@@ -252,9 +270,11 @@ system("echo sci2007! | sudo -S shutdown -h now")
 #### /END ####
 
 #### AGGREGATE WHAM TO JOB AD LEVEL ####
+# This section aggregates the WHAM predictions to the job ad level.
+
 remove(list = ls())
 paths <- list.files("./int_data/wham_pred", pattern = "*.txt", full.names = T)
-paths
+sort(paths)
 source("/mnt/disks/pdisk/bgt_code_repo/old/safe_mclapply.R")
 
 df_wham <- safe_mclapply(1:length(paths), function(i) {
@@ -263,7 +283,7 @@ df_wham <- safe_mclapply(1:length(paths), function(i) {
     .[, .(wfh_prob = max(wfh_prob)), by = job_id]
   warning(paste0("\nDONE: ",i/length(paths)))
   return(df)
-}, mc.cores = 8)
+}, mc.cores = 4)
 
 df_wham <- rbindlist(df_wham)
 
@@ -288,13 +308,18 @@ df_wham <- df_wham %>%
   rename(wfh_wham_prob = wfh_prob,
          wfh_wham = wfh)
 
-nrow(df_wham) # 21,967,718
+df_wham <- df_wham %>%
+  select(job_id, wfh_wham_prob, wfh_wham)
+
+nrow(df_wham) # 24,742,816
 df_wham <- df_wham %>%
   unique(., by = "job_id")
-nrow(df_wham) # 21,967,718
+nrow(df_wham) # 24,742,816
 #### /END ####
 
 #### LOAD SRC ####
+# This section loads the URL source data for each posting.
+
 paths <- list.files("./int_data/sources/", pattern = "*.csv", full.names = T)
 source("/mnt/disks/pdisk/bgt_code_repo/old/safe_mclapply.R")
 
@@ -302,20 +327,22 @@ df_src <- safe_mclapply(1:length(paths), function(i) {
   df <- fread(paths[i])
   warning(paste0("\nDONE: ",i/length(paths)))
   return(df)
-}, mc.cores = 8) %>%
+}, mc.cores = 4) %>%
   rbindlist(.)
 
-nrow(df_src) # 33,545,405
+nrow(df_src) # 37,191,084
 df_src <- df_src %>%
   unique(., by = "job_id")
-nrow(df_src) # 33,545,405
+nrow(df_src) # 36,320,503
 
 #### END ####
 ls()
 #### MERGE WHAM PREDICTIONS INTO THE STRUCTURED DATA AND RESAVE ####
+# This section merges the WHAM predictions and URL source data into the structured data.
+
 remove(list = setdiff(ls(), c("df_wham", "df_src")))
 paths <- list.files("/mnt/disks/pdisk/bg-can/raw_data/main", pattern = ".zip", full.names = T)
-paths
+sort(paths)
 source("/mnt/disks/pdisk/bgt_code_repo/old/safe_mclapply.R")
 
 #colnames(fread(cmd = paste0('unzip -p ', paths[102]), nThread = 8, colClasses = "character", stringsAsFactors = FALSE, nrow = 100))
@@ -368,17 +395,20 @@ safe_mclapply(2014:2023, function(x) {
 #### END ####
 
 #### STRUCTURED DATA ####
+# This section creates the structured data product, which is a standardised version of the
+# Lightcast data, so it can be merged together with other countries.
+
 remove(list = ls())
-df_can_stru_2014 <- fread("../bg-can/int_data/can_stru_2014_wfh.csv", nThread = 4)
-df_can_stru_2015 <- fread("../bg-can/int_data/can_stru_2015_wfh.csv", nThread = 4)
-df_can_stru_2016 <- fread("../bg-can/int_data/can_stru_2016_wfh.csv", nThread = 4)
-df_can_stru_2017 <- fread("../bg-can/int_data/can_stru_2017_wfh.csv", nThread = 4)
-df_can_stru_2018 <- fread("../bg-can/int_data/can_stru_2018_wfh.csv", nThread = 4)
-df_can_stru_2019 <- fread("../bg-can/int_data/can_stru_2019_wfh.csv", nThread = 4)
-df_can_stru_2020 <- fread("../bg-can/int_data/can_stru_2020_wfh.csv", nThread = 4)
-df_can_stru_2021 <- fread("../bg-can/int_data/can_stru_2021_wfh.csv", nThread = 4)
-df_can_stru_2022 <- fread("../bg-can/int_data/can_stru_2022_wfh.csv", nThread = 4)
-df_can_stru_2023 <- fread("../bg-can/int_data/can_stru_2023_wfh.csv", nThread = 4)
+df_can_stru_2014 <- fread("../bg-can/int_data/can_stru_2014_wfh.csv", nThread = 4) %>% .[!is.na(wfh_wham) & wfh_wham != ""]
+df_can_stru_2015 <- fread("../bg-can/int_data/can_stru_2015_wfh.csv", nThread = 4) %>% .[!is.na(wfh_wham) & wfh_wham != ""]
+df_can_stru_2016 <- fread("../bg-can/int_data/can_stru_2016_wfh.csv", nThread = 4) %>% .[!is.na(wfh_wham) & wfh_wham != ""]
+df_can_stru_2017 <- fread("../bg-can/int_data/can_stru_2017_wfh.csv", nThread = 4) %>% .[!is.na(wfh_wham) & wfh_wham != ""]
+df_can_stru_2018 <- fread("../bg-can/int_data/can_stru_2018_wfh.csv", nThread = 4) %>% .[!is.na(wfh_wham) & wfh_wham != ""]
+df_can_stru_2019 <- fread("../bg-can/int_data/can_stru_2019_wfh.csv", nThread = 4) %>% .[!is.na(wfh_wham) & wfh_wham != ""]
+df_can_stru_2020 <- fread("../bg-can/int_data/can_stru_2020_wfh.csv", nThread = 4) %>% .[!is.na(wfh_wham) & wfh_wham != ""]
+df_can_stru_2021 <- fread("../bg-can/int_data/can_stru_2021_wfh.csv", nThread = 4) %>% .[!is.na(wfh_wham) & wfh_wham != ""]
+df_can_stru_2022 <- fread("../bg-can/int_data/can_stru_2022_wfh.csv", nThread = 4) %>% .[!is.na(wfh_wham) & wfh_wham != ""]
+df_can_stru_2023 <- fread("../bg-can/int_data/can_stru_2023_wfh.csv", nThread = 4) %>% .[!is.na(wfh_wham) & wfh_wham != ""]
 
 df_all_can <- rbindlist(list(df_can_stru_2014,df_can_stru_2015,df_can_stru_2016,df_can_stru_2017,df_can_stru_2018,df_can_stru_2019,df_can_stru_2020,df_can_stru_2021,df_can_stru_2022, df_can_stru_2023))
 remove(list = setdiff(ls(),"df_all_can"))
@@ -506,10 +536,6 @@ head(df_all_can)
 
 # SAVE #
 colnames(df_all_can)
-fwrite(df_all_can, file = "./int_data/df_can_standardised.csv")
+fwrite(df_all_can, file = "../bg_combined/int_data/df_can_standardised.csv")
 
-file.copy(from = "./int_data/df_can_standardised.csv",
-          to = "../bg_combined/int_data/df_can_standardised.csv", overwrite = T)
-
-unlink("./int_data/df_can_standardised.csv")
 #### END ####

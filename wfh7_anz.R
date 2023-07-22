@@ -2,7 +2,7 @@
 remove(list = ls())
 
 library("devtools")
-install_github("trinker/textclean")
+#install_github("trinker/textclean")
 library("textclean")
 library("data.table")
 library("tidyverse")
@@ -24,10 +24,16 @@ library("readxl")
 library("ggplot2")
 library("scales")
 library("ggpubr")
+#devtools::install_github('Mikata-Project/ggthemr')
 library("ggthemr")
 ggthemr('flat')
 
-setDTthreads(2)
+# tmp <- tempfile()
+# system2("git", c("clone", "--recursive",
+#                  shQuote("https://github.com/patperry/r-corpus.git"), shQuote(tmp)))
+# devtools::install(tmp)
+
+setDTthreads(4)
 getDTthreads()
 quanteda_options(threads = 1)
 setwd("/mnt/disks/pdisk/bg-anz/")
@@ -37,24 +43,24 @@ remove(list = ls())
 #### END ####
 
 #### PREPARE DATA ####
+# This section loads any relevant data from the Google Cloud Bucket.  Bot that use of "-n" will skip existing files,
+# which reduced load time substantially and should be used unless we think data has been historicalyl updated.
 
-#system("gsutil -m cp -n gs://for_transfer/data_ingest/bgt_upload/ANZ_stru/* /mnt/disks/pdisk/bg-anz/raw_data/main/")
-#system("gsutil -m cp -n gs://for_transfer/data_ingest/bgt_upload/ANZ_raw/* /mnt/disks/pdisk/bg-anz/raw_data/text/")
-#system("gsutil -m cp -n gs://for_transfer/wham/ANZ/* /mnt/disks/pdisk/bg-anz/int_data/wham_pred/")
+# system("gsutil -m cp gs://for_transfer/data_ingest/bgt_upload/ANZ_stru/* /mnt/disks/pdisk/bg-anz/raw_data/main/")
+# system("gsutil -m cp -n gs://for_transfer/data_ingest/bgt_upload/ANZ_raw/* /mnt/disks/pdisk/bg-anz/raw_data/text/")
+# system("gsutil -m cp gs://for_transfer/wham/ANZ/* /mnt/disks/pdisk/bg-anz/int_data/wham_pred/")
 
-# Upload Sequences
-#system("gsutil -m cp -n /mnt/disks/pdisk/bg-anz/int_data/sequences/* gs://for_transfer/sequences_anz/sequences/")
-
-# Download WHAM
-#system("gsutil -m cp -r gs://for_transfer/wham/ANZ /mnt/disks/pdisk/bg-anz/int_data/wham_pred/")
+# Upload Sequences to Google Cloud Bucket
+# system("gsutil -m cp -n /mnt/disks/pdisk/bg-anz/int_data/sequences/* gs://for_transfer/sequences_anz/sequences/")
 
 #### END ####
 
-#### IMPORT RAW TEXT ####
-remove(list = ls())
-#### /END ####
-
 #### GET PATH NAMES TO MAKE SEQUENCES ####
+# This section gets the path names of the XML files that need to be processed.  It then checks which files have already
+# been processed and removes them from the list.  This is done to allow for the fact that the process may be interrupted
+# and restarted.  The list of files to be processed is then saved as an object called "paths" and the other objects are
+# removed from memory.
+
 paths <- list.files("./raw_data/text/", pattern = "*.zip", full.names = T)
 paths <- paths[grepl("2019|2020|2021|2022|2023|2023", paths)]
 paths_done <- list.files("./int_data/sequences/", pattern = "*.rds", full.names = F) %>%
@@ -70,6 +76,10 @@ paths
 #### /END ####
 
 #### READ XML NAD MAKE SEQUENCES ####
+# This section reads the XML files and makes sequences.  It uses the "safe_mclapply" function to run the process in
+# parallel.  This function is a modified version of the "mclapply" function that is designed to handle errors and
+# warnings.  The function is saved in the "safe_mclapply.R" file in the "old" folder of the BGT code repository.
+
 paths
 source("/mnt/disks/pdisk/bgt_code_repo/old/safe_mclapply.R")
 
@@ -199,10 +209,12 @@ safe_mclapply(1:length(paths), function(i) {
 }, mc.cores = 2)
 
 #sink()
-system("echo sci2007! | sudo -S shutdown -h now")
+#system("echo sci2007! | sudo -S shutdown -h now")
 #### END ####
 
 #### EXTRACT SOURCE AND URL AND SAVE ####
+# This section extracts the source and url from the raw data and saves it to a csv file.
+
 remove(list = ls())
 paths <- list.files("./raw_data/text/", pattern = "*.zip", full.names = T)
 paths <- paths[grepl("2019|2020|2021|2022|2023", paths)]
@@ -247,14 +259,18 @@ safe_mclapply(1:length(paths), function(i) {
 }, mc.cores = 4)
 
 #sink()
-system("echo sci2007! | sudo -S shutdown -h now")
+#system("echo sci2007! | sudo -S shutdown -h now")
 #### /END ####
 
 #### AGGREGATE WHAM TO JOB AD LEVEL ####
+# This section aggregates the WHAM predictions to the job ad level.
 remove(list = ls())
 paths <- list.files("./int_data/wham_pred", pattern = "*.txt", full.names = T)
 paths <- paths[grepl("2014|2015|2016|2017|2018|2019|2020|2021|2022|2023", paths)]
+sort(paths)
+paths <- paths[!grepl("job_postings_2022_corrected", paths)]
 paths
+
 source("/mnt/disks/pdisk/bgt_code_repo/old/safe_mclapply.R")
 
 df_wham <- safe_mclapply(1:length(paths), function(i) {
@@ -263,7 +279,7 @@ df_wham <- safe_mclapply(1:length(paths), function(i) {
     .[, .(wfh_prob = max(wfh_prob)), by = job_id]
   warning(paste0("\nDONE: ",i/length(paths)))
   return(df)
-}, mc.cores = 8)
+}, mc.cores = 4)
 
 df_wham <- rbindlist(df_wham)
 
@@ -290,15 +306,20 @@ df_wham <- df_wham %>%
          wfh_wham = wfh)
 
 df_wham <- df_wham %>%
+  select(job_id, wfh_wham_prob, wfh_wham)
+
+df_wham <- df_wham %>%
   unique(., by = "job_id")
 
 #### /END ####
 
 #### LOAD SRC ####
+# This section loads the URL source data for each posting.
+
 paths <- list.files("./int_data/sources/", pattern = "*.csv", full.names = T)
 paths <- paths[grepl("2014|2015|2016|2017|2018|2019|2020|2021|2022|2023", paths)]
 source("/mnt/disks/pdisk/bgt_code_repo/old/safe_mclapply.R")
-
+paths
 df_src <- safe_mclapply(1:length(paths), function(i) {
   df <- fread(paths[i])
   warning(paste0("\nDONE: ",i/length(paths)))
@@ -306,20 +327,22 @@ df_src <- safe_mclapply(1:length(paths), function(i) {
 }, mc.cores = 8) %>%
   rbindlist(.)
 
-nrow(df_src) # 31,597,306
+nrow(df_src) # 27,531,783
 df_src <- df_src %>%
   unique(., by = "job_id")
-nrow(df_src) # 31,234,415
+nrow(df_src) # 27,531,783
 
 #### END ####
 ls()
 #### MERGE WHAM PREDICTIONS INTO THE STRUCTURED DATA AND RESAVE ####
+# This section merges the WHAM predictions and URL source data into the structured data.
+
 remove(list = setdiff(ls(), c("df_wham", "df_src")))
 paths <- list.files("/mnt/disks/pdisk/bg-anz/raw_data/main", pattern = ".zip", full.names = T)
 paths
 source("/mnt/disks/pdisk/bgt_code_repo/old/safe_mclapply.R")
 
-safe_mclapply(2014:2023, function(x) {
+safe_mclapply(2022:2023, function(x) {
   paths_year <- paths[grepl(x, paths)]
   
   df_stru <- safe_mclapply(1:length(paths_year), function(i) {
@@ -367,22 +390,23 @@ safe_mclapply(2014:2023, function(x) {
 
 #### END ####
 
-#### EXTRACT QUARTERLY DATA - AUSTRALIA ####
-remove(list = ls())
-df_anz_stru_2014 <- fread("../bg-anz/int_data/anz_stru_2014_wfh.csv", nThread = 4)
-df_anz_stru_2015 <- fread("../bg-anz/int_data/anz_stru_2015_wfh.csv", nThread = 4)
-df_anz_stru_2016 <- fread("../bg-anz/int_data/anz_stru_2016_wfh.csv", nThread = 4)
-df_anz_stru_2017 <- fread("../bg-anz/int_data/anz_stru_2017_wfh.csv", nThread = 4)
-df_anz_stru_2018 <- fread("../bg-anz/int_data/anz_stru_2018_wfh.csv", nThread = 4)
-df_anz_stru_2019 <- fread("../bg-anz/int_data/anz_stru_2019_wfh.csv", nThread = 4)
-df_anz_stru_2020 <- fread("../bg-anz/int_data/anz_stru_2020_wfh.csv", nThread = 4)
-df_anz_stru_2021 <- fread("../bg-anz/int_data/anz_stru_2021_wfh.csv", nThread = 4)
-df_anz_stru_2022 <- fread("../bg-anz/int_data/anz_stru_2022_wfh.csv", nThread = 4)
-df_anz_stru_2023 <- fread("../bg-anz/int_data/anz_stru_2023_wfh.csv", nThread = 4)
+#### CREATE STRUCTURED DATA - AUSTRALIA ####
+# This section creates the structured data for Australia.  This includes creating weights applied to the
+# occupations which had a many-to-many relationship to those which we had employment data available for.
+# This section also reformats a number of fields to be standardised across the Lightcast county-level datasets.
+# This includes standardising industry codes, education level, etc.
 
-df_aus_month_check <- df_anz_stru_2019 %>%
-  group_by(year_quarter) %>%
-  summarise(wfh_share = mean(wfh_wham, na.rm = T))
+remove(list = ls())
+df_anz_stru_2014 <- fread("../bg-anz/int_data/anz_stru_2014_wfh.csv", nThread = 4) %>% .[!is.na(wfh_wham) & wfh_wham != ""]
+df_anz_stru_2015 <- fread("../bg-anz/int_data/anz_stru_2015_wfh.csv", nThread = 4) %>% .[!is.na(wfh_wham) & wfh_wham != ""]
+df_anz_stru_2016 <- fread("../bg-anz/int_data/anz_stru_2016_wfh.csv", nThread = 4) %>% .[!is.na(wfh_wham) & wfh_wham != ""]
+df_anz_stru_2017 <- fread("../bg-anz/int_data/anz_stru_2017_wfh.csv", nThread = 4) %>% .[!is.na(wfh_wham) & wfh_wham != ""]
+df_anz_stru_2018 <- fread("../bg-anz/int_data/anz_stru_2018_wfh.csv", nThread = 4) %>% .[!is.na(wfh_wham) & wfh_wham != ""]
+df_anz_stru_2019 <- fread("../bg-anz/int_data/anz_stru_2019_wfh.csv", nThread = 4) %>% .[!is.na(wfh_wham) & wfh_wham != ""]
+df_anz_stru_2020 <- fread("../bg-anz/int_data/anz_stru_2020_wfh.csv", nThread = 4) %>% .[!is.na(wfh_wham) & wfh_wham != ""]
+df_anz_stru_2021 <- fread("../bg-anz/int_data/anz_stru_2021_wfh.csv", nThread = 4) %>% .[!is.na(wfh_wham) & wfh_wham != ""]
+df_anz_stru_2022 <- fread("../bg-anz/int_data/anz_stru_2022_wfh.csv", nThread = 4) %>% .[!is.na(wfh_wham) & wfh_wham != ""]
+df_anz_stru_2023 <- fread("../bg-anz/int_data/anz_stru_2023_wfh.csv", nThread = 4) %>% .[!is.na(wfh_wham) & wfh_wham != ""]
 
 df_all_aus <- rbindlist(list(df_anz_stru_2014,df_anz_stru_2015,df_anz_stru_2016,df_anz_stru_2017,df_anz_stru_2018,df_anz_stru_2019,df_anz_stru_2020,df_anz_stru_2021,df_anz_stru_2022,df_anz_stru_2023)) %>% filter(canon_country == "AUS") %>% setDT(.)
   
@@ -498,22 +522,24 @@ df_all_aus <- df_all_aus %>%
 head(df_all_aus)
 
 # SAVE #
-fwrite(df_all_aus, file = "./int_data/df_aus_standardised.csv")
+fwrite(df_all_aus, file = "../bg_combined/int_data/df_aus_standardised.csv")
 
 #### END AUSTRALIA ####
 
-#### EXTRACT QUARTERLY DATA - NZ ####
+#### CREATE STRUCTURED DATA - NZ ####
+# This section creates the structured data for NZ. It is similar to the Australian data, but there are some differences in the data structure.
+
 remove(list = ls())
-df_anz_stru_2014 <- fread("../bg-anz/int_data/anz_stru_2014_wfh.csv", nThread = 4)
-df_anz_stru_2015 <- fread("../bg-anz/int_data/anz_stru_2015_wfh.csv", nThread = 4)
-df_anz_stru_2016 <- fread("../bg-anz/int_data/anz_stru_2016_wfh.csv", nThread = 4)
-df_anz_stru_2017 <- fread("../bg-anz/int_data/anz_stru_2017_wfh.csv", nThread = 4)
-df_anz_stru_2018 <- fread("../bg-anz/int_data/anz_stru_2018_wfh.csv", nThread = 4)
-df_anz_stru_2019 <- fread("../bg-anz/int_data/anz_stru_2019_wfh.csv", nThread = 4)
-df_anz_stru_2020 <- fread("../bg-anz/int_data/anz_stru_2020_wfh.csv", nThread = 4)
-df_anz_stru_2021 <- fread("../bg-anz/int_data/anz_stru_2021_wfh.csv", nThread = 4)
-df_anz_stru_2022 <- fread("../bg-anz/int_data/anz_stru_2022_wfh.csv", nThread = 4)
-df_anz_stru_2023 <- fread("../bg-anz/int_data/anz_stru_2023_wfh.csv", nThread = 4)
+df_anz_stru_2014 <- fread("../bg-anz/int_data/anz_stru_2014_wfh.csv", nThread = 4) %>% .[!is.na(wfh_wham) & wfh_wham != ""]
+df_anz_stru_2015 <- fread("../bg-anz/int_data/anz_stru_2015_wfh.csv", nThread = 4) %>% .[!is.na(wfh_wham) & wfh_wham != ""]
+df_anz_stru_2016 <- fread("../bg-anz/int_data/anz_stru_2016_wfh.csv", nThread = 4) %>% .[!is.na(wfh_wham) & wfh_wham != ""]
+df_anz_stru_2017 <- fread("../bg-anz/int_data/anz_stru_2017_wfh.csv", nThread = 4) %>% .[!is.na(wfh_wham) & wfh_wham != ""]
+df_anz_stru_2018 <- fread("../bg-anz/int_data/anz_stru_2018_wfh.csv", nThread = 4) %>% .[!is.na(wfh_wham) & wfh_wham != ""]
+df_anz_stru_2019 <- fread("../bg-anz/int_data/anz_stru_2019_wfh.csv", nThread = 4) %>% .[!is.na(wfh_wham) & wfh_wham != ""]
+df_anz_stru_2020 <- fread("../bg-anz/int_data/anz_stru_2020_wfh.csv", nThread = 4) %>% .[!is.na(wfh_wham) & wfh_wham != ""]
+df_anz_stru_2021 <- fread("../bg-anz/int_data/anz_stru_2021_wfh.csv", nThread = 4) %>% .[!is.na(wfh_wham) & wfh_wham != ""]
+df_anz_stru_2022 <- fread("../bg-anz/int_data/anz_stru_2022_wfh.csv", nThread = 4) %>% .[!is.na(wfh_wham) & wfh_wham != ""]
+df_anz_stru_2023 <- fread("../bg-anz/int_data/anz_stru_2023_wfh.csv", nThread = 4) %>% .[!is.na(wfh_wham) & wfh_wham != ""]
 
 df_all_nz <- rbindlist(list(df_anz_stru_2014,df_anz_stru_2015,df_anz_stru_2016,df_anz_stru_2017,df_anz_stru_2018,df_anz_stru_2019,df_anz_stru_2020,df_anz_stru_2021,df_anz_stru_2022,df_anz_stru_2023)) %>% filter(canon_country == "NZL") %>% setDT(.)
 
@@ -633,9 +659,9 @@ df_all_nz <- df_all_nz %>%
   setDT(.) %>%
   .[order(job_date, job_id)]
 
-head(df_all_nz)
+tail(df_all_nz)
 
-# SAVE #
-fwrite(df_all_nz, file = "./int_data/df_nz_standardised.csv")
+# SAVE
+fwrite(df_all_nz, file = "../bg_combined/int_data/df_nz_standardised.csv")
 
 #### END NEW ZEALAND ####
